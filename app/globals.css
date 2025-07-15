@@ -1,0 +1,284 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 224 100% 67%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 100% 67%;
+    --chart-1: 224 100% 67%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 224 100% 67%;
+    --primary-foreground: 220.9 39.3% 11%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 224 100% 67%;
+    --chart-1: 224 100% 67%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  :root {
+    @media print {
+      @page {
+        margin: 20mm;
+      }
+    
+      body * {
+        visibility: hidden;
+      }
+    
+      .print\:block,
+      .print\:block * {
+        visibility: visible;
+      }
+    
+      .print\:block {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+    
+      .print\:hidden {
+        display: none;
+      }
+    
+      .print\:shadow-none {
+        box-shadow: none;
+      }
+    }
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .entity-badge {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors;
+    @apply bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200;
+  }
+
+  .badge-count {
+    @apply inline-flex items-center justify-center w-5 h-5 text-xs font-semibold rounded-full;
+    @apply bg-brand-500 text-white dark:bg-brand-400 dark:text-brand-900;
+  }
+
+  .nav-item {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent;
+  }
+
+  .nav-item.active {
+    @apply bg-brand-500 text-white shadow-theme;
+  }
+
+  .card-enhanced {
+    @apply bg-card border border-border rounded-xl shadow-theme;
+    @apply dark:bg-card dark:border-border;
+  }
+
+  .input-enhanced {
+    @apply bg-background border-input focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+    @apply dark:bg-background dark:border-input dark:focus:border-brand-400;
+  }
+
+  /* Mobile-first touch optimizations */
+  .touch-target {
+    @apply min-w-12 min-h-12 flex items-center justify-center;
+  }
+
+  .mobile-card {
+    @apply w-full rounded-lg border bg-card p-4 shadow-sm transition-all;
+    @apply hover:shadow-md active:scale-[0.98] md:hover:scale-[1.02];
+  }
+
+  .mobile-table-card {
+    @apply block border-b border-border p-4 last:border-b-0;
+    @apply hover:bg-accent/50 active:bg-accent transition-colors;
+  }
+
+  .responsive-grid {
+    @apply grid gap-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .floating-action-button {
+    @apply fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg;
+    @apply bg-brand-500 text-white hover:bg-brand-600 active:scale-95;
+    @apply transition-all duration-200 touch-target;
+  }
+
+  .bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 rounded-t-xl border-t bg-background;
+    @apply transform transition-transform duration-300 ease-out;
+  }
+
+  .swipeable-container {
+    @apply flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory;
+    @apply scrollbar-hide touch-pan-x;
+  }
+
+  .swipeable-item {
+    @apply flex-none snap-start;
+  }
+
+  /* Table responsiveness */
+  .responsive-table {
+    @apply w-full overflow-hidden;
+  }
+
+  .responsive-table table {
+    @apply w-full border-collapse;
+  }
+
+  .responsive-table thead {
+    @apply hidden md:table-header-group;
+  }
+
+  .responsive-table tbody {
+    @apply block md:table-row-group;
+  }
+
+  .responsive-table tr {
+    @apply block border-b border-border p-4 md:table-row md:border-b-0 md:p-0;
+    @apply hover:bg-accent/50 md:hover:bg-transparent;
+  }
+
+  .responsive-table td {
+    @apply block py-2 md:table-cell md:px-4 md:py-3;
+  }
+
+  .responsive-table td:before {
+    @apply font-medium text-muted-foreground mr-2 md:hidden;
+    content: attr(data-label) ": ";
+  }
+
+  /* Chart responsiveness */
+  .responsive-chart {
+    @apply h-48 w-full sm:h-64 md:h-72 lg:h-80;
+  }
+
+  .chart-legend {
+    @apply flex flex-wrap gap-2 justify-center text-xs sm:text-sm;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 w-full;
+  }
+
+  .skeleton-avatar {
+    @apply skeleton h-10 w-10 rounded-full;
+  }
+
+  .skeleton-button {
+    @apply skeleton h-10 w-24 rounded-md;
+  }
+
+  /* Touch feedback */
+  .touch-feedback {
+    @apply transition-transform duration-150 ease-out;
+  }
+
+  .touch-feedback:active {
+    @apply scale-95 opacity-80;
+  }
+
+  /* Interactive elements */
+  .interactive-element {
+    touch-action: manipulation;
+  }
+}
+
+/* Touch-specific styles */
+@media (pointer: coarse) {
+  .hover-effect:hover {
+    @apply transform-none;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .transition-all,
+  .transition-transform,
+  .transition-colors {
+    transition: none !important;
+  }
+
+  .animate-pulse {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .card-enhanced {
+    @apply border-2 border-foreground;
+  }
+
+  .button {
+    @apply border-2 border-current;
+  }
+}
+
+/* Hide scrollbars but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

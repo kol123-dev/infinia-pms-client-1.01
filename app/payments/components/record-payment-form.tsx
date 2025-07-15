@@ -1,0 +1,1 @@
+// Move the form content from record/page.tsx here

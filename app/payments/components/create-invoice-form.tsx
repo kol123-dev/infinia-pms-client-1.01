@@ -1,0 +1,1 @@
+// Move the form content from invoices/create/page.tsx here

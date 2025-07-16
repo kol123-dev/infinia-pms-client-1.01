@@ -16,7 +16,7 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: "PropertyPro - Rental Management System",
+  title: "Infinia sync - Property Management System",
   description: "Comprehensive multi-tenant property management solution",
   generator: 'v0.dev'
 }
@@ -29,10 +29,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <UserProvider>
               <AuthProvider>
-                <EntityProvider>{children}</EntityProvider>
+                <EntityProvider>
+                  {children}
+                  <Toaster />
+                </EntityProvider>
               </AuthProvider>
             </UserProvider>
-            <Toaster />
           </ThemeProvider>
         </Providers>
       </body>

@@ -132,7 +132,7 @@ function SidebarContent() {
             <Home className="h-4 w-4" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-brand-800 bg-clip-text text-transparent">
-            PropertyPro
+            InfiniaSYNC
           </span>
         </div>
       </div>

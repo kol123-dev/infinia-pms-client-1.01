@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Eye, MessageSquare } from 'lucide-react'
+import { Plus, Eye, MessageSquare, Users, DollarSign, AlertCircle, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -14,9 +14,14 @@ import { TenantDetails } from './components/tenant-details'
 import { TenantEditDialog } from './components/tenant-edit-dialog'
 import { Tenant } from './types'
 import api from '@/lib/axios'
+import { columns } from "./components/columns"
+import { DataTable } from "./components/data-table"
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(0)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -25,15 +30,16 @@ export default function TenantsPage() {
   useEffect(() => {
     const fetchTenants = async () => {
       try {
-        const response = await api.get('/tenants/')
+        const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
         setTenants(response.data.results)
+        setTotalPages(Math.ceil(response.data.count / pageSize))
       } catch (error) {
         console.error('Error fetching tenants:', error)
         toast({ variant: "destructive", description: "Failed to load tenants" })
       }
     }
     fetchTenants()
-  }, [])
+  }, [pageIndex, pageSize])
 
   const handleAddTenant = async (data: any) => {
     try {
@@ -77,31 +83,49 @@ export default function TenantsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Tenants</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Tenants</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <Users className="h-4 w-4 text-brand-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalActiveUnits}</div>
-            <p className="text-xs text-blue-600/75 dark:text-blue-400/75">Occupied units</p>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">{totalActiveUnits}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <p className="text-xs text-green-600">Active tenants</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Rent</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Rent</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <DollarSign className="h-4 w-4 text-brand-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">${totalRentRevenue.toLocaleString()}</div>
-            <p className="text-xs text-purple-600/75 dark:text-purple-400/75">Total rent revenue</p>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">${totalRentRevenue.toLocaleString()}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <p className="text-xs text-green-600">Total rent revenue</p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance Due</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Balance Due</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <AlertCircle className="h-4 w-4 text-brand-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">${totalBalanceDue.toLocaleString()}</div>
-            <p className="text-xs text-emerald-600/75 dark:text-emerald-400/75">Outstanding payments</p>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">${totalBalanceDue.toLocaleString()}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-orange-600" />
+              <p className="text-xs text-orange-600">Outstanding payments</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -112,84 +136,20 @@ export default function TenantsPage() {
           <CardDescription>Manage all tenant information and communications</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Tenant</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Lease Period</TableHead>
-                <TableHead>Rent</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenants.map((tenant) => (
-                <TableRow key={tenant.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {tenant.user?.full_name?.[0] || 'T'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <p className="font-medium">
-                          {tenant.user?.full_name || 'Unnamed Tenant'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{tenant.phone || 'No phone'}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{tenant.current_unit?.property?.name || 'No property'}</span>
-                      {tenant.current_unit?.unit_number && (
-                        <span className="text-sm text-muted-foreground">Unit {tenant.current_unit.unit_number}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      {tenant.move_in_date && (
-                        <>
-                          <span>{new Date(tenant.move_in_date).toLocaleDateString()}</span>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-medium">${tenant.current_unit?.rent || '0'}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={tenant.tenant_status === 'ACTIVE' ? "default" : "destructive"}
-                      className="rounded-md"
-                    >
-                      {tenant.tenant_status?.toLowerCase() || 'unknown'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedTenant(tenant)
-                          setIsDetailsOpen(true)
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <DataTable
+            columns={columns}
+            data={tenants}
+            pageCount={totalPages}
+            pageIndex={pageIndex}
+            pageSize={pageSize}
+            onPageChange={setPageIndex}
+            meta={{
+              onView: (tenant: Tenant) => {
+                setSelectedTenant(tenant)
+                setIsDetailsOpen(true)
+              }
+            }}
+          />
         </CardContent>
       </Card>
 

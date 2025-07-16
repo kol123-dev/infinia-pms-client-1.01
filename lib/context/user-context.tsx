@@ -46,18 +46,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      // Only attempt to fetch user data if we have a valid token format
+      if (!token.trim()) {
+        setLoading(false)
+        setUser(null)
+        return
+      }
+
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
       const response = await api.get('/auth/me/')
       setUser(response.data)
       setError(null)
-    } catch (err) {
-      console.error('Error fetching user:', err)
+    } catch (err: any) {
+      // Clear invalid token
+      if (err.response?.status === 403) {
+        localStorage.removeItem('token')
+        delete api.defaults.headers.common['Authorization']
+      }
       setUser(null)
-      setError('Failed to fetch user data')
+      // Only set error if we're not in the initial loading state
+      if (user !== null) {
+        setError('Failed to fetch user data')
+      }
     } finally {
       setLoading(false)
     }
   }
+
+  // Only fetch user data when component mounts or token changes
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      fetchUser()
+    } else {
+      setLoading(false)
+      setUser(null)
+    }
+  }, [])
 
   const updateProfile = async (data: Partial<User>) => {
     try {

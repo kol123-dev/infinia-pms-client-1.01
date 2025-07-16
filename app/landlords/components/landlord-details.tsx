@@ -2,7 +2,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Building, Phone, Mail } from "lucide-react"
+import { Building, Phone, Mail, CreditCard, Calendar, FileText } from "lucide-react"
+import { format } from 'date-fns'
 
 interface Landlord {
   id: number
@@ -42,56 +43,100 @@ interface LandlordDetailsProps {
 export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }: LandlordDetailsProps) {
   if (!landlord) return null
 
+  const totalRevenue = landlord.properties?.reduce((sum, prop) => sum + prop.actual_monthly_revenue, 0) || 0
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Landlord Details</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Landlord Details</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback>{landlord.user.full_name.charAt(0)}</AvatarFallback>
+        <div className="grid gap-6 py-6">
+          {/* Header Section */}
+          <div className="flex items-center gap-6 bg-secondary/20 p-6 rounded-lg">
+            <Avatar className="h-20 w-20 border-4 border-primary/20">
+              <AvatarFallback className="text-xl">{landlord.user.full_name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold">{landlord.user.full_name}</h3>
-              <p className="text-sm text-muted-foreground">{landlord.business_name}</p>
+              <h3 className="text-2xl font-bold mb-1">{landlord.user.full_name}</h3>
+              <p className="text-muted-foreground text-lg">{landlord.business_name}</p>
+              <Badge className="mt-2" variant="secondary">
+                {landlord.properties?.length || 0} Properties
+              </Badge>
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              <span>{landlord.user.email}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              <span>{landlord.user.phone}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              <span>{landlord.properties?.length || 0} Properties</span>
+          {/* Contact Information */}
+          <div className="grid gap-4 bg-card p-6 rounded-lg shadow-sm">
+            <h4 className="text-lg font-semibold mb-2">Contact Information</h4>
+            <div className="grid gap-4">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary" />
+                <span className="text-lg">{landlord.user.email}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone className="h-5 w-5 text-primary" />
+                <span className="text-lg">{landlord.user.phone}</span>
+              </div>
+              {landlord.id_number && (
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <span className="text-lg">ID: {landlord.id_number}</span>
+                </div>
+              )}
             </div>
           </div>
 
+          {/* Properties Section */}
           {landlord.properties && landlord.properties.length > 0 && (
-            <div className="grid gap-2">
-              <h4 className="font-semibold">Properties</h4>
-              <div className="grid gap-1">
+            <div className="grid gap-4 bg-card p-6 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-semibold">Properties</h4>
+                <Badge variant="secondary" className="text-base px-4 py-1">
+                  Total Revenue: ${totalRevenue.toLocaleString()}/month
+                </Badge>
+              </div>
+              <div className="grid gap-3">
                 {landlord.properties.map((property) => (
-                  <div key={property.id} className="flex items-center justify-between rounded-lg border p-2">
-                    <span>{property.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{property.total_units} Units</Badge>
-                      <Badge variant="outline">${property.actual_monthly_revenue.toLocaleString()}/mo</Badge>
+                  <div key={property.id} 
+                    className="flex items-center justify-between rounded-lg border p-4 hover:bg-secondary/10 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Building className="h-5 w-5 text-primary" />
+                      <span className="text-lg font-medium">{property.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-base">
+                        {property.total_units} Units
+                      </Badge>
+                      <Badge variant="outline" className="text-base text-green-600 bg-green-50">
+                        ${property.actual_monthly_revenue.toLocaleString()}/mo
+                      </Badge>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Registration Info */}
+          <div className="grid gap-4 bg-card p-6 rounded-lg shadow-sm">
+            <h4 className="text-lg font-semibold">Registration Details</h4>
+            <div className="grid gap-3">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span>Registered: {format(new Date(landlord.created_at), 'PPP')}</span>
+              </div>
+              {landlord.company_registration_number && (
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  <span>Company Reg: {landlord.company_registration_number}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <DialogFooter>
+
+        <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Close</Button>
           <Button variant="outline" onClick={() => onEdit(landlord)}>Edit</Button>
           <Button variant="destructive" onClick={() => onDelete(landlord)}>Delete</Button>

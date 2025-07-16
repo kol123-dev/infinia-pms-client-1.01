@@ -26,22 +26,19 @@ api.interceptors.request.use(
   }
 )
 
-// Add response interceptor for debugging
+// Add response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
-    console.log('Response:', {
-      status: response.status,
-      data: response.data,
-      headers: response.headers
-    })
-    return response
-  },
+  (response) => response,
   (error) => {
-    console.error('Response error:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      headers: error.response?.headers
-    })
+    // Only log errors if we have a token (authenticated state)
+    const token = localStorage.getItem('token')
+    if (token && error.response?.status !== 403) {
+      console.error('Response error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers
+      })
+    }
     return Promise.reject(error)
   }
 )

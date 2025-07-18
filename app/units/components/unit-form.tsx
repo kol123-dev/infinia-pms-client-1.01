@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Unit } from "../types"
+import { Unit, Property } from "../types"
 import api from "@/lib/axios"
 import { useToast } from "@/hooks/use-toast"
 
@@ -19,6 +19,7 @@ interface UnitFormProps {
 export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [properties, setProperties] = useState<Property[]>([])
   const [formData, setFormData] = useState({
     unit_number: unit?.unit_number || "",
     unit_type: unit?.unit_type || "2BR/2BA/OK",
@@ -29,18 +30,39 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
     deposit: unit?.deposit || "",
     amenities: unit?.amenities || [],
     features: unit?.features || { parking_spots: 0, storage_unit: "" },
-    property_id: unit?.property.id || ""
+    property_id: unit?.property.id ? unit.property.id.toString() : ""
   })
 
+  useEffect(() => {
+    const fetchProperties = async () => {
+      setIsLoading(true)
+      try {
+        const response = await api.get('/properties/')
+        setProperties(response.data.results || [])
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load properties"
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchProperties()
+  }, [])
+
+  // Update the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
+  
     try {
       if (unit) {
-        await api.put(`/api/v1/units/${unit.id}/`, formData)
+        await api.put(`/units/${unit.id}/`, formData)
       } else {
-        await api.post('/api/v1/units/', formData)
+        await api.post(`/properties/${formData.property_id}/units/`, formData)
       }
       toast({
         title: "Success",
@@ -68,6 +90,25 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label>Property</label>
+              <Select
+                value={formData.property_id.toString()}
+                onValueChange={(value) => setFormData({ ...formData, property_id: value })}
+                disabled={!!unit}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property" />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties.map((property) => (
+                    <SelectItem key={property.id} value={property.id.toString()}>
+                      {property.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <label>Unit Number</label>
               <Input

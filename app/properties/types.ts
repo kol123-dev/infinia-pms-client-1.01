@@ -1,7 +1,7 @@
 export interface Property {
   id: number
   property_id: string | null
-  name: string
+  name: string | null
   property_type: string
   building_type: string
   description: string
@@ -14,8 +14,27 @@ export interface Property {
   }
   landlord: {
     id: number
-    name: string
-    business_name?: string
+    landlord_id: string | null
+    user: {
+      id: number
+      email: string
+      full_name: string
+      phone: string
+      role: string
+      is_active: boolean
+    }
+    agent: {
+      id: number
+      user: {
+        id: number
+        email: string
+        full_name: string
+      }
+    } | null
+    phone: string
+    business_name: string
+    properties: Array<any>
+    created_at: string
   } | null
   agent: {
     id: number

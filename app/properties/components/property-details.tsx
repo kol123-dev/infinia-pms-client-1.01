@@ -16,6 +16,8 @@ interface PropertyDetailsProps {
 }
 
 export function PropertyDetails({ property, isOpen, onClose, onDelete }: PropertyDetailsProps) {
+  console.log('Property data:', property);
+  console.log('Landlord data:', property.landlord);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
   
@@ -109,7 +111,7 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
           <div className="aspect-video bg-muted rounded-lg overflow-hidden">
             <img
               src="/placeholder.svg"
-              alt={property.name}
+              alt={property.name || ''}
               className="h-full w-full object-cover"
             />
           </div>
@@ -128,7 +130,7 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg">
                 <h4 className="text-sm font-medium text-muted-foreground">Landlord</h4>
-                <p className="mt-1">{property.landlord?.name || 'Not assigned'}</p>
+                <p className="mt-1">{property.landlord?.user?.full_name || 'Not assigned'}</p>
               </div>
               <div className="p-4 border rounded-lg">
                 <h4 className="text-sm font-medium text-muted-foreground">Agent</h4>

@@ -17,9 +17,13 @@ interface PropertyFormProps {
 
 interface Landlord {
   id: number
+  landlord_id: number | null
   business_name: string
-  name: string
-  email: string
+  user: {
+    id: number
+    email: string
+    full_name: string
+  }
 }
 
 interface Agent {
@@ -44,7 +48,7 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
   const [formData, setFormData] = useState({
     name: property?.name || "",
     property_type: property?.property_type || "RESIDENTIAL",
-    building_type: property?.building_type || "STOREY",  // This is now correct as it matches backend
+    building_type: property?.building_type || "STOREY",
     description: property?.description || "",
     location: {
       address: property?.location?.address || "",
@@ -54,35 +58,34 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
       }
     },
     landlord_id: property?.landlord?.id || null,
-    agent_id: property?.agent?.id || null,
     property_manager_id: property?.property_manager?.id || null,
     units: {
-      total: property?.units?.total || 0,
-      occupied: property?.units?.occupied || 0,
-      vacant: property?.units?.vacant || 0,
-      underMaintenance: property?.units?.underMaintenance || 0
+      total: property?.units?.summary?.total || 0,
+      occupied: property?.units?.summary?.occupied || 0,
+      vacant: property?.units?.summary?.vacant || 0,
+      underMaintenance: property?.units?.summary?.underMaintenance || 0
     },
     financials: {
-      potentialMonthlyRevenue: property?.financials?.potentialMonthlyRevenue || 0,
-      actualMonthlyRevenue: property?.financials?.actualMonthlyRevenue || 0
+      potentialMonthlyRevenue: property?.financials?.summary?.potentialMonthlyRevenue || 0,
+      actualMonthlyRevenue: property?.financials?.summary?.actualMonthlyRevenue || 0
     }
   })
 
   const [landlords, setLandlords] = useState<Landlord[]>([])
-  const [agents, setAgents] = useState<Agent[]>([])
   const [propertyManagers, setPropertyManagers] = useState<PropertyManager[]>([])
 
   useEffect(() => {
-    // Fetch available landlords, agents, and property managers
+    // Fetch available landlords and property managers
     const fetchData = async () => {
       try {
-        const [landlordsRes, agentsRes, managersRes] = await Promise.all([
-          api.get('/landlords/'),
-          api.get('/agents/'),
+        const [landlordsRes, managersRes] = await Promise.all([
+          api.get('/landlords/'), // The backend will filter landlords based on the agent's token
           api.get('/property-managers/')
         ])
-        setLandlords(landlordsRes.data.results)
-        setAgents(agentsRes.data.results)
+        // Log the response to see the structure
+        console.log('Landlords response:', landlordsRes.data)
+        // Make sure we're accessing the correct data structure
+        setLandlords(landlordsRes.data.results || landlordsRes.data)
         setPropertyManagers(managersRes.data.results)
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -94,18 +97,15 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Prepare the data according to PropertyWriteSerializer format
       const finalData = {
         name: formData.name,
         property_type: formData.property_type,
         building_type: formData.building_type,
         description: formData.description,
         address: formData.location.address,
-        // Default to 0 if coordinates are null
         latitude: formData.location.coordinates.lat ?? 0,
         longitude: formData.location.coordinates.lng ?? 0,
         landlord: formData.landlord_id || null,
-        agent: formData.agent_id || null,
         total_units: Number(formData.units.total) || 0,
         occupied_units: Number(formData.units.occupied) || 0,
         vacant_units: Number(formData.units.vacant) || 0,
@@ -114,19 +114,20 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
         actual_monthly_revenue: Number(formData.financials.actualMonthlyRevenue) || 0
       };
   
+      console.log('Request payload:', finalData);
+  
+      let response;
       if (property) {
-        await api.put(`/properties/${property.id}/`, finalData);
+        response = await api.put(`/properties/${property.id}/`, finalData);
       } else {
-        await api.post('/properties/', finalData);
+        response = await api.post('/properties/', finalData);
       }
+      console.log('Response:', response.data);
+      
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error('Error saving property:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
+      console.error('Error saving property:', error.response?.data || error);
     }
 }
 
@@ -227,7 +228,7 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
                 />
               </div>
 
-              {/* Property Management */}
+              {/* Property Management section */}
               <div className="space-y-4">
                 <h3 className="font-medium">Property Management</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -243,26 +244,7 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
                       <SelectContent>
                         {landlords.map((landlord) => (
                           <SelectItem key={landlord.id} value={landlord.id.toString()}>
-                            {landlord.business_name || landlord.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="agent">Agent</Label>
-                    <Select
-                      value={formData.agent_id?.toString()}
-                      onValueChange={(value) => handleChange("agent_id", parseInt(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select agent" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {agents.map((agent) => (
-                          <SelectItem key={agent.id} value={agent.id.toString()}>
-                            {agent.user.full_name}
+                            {landlord.user.full_name}
                           </SelectItem>
                         ))}
                       </SelectContent>

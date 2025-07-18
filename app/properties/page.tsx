@@ -99,14 +99,14 @@ export default function Properties() {
             <div className="aspect-video bg-muted">
               <img
                 src="/placeholder.svg"
-                alt={property.name}
+                alt={property.name || 'Unnamed Property'}
                 className="h-full w-full object-cover"
               />
             </div>
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-lg">{property.name}</CardTitle>
+                  <CardTitle className="text-lg">{property.name || 'Unnamed Property'}</CardTitle>
                   <CardDescription className="flex items-center mt-1">
                     <MapPin className="mr-1 h-3 w-3" />
                     {property.location.address}

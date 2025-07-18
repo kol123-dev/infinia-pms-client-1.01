@@ -13,6 +13,8 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { UnitForm } from "./components/unit-form"
 import { UnitDetails } from "./components/unit-details"
 import { Unit } from "./types"
+// Add this import at the top with other imports
+import { BulkUnitForm } from "./components/bulk-unit-form"
 
 export default function Units() {
   const [units, setUnits] = useState<Unit[]>([])
@@ -26,6 +28,7 @@ export default function Units() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isBulkFormOpen, setIsBulkFormOpen] = useState(false)
   const { toast } = useToast()
 
   const [stats, setStats] = useState({
@@ -90,11 +93,28 @@ export default function Units() {
     <MainLayout>
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl">Units Management</h1>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Unit
-        </Button>
+        <div className="space-x-2">
+          <Button onClick={() => setIsBulkFormOpen(true)} variant="outline">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Multiple Units
+          </Button>
+          <Button onClick={() => setIsFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Unit
+          </Button>
+        </div>
       </div>
+      
+      {isBulkFormOpen && (
+        <BulkUnitForm
+          isOpen={isBulkFormOpen}
+          onClose={() => setIsBulkFormOpen(false)}
+          onSuccess={() => {
+            setIsBulkFormOpen(false)
+            fetchUnits()
+          }}
+        />
+      )}
 
       <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>

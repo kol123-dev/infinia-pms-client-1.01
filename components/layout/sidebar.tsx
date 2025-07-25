@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/context/auth-context"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { EntitySelector } from "./entity-selector"
@@ -124,9 +123,9 @@ function SidebarContent() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background border-r shadow-theme-lg">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
+    <div className="flex h-screen flex-col bg-background border-r shadow-theme-lg overflow-hidden">
+      {/* Logo - Fixed at top */}
+      <div className="flex h-16 items-center border-b px-6 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
             <Home className="h-4 w-4" />
@@ -137,12 +136,13 @@ function SidebarContent() {
         </div>
       </div>
 
-      {/* Entity Selector - Mobile */}
-      <div className="p-4 border-b md:hidden">
+      {/* Entity Selector - Mobile - Fixed */}
+      <div className="p-4 border-b md:hidden flex-shrink-0">
         <EntitySelector />
       </div>
 
-      <ScrollArea className="flex-1 px-4">
+      {/* Navigation Content - Scrollable only if needed */}
+      <div className="flex-1 overflow-y-auto px-4">
         {/* Main Navigation */}
         <div className="space-y-2 py-4">
           <div className="px-2 py-2">
@@ -209,10 +209,10 @@ function SidebarContent() {
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
 
-      {/* Footer */}
-      <div className="mt-auto border-t p-4">
+      {/* Footer - Fixed at bottom */}
+      <div className="border-t p-4 flex-shrink-0">
         <div className="flex flex-col gap-4">
           <div className="entity-badge">
             <span className="text-xs">Current Context</span>
@@ -242,19 +242,15 @@ function SidebarContent() {
 export function EnhancedSidebar() {
   return (
     <div className="fixed left-0 top-0 bottom-0 z-30 hidden border-r bg-background md:block w-64">
-      <div className="flex h-full flex-col">
-        <SidebarContent />
-      </div>
+      <SidebarContent />
     </div>
   )
 }
 
 export function Sidebar() {
   return (
-    <div className="hidden md:block w-64">
-      <div className="flex h-full flex-col">
-        <SidebarContent />
-      </div>
+    <div className="fixed left-0 top-0 bottom-0 z-30 hidden md:block w-64 bg-background">
+      <SidebarContent />
     </div>
   )
 }

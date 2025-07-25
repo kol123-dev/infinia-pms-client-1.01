@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input"
 import { formatCurrency } from "@/lib/utils"
 import { Check, Clock, AlertTriangle, Loader2 } from "lucide-react"
 import axios from "@/lib/axios"
+import { Eye, MessageSquare } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 interface Invoice {
   id: string
@@ -44,6 +47,7 @@ interface Invoice {
 
 export function InvoiceList() {
   const [searchTerm, setSearchTerm] = useState("")
+  const { toast } = useToast()
 
   const { data: invoicesData, isLoading, error } = useQuery<{
     count: number;
@@ -108,6 +112,28 @@ export function InvoiceList() {
     invoice.unit.property.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const handleSendSMS = async (invoice: Invoice) => {
+    try {
+      await axios.post(`/communications/`, {
+        recipients: [invoice.tenant.id], // Changed to array of tenant IDs
+        landlord: 1, // You'll need to provide the correct landlord ID
+        body: `Dear ${invoice.tenant.user.full_name},\n\nThis is a reminder about invoice ${invoice.invoice_number} for ${formatCurrency(invoice.amount)}, due on ${new Date(invoice.due_date).toLocaleDateString()}.\n\nThank you.`
+      })
+      
+      toast({
+        title: "Success",
+        description: "Invoice SMS sent successfully"
+      })
+    } catch (error) {
+      console.error('Error sending SMS:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send SMS notification"
+      })
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Input
@@ -127,6 +153,7 @@ export function InvoiceList() {
             <TableHead>Paid Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Method</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -150,6 +177,21 @@ export function InvoiceList() {
               <TableCell>{invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : "-"}</TableCell>
               <TableCell>{getStatusBadge(invoice.status)}</TableCell>
               <TableCell>{invoice.payment_method || "-"}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={() => handleSendSMS(invoice)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

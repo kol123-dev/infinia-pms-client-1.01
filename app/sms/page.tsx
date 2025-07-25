@@ -3,316 +3,171 @@
 import { useState } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useQueryClient } from '@tanstack/react-query'
+import { useQuery } from "@tanstack/react-query"
+import axios from "@/lib/axios"
+import { SmsMessage, SmsTemplate, Tenant, TenantGroup, User } from "./types"
+import { MessageDetailsModal } from "./components/message-details-modal"
+import { EditTemplateDialog } from "./components/edit-template-dialog"
+import { DeleteTemplateDialog } from "./components/delete-template-dialog"
+import { SendSmsForm } from "./components/send-sms-form"
+import { MessageHistory } from "./components/message-history"
+import { useUser } from "@/lib/context/user-context"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { MessageSquare, Send, Users, Clock, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 
-const conversations = [
-  {
-    id: 1,
-    tenant: "John Doe",
-    property: "Sunset Apartments",
-    unit: "4B",
-    lastMessage: "Thank you for the quick response!",
-    timestamp: "2 hours ago",
-    unread: 0,
-    status: "active",
-  },
-  {
-    id: 2,
-    tenant: "Sarah Wilson",
-    property: "Downtown Complex",
-    unit: "2A",
-    lastMessage: "When can the maintenance be scheduled?",
-    timestamp: "1 day ago",
-    unread: 2,
-    status: "active",
-  },
-  {
-    id: 3,
-    tenant: "Mike Johnson",
-    property: "Garden View",
-    unit: "1C",
-    lastMessage: "Payment has been sent",
-    timestamp: "3 days ago",
-    unread: 0,
-    status: "active",
-  },
-]
-
-const messageTemplates = [
-  {
-    id: 1,
-    name: "Rent Reminder",
-    content:
-      "Hi {tenant_name}, this is a friendly reminder that your rent payment of ${amount} is due on {due_date}. Please let us know if you have any questions.",
-  },
-  {
-    id: 2,
-    name: "Maintenance Scheduled",
-    content:
-      "Hello {tenant_name}, your maintenance request has been scheduled for {date} between {time}. Please ensure someone is available to provide access.",
-  },
-  {
-    id: 3,
-    name: "Lease Renewal",
-    content:
-      "Dear {tenant_name}, your lease for {property} Unit {unit} expires on {lease_end}. Please contact us to discuss renewal options.",
-  },
-]
+// Remove the local interface definitions since we're importing them from types.ts
 
 export default function SMS() {
-  const [selectedConversation, setSelectedConversation] = useState<(typeof conversations)[0] | null>(null)
-  const [newMessage, setNewMessage] = useState("")
-  const [selectedTemplate, setSelectedTemplate] = useState("")
+  const { user } = useUser() as { user: User | null }
+  const queryClient = useQueryClient()
+  const [selectedMessage, setSelectedMessage] = useState<SmsMessage | null>(null)
+  const [editingTemplate, setEditingTemplate] = useState<SmsTemplate | null>(null)
+  const [deletingTemplate, setDeletingTemplate] = useState<SmsTemplate | null>(null)
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      // Handle sending message
-      setNewMessage("")
+  const { data: smsMessages } = useQuery<{ count: number, results: SmsMessage[] }>({ 
+    queryKey: ["sms-messages"],
+    queryFn: async () => {
+      const response = await axios.get("/communications/messages/")
+      return response.data
+    }
+  })
+
+  const { data: templates } = useQuery<{ count: number, results: SmsTemplate[] }>({ 
+    queryKey: ["sms-templates"],
+    queryFn: async () => {
+      const response = await axios.get("/communications/templates/")
+      return response.data
+    }
+  })
+
+  const { data: tenants } = useQuery<{ count: number, results: Tenant[] }>({ 
+    queryKey: ["tenants"],
+    queryFn: async () => {
+      const response = await axios.get("/tenants/")
+      return response.data
+    }
+  })
+
+  const { data: tenantGroups } = useQuery<{ count: number, results: TenantGroup[] }>({ 
+    queryKey: ["tenant-groups"],
+    queryFn: async () => {
+      const response = await axios.get("/tenants/groups/")
+      return response.data
+    }
+  })
+
+  const handleSendMessage = async (message: string, recipients: string[], groups: string[]) => {
+    try {
+      await axios.post("/communications/messages/bulk/", {
+        body: message,
+        recipient_groups: groups,
+        individual_recipients: recipients
+      })
+      queryClient.invalidateQueries({ queryKey: ["sms-messages"] })
+    } catch (error) {
+      console.error('Failed to send message:', error)
+    }
+  }
+
+  const handleDeleteMessage = async (id: string) => {
+    try {
+      await axios.delete(`/communications/${id}/`)
+      queryClient.invalidateQueries({ queryKey: ["sms-messages"] })
+    } catch (error) {
+      console.error('Failed to delete message:', error)
+    }
+  }
+
+  const handleCreateTemplate = async (templateId: number | null, name: string, content: string) => {
+    try {
+      if (templateId) {
+        await axios.put(`/communications/templates/${templateId}/`, {
+          name,
+          content,
+          landlord: user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id
+        })
+      } else {
+        await axios.post("/communications/templates/", {
+          name,
+          content,
+          landlord: user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id
+        })
+      }
+      queryClient.invalidateQueries({ queryKey: ["sms-templates"] })
+    } catch (error) {
+      console.error('Failed to save template:', error)
+    }
+  }
+
+  const handleDeleteTemplate = async (templateId: number) => {
+    try {
+      await axios.delete(`/communications/templates/${templateId}/`)
+      queryClient.invalidateQueries({ queryKey: ["sms-templates"] })
+      setDeletingTemplate(null)
+    } catch (error) {
+      console.error('Failed to delete template:', error)
     }
   }
 
   return (
     <MainLayout>
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold md:text-2xl">SMS Communications</h1>
-        <div className="flex space-x-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Message
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Send New Message</DialogTitle>
-                <DialogDescription>Send SMS to tenants</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="recipient">Recipient</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tenant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {conversations.map((conv) => (
-                        <SelectItem key={conv.id} value={conv.id.toString()}>
-                          {conv.tenant} - {conv.property} {conv.unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="template">Template (Optional)</Label>
-                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {messageTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id.toString()}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleSendMessage} className="w-full">
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Message
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline">
-            <Users className="mr-2 h-4 w-4" />
-            Bulk Message
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="container mx-auto py-6 space-y-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
-            <MessageSquare className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Conversations</CardTitle>
-            <Users className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{conversations.length}</div>
-            <p className="text-xs text-muted-foreground">Ongoing chats</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Response Rate</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">94%</div>
-            <p className="text-xs text-muted-foreground">Within 24 hours</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Conversations</CardTitle>
-            <CardDescription>Recent SMS conversations with tenants</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {conversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    selectedConversation?.id === conversation.id
-                      ? "bg-primary/10 border border-primary/20"
-                      : "hover:bg-muted/50"
-                  }`}
-                  onClick={() => setSelectedConversation(conversation)}
-                >
-                  <div className="flex items-start space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="/placeholder.svg" />
-                      <AvatarFallback>
-                        {conversation.tenant
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium truncate">{conversation.tenant}</p>
-                        {conversation.unread > 0 && (
-                          <Badge variant="destructive" className="text-xs">
-                            {conversation.unread}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {conversation.property} - {conversation.unit}
-                      </p>
-                      <p className="text-sm text-muted-foreground truncate mt-1">{conversation.lastMessage}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{conversation.timestamp}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Send SMS</CardTitle>
+              <CardDescription>Send SMS messages to your tenants</CardDescription>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>
-              {selectedConversation ? `Chat with ${selectedConversation.tenant}` : "Select a conversation"}
-            </CardTitle>
-            {selectedConversation && (
-              <CardDescription>
-                {selectedConversation.property} - Unit {selectedConversation.unit}
-              </CardDescription>
-            )}
+            <Button onClick={() => setEditingTemplate({ 
+              id: 0, 
+              name: '', 
+              content: '', 
+              landlord: user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id || 0,
+              created_at: new Date().toISOString(), 
+              updated_at: new Date().toISOString() 
+            })} variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Template
+            </Button>
           </CardHeader>
           <CardContent>
-            {selectedConversation ? (
-              <div className="space-y-4">
-                <div className="h-96 border rounded-lg p-4 overflow-y-auto bg-muted/20">
-                  <div className="space-y-4">
-                    <div className="flex justify-end">
-                      <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-xs">
-                        <p className="text-sm">Hi John, just wanted to follow up on your maintenance request.</p>
-                        <p className="text-xs opacity-70 mt-1">2:30 PM</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-start">
-                      <div className="bg-muted rounded-lg px-3 py-2 max-w-xs">
-                        <p className="text-sm">Thank you for the quick response!</p>
-                        <p className="text-xs text-muted-foreground mt-1">2:45 PM</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  />
-                  <Button onClick={handleSendMessage}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-96 text-muted-foreground">
-                <div className="text-center">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                  <p>Select a conversation to start messaging</p>
-                </div>
-              </div>
-            )}
+            <SendSmsForm
+              templates={templates}
+              tenants={tenants}
+              tenantGroups={tenantGroups}
+              onSend={handleSendMessage}
+            />
           </CardContent>
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Message Templates</CardTitle>
-          <CardDescription>Pre-defined templates for common communications</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {messageTemplates.map((template) => (
-              <div key={template.id} className="p-4 border rounded-lg">
-                <h4 className="font-medium mb-2">{template.name}</h4>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-3">{template.content}</p>
-                <Button variant="outline" size="sm">
-                  Use Template
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        <MessageHistory
+          messages={smsMessages}
+          onMessageSelect={setSelectedMessage}
+        />
+
+        {selectedMessage && (
+          <MessageDetailsModal
+            message={selectedMessage}
+            onClose={() => setSelectedMessage(null)}
+            onDelete={handleDeleteMessage}
+          />
+        )}
+
+        <EditTemplateDialog
+          isOpen={!!editingTemplate}
+          onClose={() => setEditingTemplate(null)}
+          onSubmit={handleCreateTemplate}
+          template={editingTemplate}
+        />
+
+        <DeleteTemplateDialog
+          isOpen={!!deletingTemplate}
+          onClose={() => setDeletingTemplate(null)}
+          onConfirm={handleDeleteTemplate}
+          template={deletingTemplate}
+        />
+      </div>
     </MainLayout>
   )
 }

@@ -1,17 +1,19 @@
-FROM node:18-alpine
-
+# Build stage
+FROM node:18-alpine AS builder
 WORKDIR /app
-
-# Install dependencies
-COPY package.json package-lock.json ./
+COPY package*.json ./
 RUN npm ci
-
-# Copy project files
 COPY . .
-
-# Build application
 RUN npm run build
 
-EXPOSE 3000
+# Production stage
+FROM node:18-alpine AS runner
+WORKDIR /app
 
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+
+EXPOSE 3000
 CMD ["npm", "start"]

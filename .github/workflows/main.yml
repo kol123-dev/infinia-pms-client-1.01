@@ -16,12 +16,28 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Run lint
       run: npm run lint
+
+    - name: Build application
+      run: npm run build
+      env:
+        NODE_ENV: production
+
+    - name: Check build output
+      run: |
+        if [ -d ".next" ]; then
+          echo "✅ Build successful - .next directory created"
+          ls -la .next/
+        else
+          echo "❌ Build failed - .next directory not found"
+          exit 1
+        fi
 
   deploy:
     needs: test
@@ -36,6 +52,40 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /var/www/infinia-pms/frontend
-          git pull
+          
+          # Clean up any local changes and cache files
+          git reset --hard HEAD
+          git clean -fd
+          
+          # Remove node_modules and build artifacts
+          rm -rf node_modules
+          rm -rf .next
+          rm -rf out
+          
+          # Remove package-lock if it exists to avoid conflicts
+          rm -f package-lock.json
+          
+          # Stash any remaining local changes
+          git stash
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Navigate to docker-compose directory
           cd /var/www/infinia-pms/config
-          docker-compose up -d --build frontend
+          
+          # Stop existing containers
+          docker-compose down frontend
+          
+          # Remove any orphaned containers and networks
+          docker system prune -f
+          
+          # Build and start frontend container
+          docker-compose up -d --build --force-recreate frontend
+          
+          # Show container status
+          docker-compose ps
+          
+          # Show frontend logs for verification
+          echo "=== Frontend Container Logs ==="
+          docker-compose logs --tail=20 frontend

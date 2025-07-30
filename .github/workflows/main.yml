@@ -62,8 +62,8 @@ jobs:
           rm -rf .next
           rm -rf out
           
-          # Remove package-lock if it exists to avoid conflicts
-          rm -f package-lock.json
+          # Remove the unused pnpm lock file to avoid confusion
+          rm -f pnpm-lock.yaml
           
           # Stash any remaining local changes
           git stash

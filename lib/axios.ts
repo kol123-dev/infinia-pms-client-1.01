@@ -1,12 +1,13 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://194.163.148.34:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
 })
+console.log('Axios baseURL:', api.defaults.baseURL)
 
 // Add request interceptor for authentication
 api.interceptors.request.use(

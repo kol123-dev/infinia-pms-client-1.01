@@ -1,12 +1,21 @@
 import axios from 'axios'
 
+// Dynamically determine API URL based on current environment
+const getApiBaseUrl = () => {
+  // In browser environment
+  if (typeof window !== 'undefined') {
+    // If we're on the production server
+    if (window.location.hostname === '194.163.148.34' || 
+        window.location.hostname === 'rental.infiniasync.com') {
+      return `http://${window.location.hostname}:8000/api/v1`
+    }
+  }
+  // Default or server-side rendering
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+}
+
 const api = axios.create({
-  // Force localhost regardless of environment variable
-  // baseURL: 'http://localhost:8000/api/v1',
-
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-
-
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'

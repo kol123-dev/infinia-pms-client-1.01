@@ -36,7 +36,14 @@ export default function SignIn() {
       setLoading(true)
       await signInWithGoogle()
       // Always redirect to dashboard regardless of role
-      router.push('/dashboard')
+      // In handleEmailSignIn and handleGoogleSignIn functions
+      // Replace:
+      // router.push('/dashboard')
+      
+      // With:
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100) // Small delay to ensure token is processed
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred during Google sign in')
     } finally {

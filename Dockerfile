@@ -7,7 +7,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Set npm configuration for better reliability
-RUN npm config set registry https://registry.npmjs.org/ && \
+RUN npm config set registry "https://registry.npmjs.org/" && \
     npm config set fetch-retries 5 && \
     npm config set fetch-retry-factor 2 && \
     npm config set fetch-retry-mintimeout 10000 && \

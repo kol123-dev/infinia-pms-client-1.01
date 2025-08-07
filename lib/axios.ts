@@ -15,7 +15,9 @@ const getApiBaseUrl = () => {
     }
   }
   // Default or server-side rendering
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+  // Remove any backticks that might be in the environment variable
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+  return apiUrl.replace(/`/g, '')
 }
 
 const api = axios.create({

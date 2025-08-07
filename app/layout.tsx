@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/context/auth-context"
 import { UserProvider } from "@/lib/context/user-context"
 import { Toaster } from "@/components/ui/toaster"
 import Providers from "./providers"
+import { SessionProvider } from "next-auth/react"
 
 const outfit = Outfit({
   subsets: ["latin"],

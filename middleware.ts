@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -18,17 +19,17 @@ const publicAssets = [
   '/placeholder.svg'
 ]
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Get the path from the request URL
   const path = request.nextUrl.pathname
-
-  // Get the Firebase auth token from cookies
-  const token = request.cookies.get('firebaseToken')?.value
 
   // Allow access to public routes and assets without authentication
   if (publicRoutes.includes(path) || publicAssets.includes(path)) {
     return NextResponse.next()
   }
+
+  // Get the token using NextAuth
+  const token = await getToken({ req: request })
 
   // Redirect to signin if no token is present
   if (!token) {

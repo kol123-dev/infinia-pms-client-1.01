@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { useSession } from "next-auth/react"
 import api from "../axios"
 
 interface User {
@@ -35,54 +36,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { data: session } = useSession()
 
-  const fetchUser = async () => {
-    const token = localStorage.getItem('token')
-    
-    if (!token) {
+  const fetchUser = useCallback(async () => {
+    if (!session?.firebaseToken) {
       setLoading(false)
       setUser(null)
       return
     }
 
     try {
-      // Only attempt to fetch user data if we have a valid token format
-      if (!token.trim()) {
-        setLoading(false)
-        setUser(null)
-        return
-      }
-
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      api.defaults.headers.common['Authorization'] = `Bearer ${session.firebaseToken}`
       const response = await api.get('/auth/me/')
       setUser(response.data)
       setError(null)
     } catch (err: any) {
-      // Clear invalid token
-      if (err.response?.status === 403) {
-        localStorage.removeItem('token')
-        delete api.defaults.headers.common['Authorization']
-      }
       setUser(null)
-      // Only set error if we're not in the initial loading state
       if (user !== null) {
         setError('Failed to fetch user data')
       }
     } finally {
       setLoading(false)
     }
-  }
+  }, [session, user])
 
-  // Only fetch user data when component mounts or token changes
+  // Fetch user data when session changes
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      fetchUser()
-    } else {
-      setLoading(false)
-      setUser(null)
-    }
-  }, [])
+    fetchUser()
+  }, [fetchUser])
 
   const updateProfile = async (data: Partial<User>) => {
     try {

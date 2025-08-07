@@ -1,17 +1,18 @@
 "use client"
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useAuth } from '@/lib/context/auth-context'
+import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function SignIn() {
   const router = useRouter()
-  const { signInWithEmail, signInWithGoogle } = useAuth()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,9 +22,17 @@ export default function SignIn() {
     e.preventDefault()
     try {
       setLoading(true)
-      await signInWithEmail(email, password)
-      // Always redirect to dashboard regardless of role
-      router.push('/dashboard')
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        router.push(callbackUrl)
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred during sign in')
     } finally {
@@ -34,19 +43,9 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true)
-      await signInWithGoogle()
-      // Always redirect to dashboard regardless of role
-      // In handleEmailSignIn and handleGoogleSignIn functions
-      // Replace:
-      // router.push('/dashboard')
-      
-      // With:
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 100) // Small delay to ensure token is processed
+      await signIn('google', { callbackUrl })
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred during Google sign in')
-    } finally {
       setLoading(false)
     }
   }

@@ -64,6 +64,17 @@ jobs:
         username: ${{ secrets.VPS_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          # Ensure Node.js is installed
+          if ! command -v node &> /dev/null; then
+            echo "Node.js not found, installing..."
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          fi
+          
+          # Check Node.js version
+          node -v
+          npm -v
+          
           cd /var/www/infinia-pms/frontend
           
           # Clean up any local changes and cache files
@@ -104,9 +115,11 @@ jobs:
           # Build the application
           npm run build
           
-          # Start or restart the application using PM2
-          # Install PM2 if not already installed
-          npm install -g pm2
+          # Install PM2 globally if not already installed
+          if ! command -v pm2 &> /dev/null; then
+            echo "PM2 not found, installing..."
+            sudo npm install -g pm2
+          fi
           
           # Stop any existing instance
           pm2 stop frontend || true

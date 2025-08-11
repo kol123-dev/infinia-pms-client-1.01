@@ -45,8 +45,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    // Add this check to prevent duplicate calls
+    const currentToken = session.firebaseToken;
+    const tokenInStorage = localStorage.getItem('token');
+    
+    // Only fetch if the token has changed or we don't have a user yet
+    if (user && currentToken === tokenInStorage) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      api.defaults.headers.common['Authorization'] = `Bearer ${session.firebaseToken}`
+      api.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`
       const response = await api.get('/auth/me/')
       setUser(response.data)
       setError(null)
@@ -60,7 +70,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session, user])
 
-  // Fetch user data when session changes
+  // Fetch user data when session changes - KEEP ONLY THIS useEffect
   useEffect(() => {
     fetchUser()
   }, [fetchUser])
@@ -100,9 +110,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setError(null)
   }
 
-  useEffect(() => {
-    fetchUser()
-  }, [])
+  // REMOVE THIS DUPLICATE useEffect
+  // useEffect(() => {
+  //   fetchUser()
+  // }, [])
 
   return (
     <UserContext.Provider

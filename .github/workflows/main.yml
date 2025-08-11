@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_API_URL: http://194.163.148.34:8000/api/v1
+      NEXT_PUBLIC_API_URL: https://www.infiniasync.com/api/v1
       NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
@@ -19,7 +19,7 @@ jobs:
       NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
       NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      NEXTAUTH_URL: https://rental.infiniasync.com
     steps:
     - uses: actions/checkout@v3
 
@@ -84,21 +84,41 @@ jobs:
           # Pull latest changes
           git pull origin main
           
-          # Navigate to docker-compose directory
-          cd /var/www/infinia-pms/config
+          # Install dependencies
+          npm ci || npm install
           
-          # Stop existing containers
-          docker-compose down frontend
+          # Create .env.local file with environment variables
+          cat > .env.local << EOL
+          NEXT_PUBLIC_API_URL=https://www.infiniasync.com/api/v1
+          NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+          NEXT_PUBLIC_FIREBASE_APP_ID=${NEXT_PUBLIC_FIREBASE_APP_ID}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
+          NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+          NEXTAUTH_URL=https://rental.infiniasync.com
+          EOL
           
-          # Remove any orphaned containers and networks
-          docker system prune -f
+          # Build the application
+          npm run build
           
-          # Build and start frontend container
-          docker-compose up -d --build --force-recreate frontend
+          # Start or restart the application using PM2
+          # Install PM2 if not already installed
+          npm install -g pm2
           
-          # Show container status
-          docker-compose ps
+          # Stop any existing instance
+          pm2 stop frontend || true
           
-          # Show frontend logs for verification
-          echo "=== Frontend Container Logs ==="
-          docker-compose logs --tail=20 frontend
+          # Start the application
+          pm2 start npm --name "frontend" -- start
+          
+          # Save PM2 configuration
+          pm2 save
+          
+          # Show application status
+          pm2 status
+          
+          # Show logs
+          pm2 logs frontend --lines 20

@@ -138,8 +138,8 @@ jobs:
           # Stop any existing instance
           pm2 stop frontend || true
           
-          # Start the application with explicit working directory
-          cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start
+          # Start the application with explicit working directory and port configuration
+          cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 0.0.0.0
           
           # Save PM2 configuration
           pm2 save

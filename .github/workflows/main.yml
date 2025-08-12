@@ -101,20 +101,28 @@ jobs:
           # Create .env.local file with environment variables
           cat > .env.local << EOL
           NEXT_PUBLIC_API_URL=https://www.infiniasync.com/api/v1
-          NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
-          NEXT_PUBLIC_FIREBASE_APP_ID=${NEXT_PUBLIC_FIREBASE_APP_ID}
-          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
-          NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+          NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCfj5KTDyd69duNgN5295jG0QecxxrB6Hg
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=infinia-property-erp.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID=infinia-property-erp
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=infinia-property-erp.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=87919833092
+          NEXT_PUBLIC_FIREBASE_APP_ID=1:87919833092:web:d93e15af01679148050551
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-493374691
+          NEXTAUTH_SECRET=Ju19985162.
           NEXTAUTH_URL=https://rental.infiniasync.com
           EOL
           
           # Build the application
           npm run build
           
+          # Verify build was successful
+          if [ ! -d ".next" ]; then
+            echo "❌ Build failed - .next directory not found"
+            exit 1
+          fi
+          
+          echo "✅ Build successful - .next directory created"
+          ls -la .next/
           # Install PM2 globally if not already installed
           if ! command -v pm2 &> /dev/null; then
             echo "PM2 not found, installing..."

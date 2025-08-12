@@ -22,30 +22,8 @@ if (typeof window !== 'undefined') {
   console.log('Token length:', token ? token.length : 0)
 }
 
-// Dynamically determine API URL based on current environment
+// Simplified API URL configuration
 const getApiBaseUrl = () => {
-  // In browser environment
-  if (typeof window !== 'undefined') {
-    // If we're on the production server
-    if (window.location.hostname === '194.163.148.34' || 
-        window.location.hostname === 'rental.infiniasync.com') {
-      return `http://${window.location.hostname}:8000/api/v1`
-    }
-    
-    // Handle IPv6 localhost (::1) by converting to IPv4 (127.0.0.1)
-    if (window.location.hostname === '::1' || window.location.hostname === 'localhost') {
-      console.log('Converting localhost/::1 to 127.0.0.1 for API calls')
-      return 'http://127.0.0.1:8000/api/v1'
-    }
-  }
-  
-  // For Docker container communication, use the service name
-  if (process.env.DOCKER_CONTAINER === '1') {
-    console.log('Running in Docker container, using backend service name')
-    return 'http://backend:8000/api/v1'
-  }
-  
-  // Default or server-side rendering
   // Remove any backticks that might be in the environment variable
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
   console.log('Using API URL from environment or default:', apiUrl)
@@ -61,7 +39,6 @@ const api = axios.create({
 })
 console.log('Axios baseURL:', api.defaults.baseURL)
 
-// Request interceptor for adding auth token
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {

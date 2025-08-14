@@ -6,7 +6,8 @@ import { getToken } from 'next-auth/jwt'
 const publicRoutes = [
   '/signin',
   '/signup',
-]
+  '/manifest.json',
+];
 
 // Define public asset paths
 const publicAssets = [
@@ -17,29 +18,32 @@ const publicAssets = [
   '/placeholder-user.jpg',
   '/placeholder.jpg',
   '/placeholder.svg'
-]
+];
 
 export async function middleware(request: NextRequest) {
-  // Get the path from the request URL
-  const path = request.nextUrl.pathname
+  const path = request.nextUrl.pathname;
 
-  // Allow access to public routes and assets without authentication
-  if (publicRoutes.includes(path) || publicAssets.includes(path)) {
-    return NextResponse.next()
+  // Allow access to public routes, assets, and all /icons/ paths without authentication
+  if (
+    publicRoutes.includes(path) ||
+    publicAssets.includes(path) ||
+    path.startsWith('/icons/')  // Add this to allow all icons
+  ) {
+    return NextResponse.next();
   }
 
   // Get the token using NextAuth
-  const token = await getToken({ req: request })
+  const token = await getToken({ req: request });
 
   // Redirect to signin if no token is present
   if (!token) {
-    const signinUrl = new URL('/signin', request.url)
-    signinUrl.searchParams.set('callbackUrl', path)
-    return NextResponse.redirect(signinUrl)
+    const signinUrl = new URL('/signin', request.url);
+    signinUrl.searchParams.set('callbackUrl', path);
+    return NextResponse.redirect(signinUrl);
   }
 
   // Allow access to protected routes if token exists
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 // Configure which routes should be protected by the middleware

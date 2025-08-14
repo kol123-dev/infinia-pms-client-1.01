@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next" // Add Viewport import
 import { Outfit } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -19,7 +19,16 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Infinia sync - Property Management System",
   description: "Comprehensive multi-tenant property management solution",
-  generator: 'v0.dev'
+  generator: 'v0.dev',
+  manifest: "/manifest.json", // Add this line to link to your manifest file
+}
+
+// Add this viewport export
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

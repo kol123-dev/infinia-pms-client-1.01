@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
 // Simplified API URL configuration
 const getApiBaseUrl = () => {
   // Remove any backticks that might be in the environment variable
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://property.infiniasync.com/api/v1'
   console.log('Using API URL from environment or default:', apiUrl)
   return apiUrl.replace(/`/g, '')
 }

@@ -39,45 +39,64 @@ const api = axios.create({
 })
 console.log('Axios baseURL:', api.defaults.baseURL)
 
-// Request interceptor for adding auth token
+// REMOVE ALL EXISTING REQUEST INTERCEPTORS
+api.interceptors.request.handlers = []
+
+// Add a single, clean request interceptor
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // Skip interceptor for auth/me calls if we're just checking status repeatedly
     if (config.url?.includes('/auth/me/') && config.method === 'get') {
-      // Check if we've made this exact request recently (within last 2 seconds)
       const lastAuthMeCall = localStorage.getItem('lastAuthMeCall');
       const now = Date.now();
       
       if (lastAuthMeCall && (now - parseInt(lastAuthMeCall)) < 2000) {
-        // Cancel this request to prevent endless loops
         config.cancelToken = new axios.CancelToken((cancel) => {
           cancel('Preventing duplicate /auth/me/ call');
         });
         return config;
       }
       
-      // Update the timestamp for this request
       localStorage.setItem('lastAuthMeCall', now.toString());
     }
     
-    // Get token from localStorage if in browser environment
+    // IMPORTANT: Skip adding Authorization header for login endpoint
+    if (config.url === 'auth/firebase-login/') {
+      console.log('Skipping Authorization header for login endpoint');
+      return config;
+    }
+    
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`
-        // Only log for non-auth endpoints to reduce noise
-        if (!config.url?.includes('/auth/me/')) {
-          console.log('Added auth token to request:', config.url)
+      try {
+        // Try to get token from NextAuth session first
+        const session = await fetch('/api/auth/session').then(res => res.json());
+        const firebaseToken = session?.firebaseToken;
+        
+        if (firebaseToken) {
+          const trimmedToken = firebaseToken.trim();
+          config.headers['Authorization'] = `Bearer ${trimmedToken}`;
+          console.log(`Added session token to request: ${config.url}`);
+          return config;
         }
+        
+        // Fallback to localStorage if no session token
+        const localToken = localStorage.getItem('token');
+        if (localToken) {
+          const trimmedToken = localToken.trim();
+          config.headers['Authorization'] = `Bearer ${trimmedToken}`;
+          console.log(`Added localStorage token to request: ${config.url}`);
+        }
+      } catch (error) {
+        console.error('Error getting auth token:', error);
       }
     }
-    return config
+    return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error)
-    return Promise.reject(error)
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
   }
-)
+);
 
 // Response interceptor for handling common errors
 api.interceptors.response.use(

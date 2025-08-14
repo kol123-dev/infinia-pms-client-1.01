@@ -1,10 +1,10 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { initializeApp } from "firebase/app"
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider } from "firebase/auth"
-import api from "@/lib/axios"
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth"
+import axios from 'axios'
 
-// Firebase configuration using environment variables
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,25 +15,72 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 }
 
-// Add this before initializing Firebase 
-try {
-  console.log('Firebase config:', JSON.stringify({
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '✓' : '✗',
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? '✓' : '✗',
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? '✓' : '✗',
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? '✓' : '✗',
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? '✓' : '✗',
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? '✓' : '✗',
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ? '✓' : '✗'
-  }));
-} catch (error) {
-  console.error('Error logging Firebase config:', error);
-}
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
+
+// Remove the duplicate axios instance creation and use the centralized one
+import api from '@/lib/axios'
+
+// Remove the apiClient creation since we're using the centralized instance
+
+// Update the authenticateWithBackend function
+async function authenticateWithBackend(idToken: string) {
+  try {
+    // Create a direct axios instance for this call to avoid interceptors
+    const directAxios = axios.create({
+      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    
+    // Ensure token is properly formatted - remove any whitespace
+    const trimmedToken = idToken.trim()
+    console.log(`Sending token to backend (length: ${trimmedToken.length})`)
+    
+    // Enhanced debugging
+    console.log(`Token first 20 chars: ${trimmedToken.substring(0, 20)}`)
+    console.log(`Token last 20 chars: ${trimmedToken.substring(trimmedToken.length - 20)}`)
+    
+    // Ensure we're not sending a malformed token
+    let cleanToken = trimmedToken
+    if (cleanToken.startsWith('Bearer ')) {
+      console.warn('Token incorrectly includes Bearer prefix, removing it')
+      cleanToken = cleanToken.replace('Bearer ', '')
+    }
+    
+    // Make sure we're sending the token in the correct format
+    const response = await directAxios.post('auth/firebase-login/', {
+      id_token: cleanToken
+    })
+
+    const userData = response.data
+
+    if (!userData?.user?.id) {
+      throw new Error('Invalid user data returned from backend')
+    }
+
+    return {
+      id: userData.user.id.toString(),
+      email: userData.user.email,
+      name: `${userData.user.first_name} ${userData.user.last_name}`,
+      image: userData.user.profile_image,
+      firebaseToken: cleanToken // Store the clean token
+    }
+  } catch (error) {
+    console.error('Backend authentication failed:', error)
+    // Enhanced error logging
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error.response as { status?: number; data?: any }
+      console.error(`Error status: ${errorResponse.status}`)
+      console.error('Error data:', errorResponse.data)
+    }
+    throw error
+  }
+}
 
 const handler = NextAuth({
   providers: [
@@ -46,111 +93,82 @@ const handler = NextAuth({
         idToken: { label: "ID Token", type: "text" }
       },
       async authorize(credentials) {
-        if (!credentials) {
-          console.log("No credentials provided");
-          return null;
-        }
-        
+        if (!credentials) return null
+
         try {
-          let userCredential;
-          let idToken;
-          
-          console.log("Authenticating with provider:", credentials.provider || "email");
-          
-          // Handle different authentication methods
+          let idToken: string
+
           if (credentials.provider === "google") {
-            // This is a placeholder - actual Google auth happens client-side
-            // and the token is passed here
             if (!credentials.idToken) {
-              console.error("No ID token provided for Google authentication");
-              return null;
+              throw new Error("No ID token provided for Google authentication")
             }
-            idToken = credentials.idToken;
+            idToken = credentials.idToken
+            console.log("Using Google-provided token")
           } else {
-            // Email/password authentication
-            userCredential = await signInWithEmailAndPassword(
+            console.log("Signing in with email/password")
+            const userCredential = await signInWithEmailAndPassword(
               auth,
               credentials.email,
               credentials.password
-            );
-            idToken = await userCredential.user.getIdToken();
+            )
+            // Force token refresh to ensure we have a fresh token
+            idToken = await userCredential.user.getIdToken(true)
+            console.log("Got fresh Firebase token")
           }
-          
-          console.log("ID token obtained, sending to backend");
-          
-          // Send token to backend
-          try {
-            const response = await api.post('/auth/firebase-login/', { id_token: idToken });
-            const userData = response.data;
-            
-            if (!userData || !userData.user || !userData.user.id) {
-              console.error("Invalid user data returned from API:", userData);
-              throw new Error('Invalid user data returned from backend .');
-            }
-            
-            console.log("Authentication successful, user data received");
-            
-            // Return user object for the session
-            return {
-              id: userData.user.id.toString(),
-              email: userData.user.email,
-              name: `${userData.user.first_name} ${userData.user.last_name}`,
-              image: userData.user.profile_image,
-              firebaseToken: idToken
-            };
-          } catch (error) {
-            console.error("API error:", error);
-            // Type check the error before accessing properties
-            if (error && typeof error === 'object' && 'response' in error) {
-              const axiosError = error as { response: { data: any; status: number } };
-              console.error("Response data:", axiosError.response.data);
-              console.error("Response status:", axiosError.response.status);
-            }
-            // Add this line to log the error message
-            console.error("Authentication failed with error:", error instanceof Error ? error.message : 'Unknown error');
-            throw new Error(
-              error instanceof Error ? error.message : 'Failed to authenticate with backend'
-            );
-          }
+
+          return await authenticateWithBackend(idToken)
         } catch (error) {
-          console.error("Authentication error:", error);
-          return null;
+          console.error("Authentication error:", error)
+          return null
         }
       }
     })
   ],
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
   pages: {
     signIn: '/signin',
-    error: '/signin',  // Error code passed in query string as ?error=
+    error: '/signin',
+    signOut: '/signin'
   },
   callbacks: {
-    async jwt({ token, user }) {
-      // Pass the Firebase token to the JWT
-      if (user) {
-        token.firebaseToken = user.firebaseToken;
-        token.id = user.id;
+    async jwt({ token, user, account }) {
+      // Initial sign in
+      if (account && user) {
+        return {
+          ...token,
+          firebaseToken: user.firebaseToken,
+          id: user.id
+        }
       }
-      return token;
+
+      // Return previous token if the access token has not expired yet
+      return token
     },
     async session({ session, token }) {
-      // Pass the Firebase token to the session
-      session.firebaseToken = token.firebaseToken;
-      session.user.id = token.id;
-      
-      // Remove this code as it's now handled by useAuthSession
-      // if (typeof window !== "undefined" && token.firebaseToken) {
-      //   localStorage.setItem("token", token.firebaseToken);
-      //   document.cookie = `firebaseToken=${token.firebaseToken}; path=/; max-age=3600; secure; samesite=strict`;
-      // }
-      
-      return session;
+      // Send properties to the client
+      session.firebaseToken = token.firebaseToken
+      session.user.id = token.id
+
+      return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`
+      }
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) {
+        return url
+      }
+      return baseUrl
     }
   },
   session: {
-    strategy: "jwt"
-  }
-});
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
+})
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST }

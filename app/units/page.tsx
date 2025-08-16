@@ -12,14 +12,15 @@ import { UnitForm } from "./components/unit-form"
 import { UnitDetails } from "./components/unit-details"
 import { Unit } from "./types"
 import { BulkUnitForm } from "./components/bulk-unit-form"
-import { DataTable } from "@/components/ui"
+import { DataTable } from "./components/data-table"
 import { columns } from "./components/columns"
+import { ColumnDef } from "@tanstack/react-table"
 
 export default function Units() {
   const [units, setUnits] = useState<Unit[]>([])
   const [selectedUnit, setSelectedUnit] = useState<Unit | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(0) // Changed to 0-based for tanstack table
+  const [currentPage, setCurrentPage] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -56,7 +57,7 @@ export default function Units() {
 
   const fetchUnits = async () => {
     try {
-      const response = await api.get(`/units/?page=${currentPage + 1}`) // Add 1 for API call
+      const response = await api.get(`/units/?page=${currentPage + 1}`)
       setUnits(response.data.results)
       setTotalPages(Math.ceil(response.data.count / 10))
     } catch (error) {
@@ -70,6 +71,40 @@ export default function Units() {
       setIsLoading(false)
     }
   }
+
+  const handleUnitClick = (unit: Unit) => {
+    setSelectedUnit(unit);
+    setIsDetailsOpen(true);
+  };
+
+  const handleEdit = (unit: Unit) => {
+    setSelectedUnit(unit);
+    setIsEditing(true);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setIsEditing(false);
+    setSelectedUnit(undefined);
+  };
+
+  const handleSuccess = () => {
+    setCurrentPage(0);
+    fetchUnits();
+    fetchStats();
+    handleCloseForm();
+  };
+
+  const actionColumns: ColumnDef<Unit>[] = [
+    ...columns,
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <Button onClick={() => handleEdit(row.original)}>Edit</Button>
+      ),
+    },
+  ];
 
   return (
     <MainLayout>
@@ -149,15 +184,50 @@ export default function Units() {
           <div className="w-full overflow-hidden rounded-lg border bg-card">
             <div className="w-full overflow-x-auto">
               <div className="inline-block min-w-full align-middle">
-                <DataTable
-                  columns={columns}
+                <DataTable<Unit, unknown>
+                  columns={actionColumns}
                   data={units}
+                  pageIndex={currentPage}
+                  pageCount={totalPages}
+                  pageSize={10}
+                  onPageChange={(newPage) => setCurrentPage(newPage)}
+                  onRowClick={(row) => handleUnitClick(row.original)}
                 />
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {isFormOpen && (
+        <UnitForm
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          onSuccess={handleSuccess}
+          unit={isEditing ? selectedUnit : undefined}
+        />
+      )}
+
+      {isBulkFormOpen && (
+        <BulkUnitForm
+          isOpen={isBulkFormOpen}
+          onClose={() => setIsBulkFormOpen(false)}
+          onSuccess={() => {
+            setIsBulkFormOpen(false);
+            fetchUnits();
+            fetchStats();
+          }}
+        />
+      )}
+
+      {isDetailsOpen && selectedUnit && (
+        <UnitDetails
+          unit={selectedUnit}
+          isOpen={isDetailsOpen}
+          onClose={() => setIsDetailsOpen(false)}
+          onEdit={() => handleEdit(selectedUnit)}
+        />
+      )}
     </MainLayout>
-  )
+  );
 }

@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata, Viewport } from "next" // Add Viewport import
+import type { Metadata, Viewport } from "next"
 import { Outfit } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -8,7 +8,6 @@ import { AuthProvider } from "@/lib/context/auth-context"
 import { UserProvider } from "@/lib/context/user-context"
 import { Toaster } from "@/components/ui/toaster"
 import Providers from "./providers"
-import { SessionProvider } from "next-auth/react"
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -20,10 +19,20 @@ export const metadata: Metadata = {
   title: "Infinia sync - Property Management System",
   description: "Comprehensive multi-tenant property management solution",
   generator: 'v0.dev',
-  manifest: "/manifest.json", // Add this line to link to your manifest file
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icons/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-16x16.png", sizes: "16x16" },
+      { url: "/icons/icon-32x32.png", sizes: "32x32" },
+      { url: "/icons/icon-48x48.png", sizes: "48x48" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512" },
+    ],
+    apple: "/icons/icon-180x180.png",
+  },
 }
 
-// Add this viewport export
 export const viewport: Viewport = {
   themeColor: "#000000",
   width: "device-width",

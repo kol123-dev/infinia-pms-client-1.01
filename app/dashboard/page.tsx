@@ -7,6 +7,10 @@ import { Building, Users, DollarSign, AlertTriangle, Calendar, Plus, Eye, Trendi
 import { DashboardCharts } from "@/components/dashboard/charts"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const stats = [
   {
@@ -56,7 +60,27 @@ const quickActions = [
   { label: "View Reports", shortLabel: "Reports", icon: Eye, href: "/reports", variant: "outline" as const },
 ]
 
-export default function Dashboard() {
+function Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/signin');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null; // Prevent rendering if no session
+  }
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6">
@@ -227,3 +251,5 @@ export default function Dashboard() {
     </MainLayout>
   )
 }
+
+export default Dashboard;

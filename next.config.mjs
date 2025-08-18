@@ -40,6 +40,18 @@ export default withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  // Disable in development mode
   disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    // Add custom caching strategy
+    {
+      urlPattern: /^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: { cacheName: 'google-fonts' }
+    },
+    // Ensure auth routes are not cached
+    {
+      urlPattern: /\/api\/auth\/.*/,
+      handler: 'NetworkOnly'
+    }
+  ]
 })(nextConfig);

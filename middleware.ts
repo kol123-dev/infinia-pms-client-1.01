@@ -23,40 +23,50 @@ const publicAssets = [
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Allow access to public routes, assets, and all /icons/ paths without authentication
+  // Allow access to public routes and assets without authentication
   if (
     publicRoutes.includes(path) ||
     publicAssets.includes(path) ||
-    path.startsWith('/icons/')  // Add this to allow all icons
+    path.startsWith('/icons/') ||
+    path.startsWith('/_next/') ||
+    path.startsWith('/api/') ||
+    path === '/favicon.ico'
   ) {
     return NextResponse.next();
   }
 
-  // Get the token using NextAuth
-  const token = await getToken({ req: request });
+  try {
+    // Get the token using NextAuth
+    const token = await getToken({ 
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET 
+    });
 
-  // Redirect to signin if no token is present
-  if (!token) {
-    const signinUrl = new URL('/signin', request.url);
-    signinUrl.searchParams.set('callbackUrl', path);
-    return NextResponse.redirect(signinUrl);
+    // Redirect to signin if no token is present
+    if (!token) {
+      const signInUrl = new URL('/signin', request.url);
+      signInUrl.searchParams.set('callbackUrl', request.url);
+      return NextResponse.redirect(signInUrl);
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware authentication error:', error);
+    const signInUrl = new URL('/signin', request.url);
+    return NextResponse.redirect(signInUrl);
   }
-
-  // Allow access to protected routes if token exists
-  return NextResponse.next();
 }
 
 // Configure which routes should be protected by the middleware
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for:
-     * 1. /api routes
-     * 2. /_next/static (static files)
-     * 3. /_next/image (image optimization files)
-     * 4. /favicon.ico (favicon file)
-     * 5. /_next/data (Next.js data files)
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|_next/data|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }

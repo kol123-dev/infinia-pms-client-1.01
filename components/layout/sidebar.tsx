@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/context/auth-context"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { EntitySelector } from "./entity-selector"
 import {
@@ -267,6 +267,7 @@ export function MobileSidebar() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="flex flex-col p-0 w-64">
+        <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
         <SidebarContent />
       </SheetContent>
     </Sheet>

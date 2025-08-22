@@ -40,54 +40,39 @@ const api = axios.create({
 console.log('Axios baseURL:', api.defaults.baseURL)
 
 // REMOVE ALL EXISTING REQUEST INTERCEPTORS
-api.interceptors.request.handlers = []
+api.interceptors.request.clear();
 
 // Add a single, clean request interceptor
 api.interceptors.request.use(
   async (config) => {
-    // Skip interceptor for auth/me calls if we're just checking status repeatedly
-    if (config.url?.includes('/auth/me/') && config.method === 'get') {
-      const lastAuthMeCall = localStorage.getItem('lastAuthMeCall');
-      const now = Date.now();
-      
-      if (lastAuthMeCall && (now - parseInt(lastAuthMeCall)) < 2000) {
-        config.cancelToken = new axios.CancelToken((cancel) => {
-          cancel('Preventing duplicate /auth/me/ call');
-        });
-        return config;
-      }
-      
-      localStorage.setItem('lastAuthMeCall', now.toString());
-    }
-    
-    // IMPORTANT: Skip adding Authorization header for login endpoint
+    // Skip interceptor for login endpoint
     if (config.url === 'auth/firebase-login/') {
-      console.log('Skipping Authorization header for login endpoint');
       return config;
     }
     
     if (typeof window !== 'undefined') {
       try {
-        // Try to get token from NextAuth session first
+        // Get token from NextAuth session
         const session = await fetch('/api/auth/session').then(res => res.json());
         const firebaseToken = session?.firebaseToken;
         
-        if (firebaseToken) {
-          const trimmedToken = firebaseToken.trim();
-          config.headers['Authorization'] = `Bearer ${trimmedToken}`;
-          console.log(`Added session token to request: ${config.url}`);
-          return config;
+        if (!firebaseToken) {
+          // No token found, redirect to signin
+          if (!window.location.pathname.includes('/signin')) {
+            window.location.href = '/signin';
+          }
+          return Promise.reject('No authentication token found');
         }
         
-        // Fallback to localStorage if no session token
-        const localToken = localStorage.getItem('token');
-        if (localToken) {
-          const trimmedToken = localToken.trim();
-          config.headers['Authorization'] = `Bearer ${trimmedToken}`;
-          console.log(`Added localStorage token to request: ${config.url}`);
-        }
+        const trimmedToken = firebaseToken.trim();
+        config.headers['Authorization'] = `Bearer ${trimmedToken}`;
+        return config;
       } catch (error) {
         console.error('Error getting auth token:', error);
+        if (!window.location.pathname.includes('/signin')) {
+          window.location.href = '/signin';
+        }
+        return Promise.reject(error);
       }
     }
     return config;
@@ -107,53 +92,75 @@ api.interceptors.response.use(
     }
     return response
   },
-  async (error) => {
-    console.error('Response error:', error.message)
-    if (error.response) {
-      console.error(`Status: ${error.response.status}, URL: ${error.config?.url}`)
-      console.error('Response data:', error.response.data)
-    }
-    
-    const originalRequest = error.config
+  async (err: any) => {
+    console.error('Response error:', err.message)
+    if (err.response) {
+      console.error(`Status: ${err.response.status}, URL: ${err.config?.url}`)
+      console.error('Response data:', err.response.data)
 
-    // Handle 401 Unauthorized errors
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      // If refresh token logic is needed, implement it here
-      // For now, just clear auth and redirect to login
-      if (typeof window !== 'undefined') {
+      // Handle token expiration
+      if (
+        err.response.status === 403 &&
+        err.response.data?.detail?.includes('Token expired')
+      ) {
+        // Clear stored tokens
         localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        window.location.href = '/signin'
+        localStorage.removeItem('lastAuthMeCall')
+
+        // Redirect to signin
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/signin')) {
+          window.location.href = '/signin'
+        }
       }
     }
 
-    // Handle 403 Forbidden errors
-    if (error.response && error.response.status === 403) {
-      console.error('Permission denied:', error.response.data)
-      // Handle forbidden access as needed
-    }
-
-    // Handle 404 Not Found errors
-    if (error.response && error.response.status === 404) {
-      console.error('Resource not found:', error.response.data)
-      // Handle not found as needed
-    }
-
-    // Handle 500 Server errors
-    if (error.response && error.response.status >= 500) {
-      console.error('Server error:', error.response.data)
-      // Handle server errors as needed
-    }
-
-    // Network errors
-    if (error.message === 'Network Error') {
+    // Handle network errors
+    if (err.message === 'Network Error') {
       console.error('Network error - please check your connection')
-      // Handle network errors as needed
     }
 
-    return Promise.reject(error)
+    return Promise.reject(err)
+  }
+)
+
+// Request interceptor
+api.interceptors.request.use(
+  async (config) => {
+    // Skip interceptor for login endpoint
+    if (config.url === 'auth/firebase-login/') {
+      return config
+    }
+    
+    if (typeof window !== 'undefined') {
+      try {
+        // Get token from NextAuth session
+        const session = await fetch('/api/auth/session').then(res => res.json())
+        const firebaseToken = session?.firebaseToken
+        
+        if (!firebaseToken) {
+          // No token found, redirect to signin
+          if (!window.location.pathname.includes('/signin')) {
+            window.location.href = '/signin'
+          }
+          return Promise.reject('No authentication token found')
+        }
+        
+        const trimmedToken = firebaseToken.trim()
+        config.headers['Authorization'] = `Bearer ${trimmedToken}`
+        return config
+      } catch (err) {
+        console.error('Error getting auth token:', err)
+        if (!window.location.pathname.includes('/signin')) {
+          window.location.href = '/signin'
+        }
+        return Promise.reject(err)
+      }
+    }
+    return config
+  },
+  (err) => {
+    console.error('Request interceptor error:', err)
+    return Promise.reject(err)
   }
 )
 

@@ -45,30 +45,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Add this check to prevent duplicate calls
-    const currentToken = session.firebaseToken;
-    const tokenInStorage = localStorage.getItem('token');
-    
-    // Only fetch if the token has changed or we don't have a user yet
-    if (user && currentToken === tokenInStorage) {
-      setLoading(false);
-      return;
-    }
-
     try {
-      api.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`
       const response = await api.get('/auth/me/')
       setUser(response.data)
       setError(null)
+      // Store the valid token
+      localStorage.setItem('token', session.firebaseToken)
     } catch (err: any) {
       setUser(null)
-      if (user !== null) {
+      if (err.response?.data?.detail?.includes('Token expired')) {
+        // Clear the expired token
+        localStorage.removeItem('token')
+        window.location.href = '/signin'
+      } else {
         setError('Failed to fetch user data')
       }
     } finally {
       setLoading(false)
     }
-  }, [session, user])
+  }, [session]) // Remove 'user' from dependencies
 
   // Fetch user data when session changes - KEEP ONLY THIS useEffect
   useEffect(() => {

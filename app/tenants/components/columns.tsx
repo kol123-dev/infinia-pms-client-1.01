@@ -1,9 +1,14 @@
-import { ColumnDef } from "@tanstack/react-table"
-import { Tenant } from "../types"
+import { ColumnDef, TableMeta } from "@tanstack/react-table"
+import { Tenant } from "../types" // Adjust if path differs
 import { Button } from "@/components/ui/button"
+import { MessageSquare, Eye, Edit, Trash, LogOut ,ArrowUpDown} from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Eye, MessageSquare, ArrowUpDown } from "lucide-react"
+
+interface CustomTableMeta extends TableMeta<Tenant> {
+  onMessage?: (tenant: Tenant) => void
+  onView?: (tenant: Tenant) => void
+}
 
 export const columns: ColumnDef<Tenant>[] = [
   {
@@ -140,19 +145,22 @@ export const columns: ColumnDef<Tenant>[] = [
   },
   {
     id: "actions",
-    header: () => (
-      <div className="bg-gray-50 dark:bg-gray-900/10 px-4 py-2 rounded-md">
-        Actions
-      </div>
-    ),
-    cell: ({ row }) => {
-      const tenant = row.original
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as CustomTableMeta
       return (
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => meta?.onMessage?.(row.original)}
+          >
             <MessageSquare className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => meta?.onView?.(row.original)}
+          >
             <Eye className="h-4 w-4" />
           </Button>
         </div>

@@ -40,25 +40,37 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
   const [leaseStartDate, setLeaseStartDate] = useState('')
   const [leaseEndDate, setLeaseEndDate] = useState('')
   
-  // Remove the initial units fetch from the first useEffect
   useEffect(() => {
     if (isOpen && tenant.id) {
-      // Fetch payment history using the correct endpoint
-      api.get(`/payments/?tenant=${tenant.id}`)
-        .then(response => setPaymentHistory(response.data))
-        .catch(error => console.error('Error fetching payment history:', error))
+      console.log('Fetching payment history for tenant:', tenant.id)
+      api.get(`/payments/payments/?tenant=${tenant.id}`)
+        .then(response => {
+          console.log('Payment history response:', response.data)
+          if (response.data && response.data.results) {
+            setPaymentHistory(response.data.results)
+          } else {
+            console.error('Invalid payment history data structure:', response.data)
+            setPaymentHistory([])
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching payment history:', error)
+          setPaymentHistory([])
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load payment history"
+          })
+        })
   
-      // Use emergency contact data from tenant object
       setEmergencyContact(tenant.emergency_contact)
   
-      // Fetch properties
       api.get('/properties/')
         .then(response => setProperties(response.data.results))
         .catch(error => console.error('Error fetching properties:', error))
     }
   }, [isOpen, tenant.id, tenant.emergency_contact])
   
-  // Update the units fetching effect to match tenant-edit-dialog
   useEffect(() => {
     const fetchUnits = async () => {
       if (!selectedProperty) {
@@ -67,7 +79,6 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
       }
       try {
         const response = await api.get(`/properties/${selectedProperty}/units/`)
-        // Filter only vacant units
         const vacantUnits = response.data.results.filter((unit: Unit) => unit.unit_status === 'VACANT')
         setAvailableUnits(vacantUnits)
       } catch (error) {
@@ -109,12 +120,29 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
     }
   }
 
+  const handleMoveOut = async (tenant: Tenant) => {
+    if (!confirm(`Are you sure you want to move out ${tenant.user?.full_name}?`)) return;
+    try {
+      await api.patch(`/tenants/${tenant.id}/`, {
+        tenant_status: 'PAST',
+        move_out_date: new Date().toISOString().split('T')[0]
+      });
+      if (tenant.current_unit?.id) {
+        await api.patch(`/units/${tenant.current_unit.id}/`, { unit_status: 'VACANT', current_tenant: null });
+      }
+      toast({ description: "Tenant moved out successfully" });
+      onClose();
+    } catch (error) {
+      toast({ variant: "destructive", description: "Failed to move out tenant" });
+    }
+  };
+
   const handleUpdate = (updatedTenant: Tenant) => {
     if (onEdit) {
       onEdit(updatedTenant)
     }
     setShowEditDialog(false)
-    onClose() // Add this line to close the parent dialog
+    onClose()
     toast({
       title: "Success",
       description: "Tenant details updated successfully"
@@ -215,15 +243,27 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
                     <div className="flex items-center gap-3">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">${payment.amount}</span>
+                        <span className="text-sm font-medium">Payment ID: {payment.payment_id}</span>
+                        <span className="text-sm">Amount: ${payment.amount}</span>
                         <span className="text-xs text-muted-foreground">
-                          {payment.date ? format(new Date(payment.date), 'PP') : 'N/A'}
+                          Date: {payment.paid_date ? format(new Date(payment.paid_date), 'PP') : 'N/A'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Method: {payment.payment_method} | Type: {payment.payment_type}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Reference: {payment.account_reference}
                         </span>
                       </div>
                     </div>
-                    <Badge variant={payment.status.toLowerCase() === 'paid' ? 'default' : 'secondary'}>
-                      {payment.status}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={payment.payment_status.toLowerCase() === 'paid' ? 'default' : 'secondary'}>
+                        {payment.payment_status}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Balance: ${payment.balance_after}
+                      </span>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -357,6 +397,12 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
                 <Trash className="h-4 w-4" /> Delete
               </Button>
             )}
+            <Button
+              variant="destructive"
+              onClick={() => handleMoveOut(tenant)}
+            >
+              Move Out
+            </Button>
           </div>
         </DialogFooter>
 

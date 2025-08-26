@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { initializeApp } from "firebase/app"
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth"
 import axios from 'axios'
+import { jwtDecode } from 'jwt-decode';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -82,6 +83,7 @@ async function authenticateWithBackend(idToken: string) {
   }
 }
 
+// Add import for token decoding
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -133,15 +135,55 @@ const handler = NextAuth({
     async jwt({ token, user, account }) {
       // Initial sign in
       if (account && user) {
+        if (!user.firebaseToken) {
+          console.error('No firebaseToken available for decoding');
+          return { ...token, tokenExpiry: undefined }; // Or handle appropriately
+        }
+        const decoded = jwtDecode<{ exp: number }>(user.firebaseToken);
+        const expiryTime = decoded.exp * 1000; // Convert to ms
+        console.log(`Initial token expiry: ${new Date(expiryTime).toISOString()}`); // Added logging
         return {
           ...token,
           firebaseToken: user.firebaseToken,
-          id: user.id
+          id: user.id,
+          tokenExpiry: expiryTime
+        };
+      }
+    
+      // Return early if no token expiry is set
+      if (typeof token.tokenExpiry !== 'number') {
+        return token;
+      }
+    
+      // Refresh 5 minutes before actual expiry
+      const REFRESH_THRESHOLD = 5 * 60 * 1000;
+      if (Date.now() > (token.tokenExpiry - REFRESH_THRESHOLD)) {
+        try {
+          const currentUser = auth.currentUser;
+          if (!currentUser) {
+            console.warn('No current user for token refresh'); // Added warning
+            return { ...token, firebaseToken: undefined, tokenExpiry: undefined };
+          }
+    
+          const newIdToken = await currentUser.getIdToken(true);
+          const decodedNew = jwtDecode<{ exp: number }>(newIdToken);
+          const newExpiry = decodedNew.exp * 1000;
+          console.log(`Refreshed token expiry: ${new Date(newExpiry).toISOString()}`); // Added logging
+          const userData = await authenticateWithBackend(newIdToken);
+          
+          return {
+            ...token,
+            firebaseToken: userData.firebaseToken,
+            id: userData.id,
+            tokenExpiry: newExpiry
+          };
+        } catch (error) {
+          console.error('Token refresh failed:', error);
+          return { ...token, firebaseToken: undefined, tokenExpiry: undefined };
         }
       }
-
-      // Return previous token if the access token has not expired yet
-      return token
+    
+      return token;
     },
     async session({ session, token }) {
       // Send properties to the client

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Eye, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ReceiptDialog } from "./receipt-dialog"
+import { PaymentDetailsDialog } from "./payment-details-dialog"
 import api from "@/lib/axios"
 
 interface Payment {
@@ -68,6 +69,24 @@ export function PaymentList() {
     return <div>Loading...</div>
   }
 
+  const handleDelete = async () => {
+    // Refresh the payments list
+    const fetchPayments = async () => {
+      try {
+        const response = await api.get('/payments/payments/')
+        setPayments(response.data.results)
+      } catch (error) {
+        console.error('Error fetching payments:', error)
+      }
+    }
+    fetchPayments()
+  }
+
+  const handleEdit = (payment: Payment) => {
+    // Navigate to edit page or open edit form
+    console.log('Edit payment:', payment)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -125,13 +144,19 @@ export function PaymentList() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 bg-blue-50 hover:bg-blue-100 hover:text-blue-600 text-blue-500 border-blue-200"
+                    <PaymentDetailsDialog
+                      payment={payment}
+                      onDelete={handleDelete}
+                      onEdit={() => handleEdit(payment)}
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 bg-blue-50 hover:bg-blue-100 hover:text-blue-600 text-blue-500 border-blue-200"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </PaymentDetailsDialog>
                     {payment.payment_status === "PAID" && (
                       <ReceiptDialog
                         payment={{

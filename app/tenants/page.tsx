@@ -147,6 +147,45 @@ export default function TenantsPage() {
               onView: (tenant: Tenant) => {
                 setSelectedTenant(tenant)
                 setIsDetailsOpen(true)
+              },
+              onEdit: (tenant: Tenant) => {
+                setSelectedTenant(tenant)
+                setIsEditing(true)
+                setIsFormOpen(true)
+              },
+              onDelete: async (tenant: Tenant) => {
+                if (confirm(`Are you sure you want to delete ${tenant.user?.full_name}?`)) {
+                  try {
+                    await api.delete(`/tenants/${tenant.id}/`)
+                    toast({ description: "Tenant deleted successfully" })
+                    // Refresh tenants list
+                    const response = await api.get('/tenants/')
+                    setTenants(response.data.results)
+                  } catch (error) {
+                    toast({ variant: "destructive", description: "Failed to delete tenant" })
+                  }
+                }
+              },
+              onMoveOut: async (tenant: Tenant) => {
+                if (confirm(`Are you sure you want to move out ${tenant.user?.full_name}?`)) {
+                  try {
+                    // Update tenant status and move_out_date
+                    await api.patch(`/tenants/${tenant.id}/`, {
+                      tenant_status: 'PAST',
+                      move_out_date: new Date().toISOString().split('T')[0]
+                    })
+                    // Free the unit (assuming an endpoint or patch unit)
+                    if (tenant.current_unit?.id) {
+                      await api.patch(`/units/${tenant.current_unit.id}/`, { unit_status: 'VACANT', current_tenant: null })
+                    }
+                    toast({ description: "Tenant moved out successfully" })
+                    // Refresh tenants list
+                    const response = await api.get('/tenants/')
+                    setTenants(response.data.results)
+                  } catch (error) {
+                    toast({ variant: "destructive", description: "Failed to move out tenant" })
+                  }
+                }
               }
             }}
           />

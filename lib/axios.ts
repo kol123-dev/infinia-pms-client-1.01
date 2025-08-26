@@ -37,38 +37,62 @@ const api = axios.create({
     'Accept': 'application/json'
   },
 })
-console.log('Axios baseURL:', api.defaults.baseURL)
 
-// REMOVE ALL EXISTING REQUEST INTERCEPTORS
-api.interceptors.request.clear();
+// Add this at the top of the file, after imports
+const SESSION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
+let cachedSession: { token: string; timestamp: number } | null = null;
 
-// Add a single, clean request interceptor
+// Update the request interceptor
 api.interceptors.request.use(
   async (config) => {
-    // Skip interceptor for login endpoint
-    if (config.url === 'auth/firebase-login/') {
+    // Skip interceptor for session and login endpoints to prevent loops
+    if (
+      config.url === 'auth/firebase-login/' ||
+      config.url?.includes('/api/auth/session')
+    ) {
       return config;
     }
     
     if (typeof window !== 'undefined') {
       try {
-        // Get token from NextAuth session
+        // Check if we have a valid cached session first
+        const now = Date.now();
+        if (cachedSession && (now - cachedSession.timestamp) < SESSION_CACHE_DURATION) {
+          config.headers['Authorization'] = `Bearer ${cachedSession.token}`;
+          return config;
+        }
+        
+        // Get a fresh session only if cache is invalid
         const session = await fetch('/api/auth/session').then(res => res.json());
         const firebaseToken = session?.firebaseToken;
         
         if (!firebaseToken) {
-          // No token found, redirect to signin
+          // Clear cached session
+          cachedSession = null;
+          localStorage.removeItem('token');
+          
           if (!window.location.pathname.includes('/signin')) {
             window.location.href = '/signin';
           }
           return Promise.reject('No authentication token found');
         }
         
+        // Update cache and localStorage
         const trimmedToken = firebaseToken.trim();
+        cachedSession = {
+          token: trimmedToken,
+          timestamp: now
+        };
+        localStorage.setItem('token', trimmedToken);
+        
         config.headers['Authorization'] = `Bearer ${trimmedToken}`;
         return config;
       } catch (error) {
         console.error('Error getting auth token:', error);
+        // Clear cached session on error
+        cachedSession = null;
+        localStorage.removeItem('token');
+        
         if (!window.location.pathname.includes('/signin')) {
           window.location.href = '/signin';
         }
@@ -83,7 +107,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling common errors
+// Update the response interceptor - remove the duplicate one and combine the logic
 api.interceptors.response.use(
   (response) => {
     // Only log for non-auth endpoints to reduce noise
@@ -103,11 +127,12 @@ api.interceptors.response.use(
         err.response.status === 403 &&
         err.response.data?.detail?.includes('Token expired')
       ) {
-        // Clear stored tokens
+        // Clear all stored tokens and cache
         localStorage.removeItem('token')
         localStorage.removeItem('lastAuthMeCall')
+        cachedSession = null;
 
-        // Redirect to signin
+        // Only redirect if we're not already on the signin page and in a browser context
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/signin')) {
           window.location.href = '/signin'
         }
@@ -121,47 +146,7 @@ api.interceptors.response.use(
 
     return Promise.reject(err)
   }
-)
+);
 
-// Request interceptor
-api.interceptors.request.use(
-  async (config) => {
-    // Skip interceptor for login endpoint
-    if (config.url === 'auth/firebase-login/') {
-      return config
-    }
-    
-    if (typeof window !== 'undefined') {
-      try {
-        // Get token from NextAuth session
-        const session = await fetch('/api/auth/session').then(res => res.json())
-        const firebaseToken = session?.firebaseToken
-        
-        if (!firebaseToken) {
-          // No token found, redirect to signin
-          if (!window.location.pathname.includes('/signin')) {
-            window.location.href = '/signin'
-          }
-          return Promise.reject('No authentication token found')
-        }
-        
-        const trimmedToken = firebaseToken.trim()
-        config.headers['Authorization'] = `Bearer ${trimmedToken}`
-        return config
-      } catch (err) {
-        console.error('Error getting auth token:', err)
-        if (!window.location.pathname.includes('/signin')) {
-          window.location.href = '/signin'
-        }
-        return Promise.reject(err)
-      }
-    }
-    return config
-  },
-  (err) => {
-    console.error('Request interceptor error:', err)
-    return Promise.reject(err)
-  }
-)
-
+// Remove the duplicate response interceptor
 export default api

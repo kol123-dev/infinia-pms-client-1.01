@@ -60,6 +60,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    meta,  // Add this line to pass meta
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,

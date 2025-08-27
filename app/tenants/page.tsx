@@ -17,6 +17,9 @@ import api from '@/lib/axios'
 import { columns } from "./components/columns"
 import { DataTable } from "./components/data-table"
 
+// Import formatCurrency
+import { formatCurrency } from '@/lib/utils'
+
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [pageIndex, setPageIndex] = useState(0)
@@ -69,8 +72,17 @@ export default function TenantsPage() {
 
   // Calculate summary statistics
   const totalActiveUnits = tenants.filter(tenant => tenant.tenant_status === 'ACTIVE').length
-  const totalRentRevenue = tenants.reduce((total, tenant) => total + (tenant.rent_amount || 0), 0)
-  const totalBalanceDue = tenants.reduce((total, tenant) => total + (tenant.balance_due || 0), 0)
+  
+  // Update the calculation to handle potential null/undefined values and ensure number conversion
+  const totalRentRevenue = tenants.reduce((total, tenant) => {
+    const unitRent = tenant.current_unit?.rent
+    return total + (Number(unitRent) || 0)
+  }, 0)
+  
+  // Update balance due calculation to ensure number conversion
+  const totalBalanceDue = tenants.reduce((total, tenant) => {
+    return total + (Number(tenant.balance_due) || 0)
+  }, 0)
 
   return (
     <MainLayout>
@@ -106,7 +118,7 @@ export default function TenantsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-foreground">${totalRentRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(totalRentRevenue)}</div>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-green-600" />
               <p className="text-xs text-green-600">Total rent revenue</p>
@@ -121,7 +133,7 @@ export default function TenantsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-foreground">${totalBalanceDue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(totalBalanceDue)}</div>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-orange-600" />
               <p className="text-xs text-orange-600">Outstanding payments</p>
@@ -171,7 +183,7 @@ export default function TenantsPage() {
                   try {
                     // Update tenant status and move_out_date
                     await api.patch(`/tenants/${tenant.id}/`, {
-                      tenant_status: 'PAST',
+                      status: 'PAST',  // Change from tenant_status to status
                       move_out_date: new Date().toISOString().split('T')[0]
                     })
                     // Free the unit (assuming an endpoint or patch unit)

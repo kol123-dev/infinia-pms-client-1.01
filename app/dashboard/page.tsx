@@ -14,6 +14,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
+// Add this import at the top with other imports
+import { formatCurrency } from "@/lib/utils"
+
 const stats = [
   {
     title: "Total Properties",
@@ -33,7 +36,7 @@ const stats = [
   },
   {
     title: "Monthly Revenue",
-    value: "$45,231",
+    value: formatCurrency(45231),
     change: "+8.2% from last month",
     changeType: "positive",
     icon: DollarSign,

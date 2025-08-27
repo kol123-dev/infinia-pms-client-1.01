@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Unit } from "../types"
+import { formatCurrency } from "@/lib/utils"
 
 export const columns: ColumnDef<Unit>[] = [
   {
@@ -64,11 +65,7 @@ export const columns: ColumnDef<Unit>[] = [
     size: 100,
     cell: ({ row }) => {
       const amount = row.getValue("rent") as number
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return <div className="font-medium">{formatted}</div>
+      return <div className="font-medium">{formatCurrency(amount)}</div>
     },
   },
   {

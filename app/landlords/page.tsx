@@ -15,6 +15,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast"
 import { LandlordOnboardingFlow } from "./components/landlord-onboarding-flow"
 
+// Add this import at the top with other imports
+import { formatCurrency } from "@/lib/utils"
+
 interface Landlord {
   id: number
   landlord_id: string | null
@@ -165,7 +168,9 @@ export default function LandlordsPage() {
               <CardTitle className="text-sm font-medium">Combined Revenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">${combinedRevenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(combinedRevenue)}
+              </div>
               <p className="text-xs text-emerald-600/75 dark:text-emerald-400/75">Monthly total</p>
             </CardContent>
           </Card>
@@ -227,6 +232,10 @@ export default function LandlordsPage() {
                     </TableCell>
                     <TableCell>
                       ${landlord.properties?.reduce((total, property) => total + (property.actual_monthly_revenue || 0), 0).toLocaleString() || '0'}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(landlord.properties?.reduce((total, property) => 
+                        total + (property.actual_monthly_revenue || 0), 0) || 0)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

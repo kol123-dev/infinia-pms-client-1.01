@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { MessageSquare, Eye, Edit, Trash, LogOut ,ArrowUpDown} from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { formatCurrency } from "@/lib/utils"
 
 interface CustomTableMeta extends TableMeta<Tenant> {
   onMessage?: (tenant: Tenant) => void
@@ -96,7 +97,7 @@ export const columns: ColumnDef<Tenant>[] = [
     enableSorting: true,
   },
   {
-    accessorKey: "rent_amount",
+    accessorKey: "current_unit.rent",
     header: ({ column }) => {
       return (
         <Button
@@ -110,12 +111,9 @@ export const columns: ColumnDef<Tenant>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("rent_amount")) || 0
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return <div className="font-medium">{formatted}</div>
+      const unit = row.original.current_unit
+      const amount = unit ? unit.rent : 0
+      return <div className="font-medium">{formatCurrency(amount)}</div>
     },
     enableSorting: true,
   },
@@ -135,11 +133,7 @@ export const columns: ColumnDef<Tenant>[] = [
     },
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("balance_due")) || 0
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return <div className="font-medium">{formatted}</div>
+      return <div className="font-medium">{formatCurrency(amount)}</div>
     },
     enableSorting: true,
   },

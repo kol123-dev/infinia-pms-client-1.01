@@ -21,10 +21,10 @@ export function TenantEditDialog({ tenant, isOpen, onClose, onUpdate }: TenantEd
   const [isLoading, setIsLoading] = useState(false)
   const [properties, setProperties] = useState<Property[]>([])
   const [availableUnits, setAvailableUnits] = useState<Unit[]>([])
+  // Remove rent_amount from formData
   const [formData, setFormData] = useState({
     phone: tenant.phone || '',
     date_of_birth: tenant.date_of_birth ? format(new Date(tenant.date_of_birth), 'yyyy-MM-dd') : '',
-    rent_amount: tenant.rent_amount?.toString() || '',
     user: {
       first_name: tenant.user?.full_name?.split(' ')[0] || '',
       last_name: tenant.user?.full_name?.split(' ').slice(1).join(' ') || ''
@@ -39,6 +39,45 @@ export function TenantEditDialog({ tenant, isOpen, onClose, onUpdate }: TenantEd
     lease_start_date: '',
     lease_end_date: ''
   })
+  
+  // Remove rent_amount from PATCH request
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const tenantResponse = await api.patch(`/tenants/${tenant.id}/`, {
+        phone: formData.phone,
+        date_of_birth: formData.date_of_birth,
+        emergency_contact: formData.emergency_contact
+      })
+
+      // If unit is selected, assign it to the tenant
+      if (formData.unit_id && formData.lease_start_date && formData.lease_end_date) {
+        await api.post(`/units/${formData.unit_id}/assign_tenant/`, {
+          tenant_id: tenant.id,
+          lease_start_date: formData.lease_start_date,
+          lease_end_date: formData.lease_end_date
+        })
+      }
+
+      onUpdate(tenantResponse.data)
+      toast({
+        title: "Success",
+        description: "Tenant updated successfully"
+      })
+      onClose()
+    } catch (error) {
+      console.error('Error updating tenant:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update tenant",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -79,47 +118,6 @@ export function TenantEditDialog({ tenant, isOpen, onClose, onUpdate }: TenantEd
     }
     fetchUnits()
   }, [formData.property_id])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      // First update tenant details
-      const tenantResponse = await api.patch(`/tenants/${tenant.id}/`, {
-        phone: formData.phone,
-        date_of_birth: formData.date_of_birth,
-        rent_amount: parseFloat(formData.rent_amount),
-        emergency_contact: formData.emergency_contact,
-        user: formData.user
-      })
-
-      // If unit is selected, assign it to the tenant
-      if (formData.unit_id && formData.lease_start_date && formData.lease_end_date) {
-        await api.post(`/units/${formData.unit_id}/assign_tenant/`, {
-          tenant_id: tenant.id,
-          lease_start_date: formData.lease_start_date,
-          lease_end_date: formData.lease_end_date
-        })
-      }
-
-      onUpdate(tenantResponse.data)
-      toast({
-        title: "Success",
-        description: "Tenant updated successfully"
-      })
-      onClose()
-    } catch (error) {
-      console.error('Error updating tenant:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update tenant",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -162,6 +160,7 @@ export function TenantEditDialog({ tenant, isOpen, onClose, onUpdate }: TenantEd
             </div>
 
             {/* Basic Information */}
+            
             <div className="space-y-4">
               <h4 className="text-sm font-medium leading-none">Basic Information</h4>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -174,7 +173,7 @@ export function TenantEditDialog({ tenant, isOpen, onClose, onUpdate }: TenantEd
                     placeholder="Enter phone number"
                   />
                 </div>
-
+            
                 <div className="space-y-2">
                   <Label htmlFor="date_of_birth">Date of Birth</Label>
                   <Input
@@ -182,17 +181,6 @@ export function TenantEditDialog({ tenant, isOpen, onClose, onUpdate }: TenantEd
                     type="date"
                     value={formData.date_of_birth}
                     onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="rent_amount">Rent Amount</Label>
-                  <Input
-                    id="rent_amount"
-                    type="number"
-                    value={formData.rent_amount}
-                    onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })}
-                    placeholder="Enter rent amount"
                   />
                 </div>
               </div>

@@ -12,6 +12,7 @@ import { MpesaTransactionList } from "./components/mpesa-transaction-list"
 import { BankTransactionList } from "./components/bank-transaction-list"
 import { CashPaymentList } from "./components/cash-payment-list"
 import { InvoiceList } from "./components/invoice-list"
+import { CreateInvoiceDialog } from "./components/create-invoice-dialog"
 
 export default function PaymentsPage() {
   return (
@@ -19,9 +20,9 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl">Payments Management</h1>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/payments/invoices/create">Create Invoice</Link>
-          </Button>
+          <CreateInvoiceDialog>
+            <Button variant="outline">Create Invoice</Button>
+          </CreateInvoiceDialog>
           <Button asChild>
             <Link href="/payments/record">Record Payment</Link>
           </Button>

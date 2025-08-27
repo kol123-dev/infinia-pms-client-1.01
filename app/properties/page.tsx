@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress"
 import { Building, MapPin, Users, DollarSign, Plus, Eye, Settings } from "lucide-react"
 import api from "@/lib/axios"
 
+// Add this import at the top with other imports
+import { formatCurrency } from "@/lib/utils"
 
 import { PropertyForm } from "./components/property-form"
 // Update the PropertyDetails import path
@@ -127,7 +129,7 @@ export default function Properties() {
                 </div>
                 <div className="flex items-center col-span-2">
                   <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span>${(property.financials?.summary?.actualMonthlyRevenue || 0).toLocaleString()}/month</span>
+                  <span>{formatCurrency(property.financials?.summary?.actualMonthlyRevenue || 0)}/month</span>
                 </div>
               </div>
 

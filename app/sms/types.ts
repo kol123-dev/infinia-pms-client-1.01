@@ -33,25 +33,33 @@ export interface Tenant {
         };
     };
     phone: string;
+    balance_due: string;
+}
+
+export interface Property {
+  id: number
+  name: string
 }
 
 export interface TenantGroup {
-    id: number;
-    name: string;
-    description: string | null;
-    landlord: {
-        id: number;
-        landlord_id: string;
-        business_name: string;
-        user: {
-            id: number;
-            email: string;
-            full_name: string;
-        };
-    };
-    tenant_count: number;
-    created_at: string;
-    updated_at: string;
+  id: number
+  name: string
+  description: string | null
+  property?: Property
+  tenants?: Tenant[]
+  landlord: {
+    id: number
+    landlord_id: string
+    business_name: string
+    user: {
+      id: number
+      email: string
+      full_name: string
+    }
+  }
+  tenant_count: number
+  created_at: string
+  updated_at: string
 }
 
 export interface Recipient {

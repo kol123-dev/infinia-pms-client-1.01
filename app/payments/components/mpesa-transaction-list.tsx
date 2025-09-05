@@ -9,6 +9,7 @@ import { Link2, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/axios"
+import { MpesaTransactionMatchDialog } from './mpesa-transaction-match-dialog'
 
 interface MpesaTransaction {
   id: number
@@ -43,7 +44,9 @@ export function MpesaTransactionList() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const pageSize = 10
-
+  const [selectedTransaction, setSelectedTransaction] = useState<number | null>(null)
+  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false)
+  
   useEffect(() => {
     const fetchTransactions = async () => {
       setLoading(true)
@@ -85,8 +88,6 @@ export function MpesaTransactionList() {
     }
   }
 
-  // Remove the first getActionButton function (lines 88-101)
-
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this transaction?")) return
 
@@ -113,7 +114,7 @@ export function MpesaTransactionList() {
   const getActionButton = (transaction: MpesaTransaction) => {
     const { status, id } = transaction
     const isDeleting = deleting === id
-
+  
     return (
       <div className="flex items-center gap-2">
         {status.toUpperCase() === "UNMATCHED" && (
@@ -121,6 +122,7 @@ export function MpesaTransactionList() {
             variant="outline"
             size="sm"
             className="flex items-center gap-2 text-blue-500 border-blue-500 hover:bg-blue-50 hover:text-blue-600"
+            onClick={() => handleMatchClick(id)}
           >
             <Link2 className="w-4 h-4" />
             Match
@@ -142,6 +144,37 @@ export function MpesaTransactionList() {
         </Button>
       </div>
     )
+  }
+
+  const handleMatchClick = (transactionId: number) => {
+    setSelectedTransaction(transactionId)
+    setIsMatchDialogOpen(true)
+  }
+  
+  const handleMatchSuccess = () => {
+    // Refresh the transactions list
+    refetch()
+  }
+  
+  // Add this function to refetch the transactions
+  const refetch = async () => {
+    setLoading(true)
+    try {
+      const response = await api.get<PaginatedResponse>('/payments/mpesa/', {
+        params: {
+          page: currentPage,
+          page_size: pageSize,
+          search: searchTerm,
+        }
+      })
+      setTransactions(response.data.results)
+      setTotalItems(response.data.count)
+      setTotalPages(Math.ceil(response.data.count / pageSize))
+    } catch (error) {
+      console.error('Error fetching M-Pesa transactions:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -197,7 +230,9 @@ export function MpesaTransactionList() {
                   <TableCell>{transaction.account_reference}</TableCell>
                   <TableCell>{transaction.paybill_number}</TableCell>
                   <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                  <TableCell>{getActionButton(transaction)}</TableCell>
+                  <TableCell>
+                    {getActionButton(transaction)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -229,6 +264,17 @@ export function MpesaTransactionList() {
             </div>
           </div>
         </>
+      )}
+      
+      {/* Add the match dialog */}
+      
+      {selectedTransaction && (
+        <MpesaTransactionMatchDialog
+          isOpen={isMatchDialogOpen}
+          onClose={() => setIsMatchDialogOpen(false)}
+          transactionId={selectedTransaction.toString()}
+          onSuccess={handleMatchSuccess}
+        />
       )}
     </div>
   )

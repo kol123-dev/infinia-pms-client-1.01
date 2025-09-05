@@ -12,12 +12,11 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { TenantOnboardingFlow } from './components/tenant-form'
 import { TenantDetails } from './components/tenant-details'
 import { TenantEditDialog } from './components/tenant-edit-dialog'
+import { TenantGroupDialog } from './components/tenant-group-dialog'
 import { Tenant } from './types'
 import api from '@/lib/axios'
 import { columns } from "./components/columns"
 import { DataTable } from "./components/data-table"
-
-// Import formatCurrency
 import { formatCurrency } from '@/lib/utils'
 
 export default function TenantsPage() {
@@ -29,6 +28,7 @@ export default function TenantsPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [selectedTenant, setSelectedTenant] = useState<Tenant | undefined>()
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchTenants = async () => {
@@ -86,13 +86,35 @@ export default function TenantsPage() {
 
   return (
     <MainLayout>
+      // Add this state
+      const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
+      
+      // In the header section, modify the button group:
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold md:text-2xl">Tenants</h1>
-        <Button onClick={() => { setIsEditing(false); setIsFormOpen(true) }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Tenant
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsGroupDialogOpen(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            Create Group
+          </Button>
+          <Button onClick={() => { setIsEditing(false); setIsFormOpen(true) }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Tenant
+          </Button>
+        </div>
       </div>
+      
+      {/* Add this at the bottom of the component */}
+      {isGroupDialogOpen && (
+        <TenantGroupDialog
+          isOpen={isGroupDialogOpen}
+          onClose={() => setIsGroupDialogOpen(false)}
+          onSuccess={() => {
+            // Optionally refresh any data that needs updating
+          }}
+          tenants={tenants}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">

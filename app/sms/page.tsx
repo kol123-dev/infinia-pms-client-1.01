@@ -15,6 +15,8 @@ import { MessageHistory } from "./components/message-history"
 import { useUser } from "@/lib/context/user-context"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+// Add to the existing imports
+import { TenantGroupDialog } from "./components/tenant-group-dialog"
 
 // Remove the local interface definitions since we're importing them from types.ts
 
@@ -24,7 +26,24 @@ export default function SMS() {
   const [selectedMessage, setSelectedMessage] = useState<SmsMessage | null>(null)
   const [editingTemplate, setEditingTemplate] = useState<SmsTemplate | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<SmsTemplate | null>(null)
-
+  // Add to the state declarations
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
+  
+  // Add the handler function
+  const handleCreateGroup = async (data: any) => {
+    try {
+      await axios.post("/tenants/groups/", {
+        name: data.name,
+        property: data.property,
+        tenants: data.tenants,
+        landlord: user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id
+      })
+      queryClient.invalidateQueries({ queryKey: ["tenant-groups"] })
+      setIsGroupDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to create group:', error)
+    }
+  }
   const { data: smsMessages } = useQuery<{ count: number, results: SmsMessage[] }>({ 
     queryKey: ["sms-messages"],
     queryFn: async () => {
@@ -119,17 +138,23 @@ export default function SMS() {
               <CardTitle>Send SMS</CardTitle>
               <CardDescription>Send SMS messages to your tenants</CardDescription>
             </div>
-            <Button onClick={() => setEditingTemplate({ 
-              id: 0, 
-              name: '', 
-              content: '', 
-              landlord: user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id || 0,
-              created_at: new Date().toISOString(), 
-              updated_at: new Date().toISOString() 
-            })} variant="outline" size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Template
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setEditingTemplate({ 
+                id: 0, 
+                name: '', 
+                content: '', 
+                landlord: user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id || 0,
+                created_at: new Date().toISOString(), 
+                updated_at: new Date().toISOString() 
+              })} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Template
+              </Button>
+              <Button onClick={() => setIsGroupDialogOpen(true)} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Group
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <SendSmsForm
@@ -166,6 +191,11 @@ export default function SMS() {
           onClose={() => setDeletingTemplate(null)}
           onConfirm={handleDeleteTemplate}
           template={deletingTemplate}
+        />
+        <TenantGroupDialog
+          isOpen={isGroupDialogOpen}
+          onClose={() => setIsGroupDialogOpen(false)}
+          onSubmit={handleCreateGroup}
         />
       </div>
     </MainLayout>

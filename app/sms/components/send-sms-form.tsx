@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Input } from "@/components/ui/input"
 import { Send } from 'lucide-react'
 import { SmsTemplate, Tenant, TenantGroup } from "../types"
+import { SelectedGroupMembers } from "./selected-group-members"
 
 type RecipientType = 'group' | 'individual' | 'manual'
 
@@ -25,6 +26,18 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUser, setSelectedUser] = useState<string>('')
   const [manualNumbers, setManualNumbers] = useState('')
+  const [selectedMembers, setSelectedMembers] = useState<Tenant[]>([])
+
+  // Group tenantGroups by property for overdue rent
+  const propertyGroups = tenantGroups?.results.reduce((acc, group) => {
+    if (group.property) {
+      if (!acc[group.property.name]) {
+        acc[group.property.name] = []
+      }
+      acc[group.property.name].push(group)
+    }
+    return acc
+  }, {} as Record<string, TenantGroup[]>)
 
   const handleTemplateSelect = (templateId: string) => {
     const template = templates?.results.find(t => t.id.toString() === templateId)
@@ -66,6 +79,41 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
       )
     : []
 
+  const handleGroupSelect = (groupId: string) => {
+    setSelectedGroup(groupId)
+    
+    // Handle default groups
+    switch (groupId) {
+      case 'all-tenants':
+        setSelectedMembers(tenants?.results || [])
+        break
+      case 'overdue-rent':
+        // Filter tenants with positive balance_due
+        const overdueTenantsData = tenants?.results.filter(tenant => 
+          parseFloat(tenant.balance_due) > 0
+        ) || []
+        setSelectedMembers(overdueTenantsData)
+        break
+      case 'all-landlords':
+        // You'll need to fetch landlords data or handle this case appropriately
+        setSelectedMembers([])
+        break
+      default:
+        // Handle custom tenant groups
+        const selectedGroup = tenantGroups?.results.find(g => g.id.toString() === groupId)
+        if (selectedGroup?.tenants && selectedGroup.tenants.length > 0) {
+          setSelectedMembers(selectedGroup.tenants)
+        } else {
+          setSelectedMembers([])
+        }
+        break
+    }
+}
+
+  const handleRemoveMember = (memberId: string) => {
+    setSelectedMembers(prev => prev.filter(member => member.id.toString() !== memberId))
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-4">
@@ -105,21 +153,30 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
         </RadioGroup>
 
         {recipientType === 'group' && (
-          <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a group" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-tenants">All Tenants</SelectItem>
-              <SelectItem value="overdue-rent">Tenants with Overdue Rent</SelectItem>
-              <SelectItem value="all-landlords">All Landlords</SelectItem>
-              {tenantGroups?.results.map((group) => (
-                <SelectItem key={group.id} value={group.id.toString()}>
-                  {group.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <>
+            <Select value={selectedGroup} onValueChange={handleGroupSelect}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a group" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all-tenants">All Tenants</SelectItem>
+                <SelectItem value="overdue-rent">Tenants with Overdue Rent</SelectItem>
+                <SelectItem value="all-landlords">All Landlords</SelectItem>
+                {tenantGroups?.results.map((group) => (
+                  <SelectItem key={group.id} value={group.id.toString()}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {selectedMembers.length > 0 && (
+              <SelectedGroupMembers
+                members={selectedMembers}
+                onRemoveMember={handleRemoveMember}
+              />
+            )}
+          </>
         )}
 
         {recipientType === 'individual' && (

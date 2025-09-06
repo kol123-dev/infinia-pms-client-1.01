@@ -11,46 +11,12 @@ import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-
-// Add this import at the top with other imports
+import axios from '@/lib/axios';
 import { formatCurrency } from "@/lib/utils"
-
-const stats = [
-  {
-    title: "Total Properties",
-    value: "24",
-    change: "+2 this month",
-    changeType: "positive",
-    icon: Building,
-    color: "text-brand-600",
-  },
-  {
-    title: "Active Tenants",
-    value: "186",
-    change: "+12 this month",
-    changeType: "positive",
-    icon: Users,
-    color: "text-emerald-600",
-  },
-  {
-    title: "Monthly Revenue",
-    value: formatCurrency(45231),
-    change: "+8.2% from last month",
-    changeType: "positive",
-    icon: DollarSign,
-    color: "text-green-600",
-  },
-  {
-    title: "Maintenance Requests",
-    value: "12",
-    change: "3 urgent",
-    changeType: "warning",
-    icon: AlertTriangle,
-    color: "text-orange-600",
-  },
-]
+import { useToast } from '@/hooks/use-toast';  // Import for toast notifications
+import { Tenant } from '../tenants/types';  // Import for Tenant type
 
 const quickActions = [
   { label: "Add Tenant", shortLabel: "Tenant", icon: Plus, href: "/tenants", variant: "default" as const },
@@ -65,17 +31,80 @@ const quickActions = [
   { label: "View Reports", shortLabel: "Reports", icon: Eye, href: "/reports", variant: "outline" as const },
 ]
 
-function Dashboard() {
+export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // States for dynamic stats and loading
+  const [stats, setStats] = useState([
+    { title: "Total Properties", value: "0", change: "Loading...", changeType: "positive", icon: Building, color: "text-brand-600" },
+    { title: "Active Tenants", value: "0", change: "Loading...", changeType: "positive", icon: Users, color: "text-emerald-600" },
+    { title: "Monthly Revenue", value: formatCurrency(0), change: "Loading...", changeType: "positive", icon: DollarSign, color: "text-green-600" },
+    { title: "Vacant Units", value: "0", change: "Loading...", changeType: "warning", icon: AlertTriangle, color: "text-orange-600" },
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  const { toast } = useToast();  // Moved to top level here (unconditionally)
+
+  // Auth redirect useEffect
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/signin');
     }
   }, [status, router]);
 
-  if (status === 'loading') {
+  // Data fetching useEffect
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!session) return;
+
+      setLoading(true);
+      try {
+        // Fetch properties with large page size and use count for total
+        const propertiesRes = await axios.get('/properties/?page_size=9999');
+        const totalProperties = propertiesRes.data.count;  // Use total count from pagination
+        const propertiesChange = "+0 this month";  // TODO: Implement real change calculation if needed
+
+        // Fetch tenants stats directly from the new endpoint
+        const tenantsRes = await axios.get('/tenants/stats/');
+        const activeTenants = tenantsRes.data.active_tenants?.count || 0;
+        const tenantsChangePercentage = tenantsRes.data.active_tenants?.change_percentage || 0;
+        const tenantsChange = `${tenantsChangePercentage > 0 ? '+' : ''}${tenantsChangePercentage.toFixed(2)}% from last month`;
+
+        // Fetch revenue stats (now accessing nested fields)
+        const revenueRes = await axios.get('/payments/stats/');
+        const monthlyRevenue = revenueRes.data.total_collected?.amount || 0;
+        const revenueChangePercentage = revenueRes.data.total_collected?.change_percentage || 0;
+        const revenueChange = `${revenueChangePercentage > 0 ? '+' : ''}${revenueChangePercentage.toFixed(2)}% from last month`;
+
+        const unitsRes = await axios.get('/units/stats/');
+        const vacantUnits = unitsRes.data.vacant_units || 0;
+        const unitsChange = "0 changes";  // TODO: Implement real change calculation if needed
+
+        setStats([
+          { title: "Total Properties", value: totalProperties.toString(), change: propertiesChange, changeType: "positive", icon: Building, color: "text-brand-600" },
+          { title: "Active Tenants", value: activeTenants.toString(), change: tenantsChange, changeType: "positive", icon: Users, color: "text-emerald-600" },
+          { title: "Monthly Revenue", value: formatCurrency(monthlyRevenue), change: revenueChange, changeType: revenueChangePercentage >= 0 ? "positive" : "negative", icon: DollarSign, color: "text-green-600" },
+          { title: "Vacant Units", value: vacantUnits.toString(), change: unitsChange, changeType: "negative", icon: AlertTriangle, color: "text-red-600" },
+        ]);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load dashboard data. Please try again.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (session) {
+      fetchDashboardData();
+    }
+  }, [session]);
+
+  if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -84,7 +113,7 @@ function Dashboard() {
   }
 
   if (!session) {
-    return null; // Prevent rendering if no session
+    return null;
   }
   return (
     <MainLayout>
@@ -256,5 +285,3 @@ function Dashboard() {
     </MainLayout>
   )
 }
-
-export default Dashboard;

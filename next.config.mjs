@@ -4,6 +4,7 @@ import withPWA from 'next-pwa';
 const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts'],
+    trustHost: true,  // Add this: Trusts proxy headers for correct host/URL detection
   },
   eslint: {
     ignoreDuringBuilds: true,

@@ -162,28 +162,51 @@ const authOptions: NextAuthOptions = {
       // Refresh 5 minutes before actual expiry
       const REFRESH_THRESHOLD = 5 * 60 * 1000;
       if (Date.now() > (token.tokenExpiry - REFRESH_THRESHOLD)) {
-        try {
-          const currentUser = auth.currentUser;
-          if (!currentUser) {
-            console.warn('No current user for token refresh'); // Added warning
-            return { ...token, firebaseToken: undefined, tokenExpiry: undefined };
-          }
+        const maxRetries = 3;
+        let attempts = 0;
+        while (attempts < maxRetries) {
+          try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+              console.warn('No current user for token refresh - possibly logged out or session expired');
+              return { ...token, firebaseToken: undefined, tokenExpiry: undefined };
+            }
     
-          const newIdToken = await currentUser.getIdToken(true);
-          const decodedNew = jwtDecode<{ exp: number }>(newIdToken);
-          const newExpiry = decodedNew.exp * 1000;
-          console.log(`Refreshed token expiry: ${new Date(newExpiry).toISOString()}`); // Added logging
-          const userData = await authenticateWithBackend(newIdToken);
-          
-          return {
-            ...token,
-            firebaseToken: userData.firebaseToken,
-            id: userData.id,
-            tokenExpiry: newExpiry
-          };
-        } catch (error) {
-          console.error('Token refresh failed:', error);
-          return { ...token, firebaseToken: undefined, tokenExpiry: undefined };
+            // Add timeout to prevent hanging on network issues
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Token refresh timeout')), 10000) // 10s timeout
+            );
+    
+            const refreshPromise = currentUser.getIdToken(true);
+            const newIdToken = await Promise.race([timeoutPromise, refreshPromise]) as string;
+    
+            const decodedNew = jwtDecode<{ exp: number }>(newIdToken);
+            const newExpiry = decodedNew.exp * 1000;
+            console.log(`Refreshed token expiry: ${new Date(newExpiry).toISOString()}`);
+            const userData = await authenticateWithBackend(newIdToken);
+    
+            return {
+              ...token,
+              firebaseToken: userData.firebaseToken,
+              id: userData.id,
+              tokenExpiry: newExpiry
+            };
+          } catch (error: unknown) {
+            attempts++;
+            const errorDetails = {
+              message: error instanceof Error ? error.message : 'Unknown error',
+              code: (error instanceof Error && 'code' in error) ? (error as { code?: string }).code : 'unknown',
+              stack: error instanceof Error ? error.stack : undefined,
+              firebaseConfigLoaded: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY // Check if env vars are present
+            };
+            console.error(`Token refresh attempt ${attempts} failed with details:`, errorDetails);
+            if (attempts >= maxRetries) {
+              console.error('Max retries reached for token refresh - forcing re-authentication');
+              return { ...token, firebaseToken: undefined, tokenExpiry: undefined };
+            }
+            // Exponential backoff: Wait longer each time (1s, 2s, 4s)
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+          }
         }
       }
     
@@ -229,23 +252,6 @@ const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 };
-
-// Add enhanced Firebase error handling
-async function refreshFirebaseToken() {
-  try {
-    // Your existing refresh logic...
-  } catch (error: unknown) {
-    const errorDetails = {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: (error instanceof Error && 'code' in error) ? (error as { code: string }).code : 'unknown',
-      stack: error instanceof Error ? error.stack : undefined,
-      // Add network-specific info if possible
-      networkInfo: typeof navigator !== 'undefined' ? navigator.onLine : 'Server-side (check VPS connectivity)',
-    };
-    console.error('Firebase token refresh failed with details:', errorDetails);
-    throw error;
-  }
-}
 
 const handler = NextAuth(authOptions);
 

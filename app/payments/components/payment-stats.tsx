@@ -33,7 +33,7 @@ export function PaymentStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get('/payments/payments/stats/')
+        const response = await api.get('/payments/stats/')
         setStats(response.data)
       } catch (error) {
         console.error('Error fetching payment stats:', error)

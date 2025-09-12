@@ -53,7 +53,7 @@ export function PaymentList() {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const response = await api.get('/payments/payments/')
+        const response = await api.get('/payments/')
         setPayments(response.data.results)
       } catch (error) {
         console.error('Error fetching payments:', error)

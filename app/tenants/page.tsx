@@ -86,10 +86,6 @@ export default function TenantsPage() {
 
   return (
     <MainLayout>
-      // Add this state
-      const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
-      
-      // In the header section, modify the button group:
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold md:text-2xl">Tenants</h1>
         <div className="flex gap-2">

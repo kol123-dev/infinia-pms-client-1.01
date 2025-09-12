@@ -1,9 +1,13 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { initializeApp } from "firebase/app"
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth"
-import axios from 'axios'
+import NextAuth, { type NextAuthOptions,  type User, type Account, type Session } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { AuthError } from 'firebase/auth';
+import { AxiosError } from 'axios';
+import { type JWT } from "next-auth/jwt";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -14,19 +18,13 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-}
+};
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
-const auth = getAuth(app)
-const googleProvider = new GoogleAuthProvider()
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-// Remove the duplicate axios instance creation and use the centralized one
-import api from '@/lib/axios'
-
-// Remove the apiClient creation since we're using the centralized instance
-
-// Update the authenticateWithBackend function
+// Function to authenticate with backend
 async function authenticateWithBackend(idToken: string) {
   try {
     // Create a direct axios instance for this call to avoid interceptors
@@ -36,32 +34,32 @@ async function authenticateWithBackend(idToken: string) {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
-    })
+    });
     
     // Ensure token is properly formatted - remove any whitespace
-    const trimmedToken = idToken.trim()
-    console.log(`Sending token to backend (length: ${trimmedToken.length})`)
+    const trimmedToken = idToken.trim();
+    console.log(`Sending token to backend (length: ${trimmedToken.length})`);
     
     // Enhanced debugging
-    console.log(`Token first 20 chars: ${trimmedToken.substring(0, 20)}`)
-    console.log(`Token last 20 chars: ${trimmedToken.substring(trimmedToken.length - 20)}`)
+    console.log(`Token first 20 chars: ${trimmedToken.substring(0, 20)}`);
+    console.log(`Token last 20 chars: ${trimmedToken.substring(trimmedToken.length - 20)}`);
     
     // Ensure we're not sending a malformed token
-    let cleanToken = trimmedToken
+    let cleanToken = trimmedToken;
     if (cleanToken.startsWith('Bearer ')) {
-      console.warn('Token incorrectly includes Bearer prefix, removing it')
-      cleanToken = cleanToken.replace('Bearer ', '')
+      console.warn('Token incorrectly includes Bearer prefix, removing it');
+      cleanToken = cleanToken.replace('Bearer ', '');
     }
     
     // Make sure we're sending the token in the correct format
     const response = await directAxios.post('auth/firebase-login/', {
       id_token: cleanToken
-    })
+    });
 
-    const userData = response.data
+    const userData = response.data;
 
     if (!userData?.user?.id) {
-      throw new Error('Invalid user data returned from backend')
+      throw new Error('Invalid user data returned from backend');
     }
 
     return {
@@ -70,21 +68,20 @@ async function authenticateWithBackend(idToken: string) {
       name: `${userData.user.first_name} ${userData.user.last_name}`,
       image: userData.user.profile_image,
       firebaseToken: cleanToken // Store the clean token
-    }
+    };
   } catch (error) {
-    console.error('Backend authentication failed:', error)
+    console.error('Backend authentication failed:', error);
     // Enhanced error logging
     if (error && typeof error === 'object' && 'response' in error) {
-      const errorResponse = error.response as { status?: number; data?: any }
-      console.error(`Error status: ${errorResponse.status}`)
-      console.error('Error data:', errorResponse.data)
+      const errorResponse = (error as AxiosError).response;
+      console.error(`Error status: ${errorResponse?.status}`);
+      console.error('Error data:', errorResponse?.data);
     }
-    throw error
+    throw error;
   }
 }
 
-// Add import for token decoding
-const handler = NextAuth({
+const options: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -95,35 +92,49 @@ const handler = NextAuth({
         idToken: { label: "ID Token", type: "text" }
       },
       async authorize(credentials) {
-        if (!credentials) return null
-
+        if (!credentials) throw new Error("No credentials provided. Please try again.");
+    
         try {
-          let idToken: string
-
+          let idToken: string;
+    
           if (credentials.provider === "google") {
             if (!credentials.idToken) {
-              throw new Error("No ID token provided for Google authentication")
+              throw new Error("No Google ID token provided. Please try signing in again.");
             }
-            idToken = credentials.idToken
-            console.log("Using Google-provided token")
+            idToken = credentials.idToken;
           } else {
-            console.log("Signing in with email/password")
-            const userCredential = await signInWithEmailAndPassword(
-              auth,
-              credentials.email,
-              credentials.password
-            )
-            // Force token refresh to ensure we have a fresh token
-            idToken = await userCredential.user.getIdToken(true)
-            console.log("Got fresh Firebase token")
+            try {
+              const userCredential = await signInWithEmailAndPassword(
+                auth,
+                credentials.email,
+                credentials.password
+              );
+              idToken = await userCredential.user.getIdToken(true);
+            } catch (firebaseError) {
+              const error = firebaseError as AuthError;
+              if (error.code === 'auth/wrong-password') {
+                throw new Error("Wrong password. Please try again.");
+              } else if (error.code === 'auth/user-not-found') {
+                throw new Error("No account found with this email.");
+              } else if (error.code === 'auth/invalid-email') {
+                throw new Error("Invalid email format.");
+              } else {
+                throw new Error("Authentication failed. Please check your credentials and try again.");
+              }
+            }
           }
-
-          return await authenticateWithBackend(idToken)
+    
+          // Call backend authentication
+          return await authenticateWithBackend(idToken);
         } catch (error) {
-          console.error("Authentication error:", error)
-          return null
+          console.error("Authentication error:", error);
+          throw error;  // Throw to pass custom message to frontend
         }
       }
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || ''
     })
   ],
   pages: {
@@ -132,7 +143,7 @@ const handler = NextAuth({
     signOut: '/signin'
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account }: { token: JWT; user?: User; account?: Account | null }) {
       // Initial sign in
       if (account && user) {
         if (!user.firebaseToken) {
@@ -185,23 +196,24 @@ const handler = NextAuth({
     
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       // Send properties to the client
-      session.firebaseToken = token.firebaseToken
-      session.user.id = token.id
-
-      return session
+      session.firebaseToken = token.firebaseToken;
+      if (session.user) {
+        session.user.id = token.id;
+      }
+      return session;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
       // Allows relative callback URLs
       if (url.startsWith("/")) {
-        return `${baseUrl}${url}`
+        return `${baseUrl}${url}`;
       }
       // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) {
-        return url
+        return url;
       }
-      return baseUrl
+      return baseUrl;
     }
   },
   session: {
@@ -211,6 +223,8 @@ const handler = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-})
+};
 
-export { handler as GET, handler as POST }
+const handler = NextAuth(options);
+
+export { handler as GET, handler as POST };

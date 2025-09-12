@@ -205,15 +205,16 @@ const options: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      const prodUrl = process.env.NEXTAUTH_URL || 'https://property.infiniasync.com';
       // Allows relative callback URLs
       if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
+        return `${prodUrl}${url}`;
       }
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) {
+      else if (new URL(url).origin === prodUrl) {
         return url;
       }
-      return baseUrl;
+      return prodUrl;
     }
   },
   session: {

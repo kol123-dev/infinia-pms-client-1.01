@@ -1,4 +1,4 @@
-import NextAuth, { type NextAuthOptions,type User, type Account, type Session } from "next-auth";
+import NextAuth, { type NextAuthOptions, type User, type Account, type Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { initializeApp } from "firebase/app";
@@ -8,6 +8,9 @@ import { jwtDecode } from 'jwt-decode';
 import { AuthError } from 'firebase/auth';
 import { AxiosError } from 'axios';
 import { type JWT } from "next-auth/jwt";
+import { AuthOptions } from 'next-auth';
+// Remove this import as it doesn't exist
+// import { RedirectCallback } from 'next-auth/lib/types';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -81,7 +84,7 @@ async function authenticateWithBackend(idToken: string) {
   }
 }
 
-const options: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -204,17 +207,32 @@ const options: NextAuthOptions = {
       }
       return session;
     },
-    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
+    // Remove this duplicate authorize callback - it's already in the CredentialsProvider
+    // authorize: async (credentials: Record<string, string> | undefined) => { ... },
+
+    // Updated redirect with proper typing
+    async redirect({ url, baseUrl }) {
+      console.log('Redirect callback triggered'); // Confirm if this is even called
+      console.log('Runtime NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
+      console.log('Incoming url:', url);
+      console.log('Base URL:', baseUrl);
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const productionUrl = 'https://property.infiniasync.com';
+      const effectiveBaseUrl = isProduction 
+        ? (process.env.NEXTAUTH_URL || productionUrl) 
+        : (process.env.NEXTAUTH_URL || 'http://localhost:3000');
+
+      console.log('Effective base URL calculated:', effectiveBaseUrl);
+
+      if (url.startsWith('/')) {
+        return `${effectiveBaseUrl}${url}`;
       }
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) {
+      if (new URL(url).origin === effectiveBaseUrl) {
         return url;
       }
-      return baseUrl;
-    }
+      return effectiveBaseUrl;
+    },
   },
   session: {
     strategy: "jwt",
@@ -223,8 +241,9 @@ const options: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
+  // Remove this invalid line: trustHost: true,
 };
 
-const handler = NextAuth(options);
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

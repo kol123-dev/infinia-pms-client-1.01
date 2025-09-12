@@ -19,7 +19,7 @@ jobs:
       NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
       NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      NEXTAUTH_URL: https://rental.infiniasync.com
+      NEXTAUTH_URL: https://property.infiniasync.com  # Change from rental to property
     steps:
     - uses: actions/checkout@v3
 
@@ -141,11 +141,39 @@ jobs:
           # Start the application with explicit working directory and port configuration
           cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 0.0.0.0
           
-          # Save PM2 configuration
+          # After build, create a PM2 ecosystem file for runtime env
+          cat << EOF > ecosystem.config.js
+          module.exports = {
+            apps: [{
+              name: 'frontend',
+              script: 'npm',
+              args: 'start -- -p 3000 -H 0.0.0.0',
+              cwd: '/var/www/infinia-pms/frontend',
+              env: {
+                NODE_ENV: 'production',
+                NEXTAUTH_URL: 'https://property.infiniasync.com',
+                NEXT_PUBLIC_API_URL: 'https://property.infiniasync.com/api/v1/',
+                NEXTAUTH_SECRET: '${{ secrets.NEXTAUTH_SECRET }}',
+                NEXT_PUBLIC_FIREBASE_API_KEY: '${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}',
+                NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: '${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}',
+                NEXT_PUBLIC_FIREBASE_PROJECT_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}',
+                NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: '${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}',
+                NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}',
+                NEXT_PUBLIC_FIREBASE_APP_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}',
+                NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}'
+              }
+            }]
+          }
+          EOF
+
+          # Stop existing instance
+          pm2 stop frontend || true
+          pm2 delete frontend || true
+
+          # Start with ecosystem file (loads runtime env)
+          pm2 start ecosystem.config.js
+
+          # Save and verify
           pm2 save
-          
-          # Show application status
           pm2 status
-          
-          # Show logs
           pm2 logs frontend --lines 20

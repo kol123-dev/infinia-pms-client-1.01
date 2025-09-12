@@ -8,9 +8,6 @@ import { jwtDecode } from 'jwt-decode';
 import { AuthError } from 'firebase/auth';
 import { AxiosError } from 'axios';
 import { type JWT } from "next-auth/jwt";
-import { AuthOptions } from 'next-auth';
-// Remove this import as it doesn't exist
-// import { RedirectCallback } from 'next-auth/lib/types';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -84,56 +81,49 @@ async function authenticateWithBackend(idToken: string) {
   }
 }
 
-export const authOptions: AuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
-        provider: { label: "Provider", type: "text" },
-        idToken: { label: "ID Token", type: "text" }
       },
-      async authorize(credentials) {
-        if (!credentials) throw new Error("No credentials provided. Please try again.");
-    
-        try {
-          let idToken: string;
-    
-          if (credentials.provider === "google") {
-            if (!credentials.idToken) {
-              throw new Error("No Google ID token provided. Please try signing in again.");
-            }
-            idToken = credentials.idToken;
-          } else {
-            try {
-              const userCredential = await signInWithEmailAndPassword(
-                auth,
-                credentials.email,
-                credentials.password
-              );
-              idToken = await userCredential.user.getIdToken(true);
-            } catch (firebaseError) {
-              const error = firebaseError as AuthError;
-              if (error.code === 'auth/wrong-password') {
-                throw new Error("Wrong password. Please try again.");
-              } else if (error.code === 'auth/user-not-found') {
-                throw new Error("No account found with this email.");
-              } else if (error.code === 'auth/invalid-email') {
-                throw new Error("Invalid email format.");
-              } else {
-                throw new Error("Authentication failed. Please check your credentials and try again.");
-              }
-            }
-          }
-    
-          // Call backend authentication
-          return await authenticateWithBackend(idToken);
-        } catch (error) {
-          console.error("Authentication error:", error);
-          throw error;  // Throw to pass custom message to frontend
+      async authorize(credentials, req) {
+        console.log('Authorize callback triggered');
+        console.log('Runtime NEXTAUTH_URL in authorize:', process.env.NEXTAUTH_URL);
+        
+        // Force-set a safe callback URL early if needed
+        const baseUrl = process.env.NEXTAUTH_URL || 'https://property.infiniasync.com';
+        if (req?.query?.callbackUrl?.includes('0.0.0.0')) {
+          console.log('Bad callback detected in authorize, overriding to:', baseUrl);
+          req.query.callbackUrl = `${baseUrl}/`;  // Override to prevent bad redirect
         }
-      }
+
+        if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials');
+          return null;
+        }
+
+        try {
+          // First, sign in with Firebase to get ID token
+          const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+          const idToken = await userCredential.user.getIdToken();
+          
+          // Now authenticate with backend using the ID token
+          const user = await authenticateWithBackend(idToken);
+          
+          if (user) {
+            console.log('Authorization successful for user:', user.email);
+            return user;
+          }
+          console.log('Authorization failed: No user returned');
+          return null;
+        } catch (error) {
+          console.error('Error in authorize:', error);
+          return null;
+        }
+      },
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -207,9 +197,6 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
-    // Remove this duplicate authorize callback - it's already in the CredentialsProvider
-    // authorize: async (credentials: Record<string, string> | undefined) => { ... },
-
     // Updated redirect with proper typing
     async redirect({ url, baseUrl }) {
       console.log('Redirect callback triggered'); // Confirm if this is even called
@@ -241,8 +228,24 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-  // Remove this invalid line: trustHost: true,
 };
+
+// Add enhanced Firebase error handling
+async function refreshFirebaseToken() {
+  try {
+    // Your existing refresh logic...
+  } catch (error: unknown) {
+    const errorDetails = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: (error instanceof Error && 'code' in error) ? (error as { code: string }).code : 'unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      // Add network-specific info if possible
+      networkInfo: typeof navigator !== 'undefined' ? navigator.onLine : 'Server-side (check VPS connectivity)',
+    };
+    console.error('Firebase token refresh failed with details:', errorDetails);
+    throw error;
+  }
+}
 
 const handler = NextAuth(authOptions);
 

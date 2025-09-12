@@ -1,4 +1,4 @@
-import NextAuth, { type NextAuthOptions,  type User, type Account, type Session } from "next-auth";
+import NextAuth, { type NextAuthOptions,type User, type Account, type Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { initializeApp } from "firebase/app";
@@ -205,16 +205,15 @@ const options: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-      const prodUrl = process.env.NEXTAUTH_URL || 'https://property.infiniasync.com';
       // Allows relative callback URLs
       if (url.startsWith("/")) {
-        return `${prodUrl}${url}`;
+        return `${baseUrl}${url}`;
       }
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === prodUrl) {
+      else if (new URL(url).origin === baseUrl) {
         return url;
       }
-      return prodUrl;
+      return baseUrl;
     }
   },
   session: {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
-import { Building, Users, DollarSign, AlertTriangle, Calendar, Plus, Eye, TrendingUp } from "lucide-react"
+import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"  // Added MessageSquare
 import { DashboardCharts } from "@/components/dashboard/charts"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
@@ -17,15 +17,16 @@ import axios from '@/lib/axios';
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from '@/hooks/use-toast';  // Import for toast notifications
 import { Tenant } from '../tenants/types';  // Import for Tenant type
+import Link from 'next/link';
 
 const quickActions = [
   { label: "Add Tenant", shortLabel: "Tenant", icon: Plus, href: "/tenants", variant: "default" as const },
   { label: "Record Payment", shortLabel: "Payment", icon: DollarSign, href: "/payments", variant: "outline" as const },
   {
-    label: "Schedule Inspection",
-    shortLabel: "Inspection",
-    icon: Calendar,
-    href: "/move",
+    label: "Send SMS",
+    shortLabel: "SMS",
+    icon: MessageSquare,
+    href: "/sms",
     variant: "outline" as const,
   },
   { label: "View Reports", shortLabel: "Reports", icon: Eye, href: "/reports", variant: "outline" as const },
@@ -132,25 +133,31 @@ export default function Dashboard() {
           </Badge>
         </div>
 
-        {/* Stats Grid - Swipeable on Mobile */}
+       
+
+        {/* Stats Grid - Mobile Optimized */}
         <div className="md:hidden">
-          <div className="swipeable-container">
+          <div className="grid grid-cols-2 gap-2">
             {stats.map((stat) => (
-              <Card key={stat.title} className="swipeable-item w-64 card-enhanced">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20`}>
+              <Card key={stat.title} className="card-enhanced w-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <div className={`p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20`}>
                     <stat.icon className={`h-4 w-4 ${stat.color}`} />
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <CardContent className="p-2 pt-0">
+                  <div className="text-lg font-bold text-foreground">
+                    {stat.value}
+                  </div>
                   <div className="flex items-center gap-1 mt-1">
                     <TrendingUp
-                      className={`h-3 w-3 ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
+                      className={`h-3 w-3 flex-shrink-0 ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
                     />
                     <p
-                      className={`text-xs ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
+                      className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
                     >
                       {stat.change}
                     </p>
@@ -196,15 +203,16 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid gap-3 grid-cols-2">
               {quickActions.map((action) => (
-                <Button
-                  key={action.label}
-                  variant={action.variant}
-                  className="h-16 flex-col gap-2 text-xs touch-target"
-                >
-                  <action.icon className="h-5 w-5" />
-                  <span className="hidden xs:inline">{action.label}</span>
-                  <span className="xs:hidden">{action.shortLabel}</span>
-                </Button>
+                <Link key={action.label} href={action.href}>
+                  <Button
+                    variant={action.variant}
+                    className="h-16 flex-col gap-2 text-xs touch-target w-full"
+                  >
+                    <action.icon className="h-5 w-5" />
+                    <span className="hidden xs:inline">{action.label}</span>
+                    <span className="xs:hidden">{action.shortLabel}</span>
+                  </Button>
+                </Link>
               ))}
             </div>
           </CardContent>
@@ -219,14 +227,15 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               {quickActions.map((action) => (
-                <Button
-                  key={action.label}
-                  variant={action.variant}
-                  className="justify-start h-12 text-sm shadow-theme hover:shadow-theme-lg transition-all"
-                >
-                  <action.icon className="mr-3 h-4 w-4" />
-                  <span>{action.label}</span>
-                </Button>
+                <Link key={action.label} href={action.href}>
+                  <Button
+                    variant={action.variant}
+                    className="justify-start h-12 text-sm shadow-theme hover:shadow-theme-lg transition-all w-full"
+                  >
+                    <action.icon className="mr-3 h-4 w-4" />
+                    <span>{action.label}</span>
+                  </Button>
+                </Link>
               ))}
             </div>
           </CardContent>

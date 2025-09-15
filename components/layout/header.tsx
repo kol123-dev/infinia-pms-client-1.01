@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search } from "lucide-react"
+import { Bell, Search, X, Loader2, User, Building, Home, DollarSign, FileText } from "lucide-react"  // Add new icons
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { MobileSidebar } from "./sidebar"
@@ -140,38 +140,77 @@ export function Header() {
     return `Unnamed Item (${item.id})`;  // Ultimate fallback
   };
 
+  // New: Icon mapping for categories
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'tenants': return <User className="mr-2 h-4 w-4" />;
+      case 'landlords': return <Building className="mr-2 h-4 w-4" />;
+      case 'properties': return <Home className="mr-2 h-4 w-4" />;
+      case 'units': return <FileText className="mr-2 h-4 w-4" />;
+      case 'payments': return <DollarSign className="mr-2 h-4 w-4" />;
+      default: return null;
+    }
+  };
+
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+    <header className="flex h-14 items-center gap-2 px-2 border-b bg-muted/40 lg:gap-4 lg:px-6 lg:h-[60px] flex-nowrap overflow-hidden">
       <MobileSidebar />
-      <div className="w-full flex-1">
+      <div className="w-full flex-1 min-w-0">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={isOpen}
-              className="w-[300px] justify-between"
+              className="w-full md:w-[300px] justify-between text-sm truncate"  // Added text-sm and truncate for better mobile fit
               onClick={() => setIsOpen(true)}
             >
-              Search...
+              <Search className="mr-1 h-4 w-4 shrink-0 opacity-50" />  {/* Reduced margin */}
+              Search tenants, units, payments...
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0" ref={popoverRef}>
+          <PopoverContent className="w-[400px] p-0">  
             <Command>
-              <Input
-                placeholder="Type to search..."
-                className="h-9 border-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <div className="relative">  
+                <Input
+                  placeholder="Type to search..."
+                  className="h-9 border-none pr-8"  
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-9 w-9"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <CommandList>
-                {isLoading && <CommandEmpty>Loading...</CommandEmpty>}
+                {isLoading && (
+                  <CommandEmpty>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...  {/* New: Spinner */}
+                  </CommandEmpty>
+                )}
                 {error && <CommandEmpty>{error}</CommandEmpty>}
                 {!isLoading && !error && results.length === 0 && (
-                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandEmpty>
+                    No results found. Try a different keyword?  {/* Friendlier message */}
+                  </CommandEmpty>
                 )}
                 {Object.entries(groupedResults).map(([category, items]) => (
-                  <CommandGroup key={category} heading={category.charAt(0).toUpperCase() + category.slice(1)}>
+                  <CommandGroup 
+                    key={category} 
+                    heading={
+                      <div className="flex items-center">
+                        {getCategoryIcon(category)}  {/* New: Category icon */}
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </div>
+                    }
+                  >
                     {items.map((item) => (
                       <CommandItem key={item.id}>
                         <Link href={`/${category}/${item.id}`}>
@@ -186,15 +225,15 @@ export function Header() {
           </PopoverContent>
         </Popover>
       </div>
-      <Button variant="outline" size="icon" className="ml-auto h-8 w-8 bg-transparent">
+      <Button variant="outline" size="icon" className="ml-auto h-6 w-6 lg:h-8 lg:w-8 bg-transparent shrink-0">
         <Bell className="h-4 w-4" />
         <span className="sr-only">Toggle notifications</span>
       </Button>
-      <ModeToggle />
+      <ModeToggle className="h-6 w-6 lg:h-8 lg:w-8 shrink-0" />  {/* Assuming ModeToggle accepts className for sizing */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="rounded-full">
-            <Avatar className="h-8 w-8">
+          <Button variant="secondary" size="icon" className="rounded-full h-6 w-6 lg:h-8 lg:w-8 shrink-0">
+            <Avatar className="h-6 w-6 lg:h-8 lg:w-8">
               <AvatarImage 
                 src={user?.profile_image || "/avatar.jpg"} 
                 alt={user?.first_name || "User"}
@@ -206,7 +245,9 @@ export function Header() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <Link href="/profile">  {/* New: Wrap My Account in Link for redirection */}
+            <DropdownMenuItem>My Account</DropdownMenuItem>  {/* Changed from DropdownMenuLabel to make it clickable */}
+          </Link>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>

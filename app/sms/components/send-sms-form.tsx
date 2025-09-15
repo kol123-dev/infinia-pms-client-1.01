@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Send } from 'lucide-react'
 import { SmsTemplate, Tenant, TenantGroup } from "../types"
 import { SelectedGroupMembers } from "./selected-group-members"
+import { Users, User, Phone } from 'lucide-react'
 
 type RecipientType = 'group' | 'individual' | 'manual'
 
@@ -115,10 +116,11 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <Label className="text-base font-medium min-w-[120px]">Template</Label>
         <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
-          <SelectTrigger className="w-[300px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Select a template" />
           </SelectTrigger>
           <SelectContent>
@@ -132,31 +134,34 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
       </div>
 
       <div className="space-y-4">
-        <Label>Recipients</Label>
+        <Label className="text-base font-medium">Recipients</Label>
         <RadioGroup
           value={recipientType}
           onValueChange={(value) => setRecipientType(value as RecipientType)}
-          className="space-y-4"
+          className="space-y-3"
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
             <RadioGroupItem value="group" id="group" />
-            <Label htmlFor="group">Select a Group</Label>
+            <Users className="w-5 h-5 text-muted-foreground" />
+            <Label htmlFor="group" className="flex-1 cursor-pointer">Select a Group</Label>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
             <RadioGroupItem value="individual" id="individual" />
-            <Label htmlFor="individual">Search an Individual</Label>
+            <User className="w-5 h-5 text-muted-foreground" />
+            <Label htmlFor="individual" className="flex-1 cursor-pointer">Search an Individual</Label>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
             <RadioGroupItem value="manual" id="manual" />
-            <Label htmlFor="manual">Enter Mobile Number(s)</Label>
+            <Phone className="w-5 h-5 text-muted-foreground" />
+            <Label htmlFor="manual" className="flex-1 cursor-pointer">Enter Mobile Number(s)</Label>
           </div>
         </RadioGroup>
 
         {recipientType === 'group' && (
-          <>
+          <div className="mt-2">
             <Select value={selectedGroup} onValueChange={handleGroupSelect}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a group" />
+                <SelectValue placeholder="Choose a group" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all-tenants">All Tenants</SelectItem>
@@ -169,21 +174,20 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
                 ))}
               </SelectContent>
             </Select>
-
             {selectedMembers.length > 0 && (
               <SelectedGroupMembers
                 members={selectedMembers}
                 onRemoveMember={handleRemoveMember}
               />
             )}
-          </>
+          </div>
         )}
 
         {recipientType === 'individual' && (
-          <div className="space-y-2">
+          <div className="space-y-2 mt-2">
             <Input
               type="text"
-              placeholder="Search by name or phone number"
+              placeholder="Search by name or phone"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -205,26 +209,26 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
 
         {recipientType === 'manual' && (
           <Textarea
-            placeholder="Enter phone numbers separated by commas"
+            placeholder="Enter numbers separated by commas (e.g., +1234567890, +0987654321)"
             value={manualNumbers}
             onChange={(e) => setManualNumbers(e.target.value)}
-            className="min-h-[80px]"
+            className="min-h-[80px] mt-2"
           />
         )}
       </div>
 
       <div className="space-y-2">
-        <Label>Message</Label>
+        <Label className="text-base font-medium">Message</Label>
         <Textarea
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type your message here"
-          className="min-h-[100px]"
+          className="min-h-[140px]"
         />
       </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button onClick={handleSend}>
+      <div className="flex justify-end">
+        <Button onClick={handleSend} className="w-full sm:w-auto px-6">
           <Send className="w-4 h-4 mr-2" />
           Send Message
         </Button>

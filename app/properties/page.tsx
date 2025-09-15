@@ -95,74 +95,79 @@ export default function Properties() {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {properties.map((property) => (
-          <Card key={property.id} className="overflow-hidden">
-            <div className="aspect-video bg-muted">
+          <Card key={property.id} className="overflow-hidden border border-border/50 rounded-xl shadow-sm">
+            <div className="aspect-[4/3] bg-muted">  
               <img
                 src="/placeholder.svg"
                 alt={property.name || 'Unnamed Property'}
                 className="h-full w-full object-cover"
               />
             </div>
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-lg">{property.name || 'Unnamed Property'}</CardTitle>
-                  <CardDescription className="flex items-center mt-1">
+                  <CardTitle className="text-base sm:text-lg">
+                    {property.name || 'Unnamed Property'}
+                  </CardTitle>
+                  <CardDescription className="flex items-center mt-1 text-xs sm:text-sm">
                     <MapPin className="mr-1 h-3 w-3" />
                     {property.location.address}
                   </CardDescription>
                 </div>
-                <Badge variant="secondary">{property.property_type}</Badge>
+                <Badge variant="secondary" className="text-xs sm:text-sm">
+                  {property.property_type}
+                </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <CardContent className="space-y-3 p-3 sm:p-6 pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex items-center">
-                  <Building className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <Building className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <span>{property.units.summary.total} units</span>
                 </div>
                 <div className="flex items-center">
-                  <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <Users className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <span>{property.units.summary.occupied} occupied</span>
                 </div>
-                <div className="flex items-center col-span-2">
-                  <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center col-span-1 sm:col-span-2 font-medium">  
+                  <DollarSign className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <span>{formatCurrency(property.financials?.summary?.actualMonthlyRevenue || 0)}/month</span>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span>Occupancy Rate</span>
                   <span>{Math.round((property.units.summary.occupied / property.units.summary.total) * 100)}%</span>
                 </div>
-                <Progress value={(property.units.summary.occupied / property.units.summary.total) * 100} className="h-2" />
+                <Progress value={(property.units.summary.occupied / property.units.summary.total) * 100} className="h-1.5 sm:h-2" />
               </div>
 
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1 bg-transparent"
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 bg-transparent text-xs sm:text-sm"
                   onClick={() => {
                     setSelectedProperty(property)
                     setIsDetailsDialogOpen(true)
                   }}
                 >
-                  <Eye className="mr-2 h-4 w-4" />
+                  <Eye className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
                   View Details
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
+                  className="text-xs sm:text-sm"
                   onClick={() => {
                     setSelectedProperty(property)
                     setIsEditDialogOpen(true)
                   }}
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </CardContent>

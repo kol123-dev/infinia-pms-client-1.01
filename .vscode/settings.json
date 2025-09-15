@@ -1,0 +1,10 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "css.validate": false,  // Disables built-in CSS validation (Tailwind handles it)
+  "scss.validate": false, // If you have SCSS files
+  "less.validate": false, // If you have LESS files
+  "files.eol": "\n"  // Optional: Ensures consistent line endings
+
+  // ... existing settings (add any other settings here) ...
+}

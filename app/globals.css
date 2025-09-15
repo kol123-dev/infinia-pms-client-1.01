@@ -282,3 +282,22 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Mobile-specific styles for search and dialogs */
+@media (max-width: 640px) {
+  [role="combobox"] {
+    @apply w-full text-base py-3;  /* Full-width, larger search input */
+  }
+  
+  .popover-content {
+    @apply w-screen max-w-none rounded-none border-0;  /* Full-screen popover on mobile */
+  }
+  
+  .dialog-content {
+    @apply fixed inset-0 m-0 max-w-none w-full h-full rounded-none p-4 overflow-y-auto;  /* Full-screen dialogs */
+  }
+  
+  .dialog-content button {
+    @apply py-3 text-base;  /* Larger touch targets for buttons */
+  }
+}

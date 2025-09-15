@@ -19,13 +19,13 @@ export function CustomDataTable<TData, TValue>({
   })
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-x-auto">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead key={header.id} className="px-2 py-1 text-xs md:px-4 md:py-2 md:text-sm">
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -47,7 +47,7 @@ export function CustomDataTable<TData, TValue>({
                 className="cursor-pointer hover:bg-muted/50"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell key={cell.id} className="px-2 py-1 text-xs md:px-4 md:py-2 md:text-sm">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -57,7 +57,7 @@ export function CustomDataTable<TData, TValue>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="h-24 text-center"
+                className="h-24 text-center px-2 py-1 text-xs md:px-4 md:py-2 md:text-sm"
               >
                 No results.
               </TableCell>

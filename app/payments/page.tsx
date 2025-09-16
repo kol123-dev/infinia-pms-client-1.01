@@ -13,32 +13,35 @@ import { BankTransactionList } from "./components/bank-transaction-list"
 import { CashPaymentList } from "./components/cash-payment-list"
 import { InvoiceList } from "./components/invoice-list"
 import { CreateInvoiceDialog } from "./components/create-invoice-dialog"
+import { RecordPaymentDialog } from "./components/record-payment-dialog"
 
 export default function PaymentsPage() {
   return (
     <MainLayout>
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold md:text-2xl">Payments Management</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
+        <h1 className="text-2xl font-bold">Payments Management</h1>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
           <CreateInvoiceDialog>
-            <Button variant="outline">Create Invoice</Button>
+            <Button className="w-full sm:w-auto">Create Invoice</Button>
           </CreateInvoiceDialog>
-          <Button asChild>
-            <Link href="/payments/record">Record Payment</Link>
-          </Button>
+          <RecordPaymentDialog>
+            <Button variant="secondary" className="w-full sm:w-auto">Record Payment</Button>
+          </RecordPaymentDialog>
         </div>
       </div>
 
       <PaymentStats />
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
-          <TabsTrigger value="bank">Bank Transfers</TabsTrigger>
-          <TabsTrigger value="cash">Cash</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-        </TabsList>
+        <div className="sticky top-0 z-10 bg-background overflow-x-auto scrollbar-hide">
+          <TabsList className="flex space-x-2 min-w-max flex-nowrap">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
+            <TabsTrigger value="bank">Bank Transfers</TabsTrigger>
+            <TabsTrigger value="cash">Cash</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-4">
           <PaymentList />

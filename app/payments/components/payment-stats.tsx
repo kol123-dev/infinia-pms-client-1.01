@@ -33,7 +33,7 @@ export function PaymentStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get('/payments/stats/')
+        const response = await api.get('/payments/payments/stats/')  // Updated path to match backend routing
         setStats(response.data)
       } catch (error) {
         console.error('Error fetching payment stats:', error)
@@ -50,13 +50,13 @@ export function PaymentStats() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <Card>
+    <div className="grid gap-4 md:grid-cols-4 p-2 sm:p-4">
+      <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(stats.total_collected.amount)}</div>
+          <div className="text-xl sm:text-2xl font-bold">{formatCurrency(stats.total_collected.amount)}</div>
           <p className={`text-xs ${stats.total_collected.color === 'green' ? 'text-green-600' : 'text-red-600'}`}>
             {stats.total_collected.change_percentage > 0 ? '+' : ''}
             {stats.total_collected.change_percentage.toFixed(1)}% from last month

@@ -184,107 +184,109 @@ export function InvoiceList() {
         onChange={(e) => setSearchTerm(e.target.value)}
         className="max-w-sm"
       />
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead>Invoice #</TableHead>
-            <TableHead>Tenant</TableHead>
-            <TableHead>Property</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead>Paid Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredInvoices.map((invoice) => (
-            <TableRow key={invoice.id}>
-              <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{invoice.tenant.user.full_name}</span>
-                  <span className="text-sm text-muted-foreground">{invoice.tenant.user.email}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{invoice.unit.property.name}</span>
-                  <span className="text-sm text-green-600">Unit {invoice.unit.unit_number}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{formatCurrency(invoice.amount)}</TableCell>
-              <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
-              <TableCell>{invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : "-"}</TableCell>
-              <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-              <TableCell>{invoice.payment_method || "-"}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInvoice(invoice)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Invoice Details</DialogTitle>
-                        <DialogDescription>
-                          Invoice #{invoice.invoice_number}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <div className="font-semibold">Amount:</div>
-                          <div className="col-span-3">{formatCurrency(invoice.amount)}</div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <div className="font-semibold">Due Date:</div>
-                          <div className="col-span-3">{new Date(invoice.due_date).toLocaleDateString()}</div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <div className="font-semibold">Status:</div>
-                          <div className="col-span-3">{getStatusBadge(invoice.status)}</div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <div className="font-semibold">Tenant:</div>
-                          <div className="col-span-3">{invoice.tenant.user.full_name}</div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <div className="font-semibold">Property:</div>
-                          <div className="col-span-3">{invoice.unit.property.name} - Unit {invoice.unit.unit_number}</div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => handleEdit(invoice)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button variant="destructive" onClick={() => {
-                          setIsDeleteDialogOpen(true)
-                          setSelectedInvoice(invoice)
-                        }}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    onClick={() => handleSendSMS(invoice)}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead>Invoice #</TableHead>
+              <TableHead>Tenant</TableHead>
+              <TableHead>Property</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead className="hidden sm:table-cell">Paid Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Method</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filteredInvoices.map((invoice) => (
+              <TableRow key={invoice.id}>
+                <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{invoice.tenant.user.full_name}</span>
+                    <span className="text-sm text-muted-foreground">{invoice.tenant.user.email}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{invoice.unit.property.name}</span>
+                    <span className="text-sm text-green-600">Unit {invoice.unit.unit_number}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{formatCurrency(invoice.amount)}</TableCell>
+                <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
+                <TableCell className="hidden sm:table-cell">{invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : "-"}</TableCell>
+                <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                <TableCell className="hidden sm:table-cell">{invoice.payment_method || "-"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInvoice(invoice)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Invoice Details</DialogTitle>
+                          <DialogDescription>
+                            Invoice #{invoice.invoice_number}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Amount:</div>
+                            <div className="col-span-3">{formatCurrency(invoice.amount)}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Due Date:</div>
+                            <div className="col-span-3">{new Date(invoice.due_date).toLocaleDateString()}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Status:</div>
+                            <div className="col-span-3">{getStatusBadge(invoice.status)}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Tenant:</div>
+                            <div className="col-span-3">{invoice.tenant.user.full_name}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Property:</div>
+                            <div className="col-span-3">{invoice.unit.property.name} - Unit {invoice.unit.unit_number}</div>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => handleEdit(invoice)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button variant="destructive" onClick={() => {
+                            setIsDeleteDialogOpen(true)
+                            setSelectedInvoice(invoice)
+                          }}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleSendSMS(invoice)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       
       {/* Add pagination controls */}
       <div className="flex items-center justify-between px-2">

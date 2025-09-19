@@ -59,7 +59,7 @@ export function MpesaTransactionMatchDialog({
 
     setIsLoading(true)
     try {
-      await api.post(`/payments/mpesa/${transactionId}/match/`, {
+      await api.post(`/payments/mobilepay/${transactionId}/match/`, {
         tenant_id: selectedTenant,
       })
       

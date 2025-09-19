@@ -51,7 +51,7 @@ export function MpesaTransactionList() {
     const fetchTransactions = async () => {
       setLoading(true)
       try {
-        const response = await api.get<PaginatedResponse>('/payments/mpesa/', {
+        const response = await api.get<PaginatedResponse>('/payments/mobilepay/', {
           params: {
             page: currentPage,
             page_size: pageSize,
@@ -93,7 +93,7 @@ export function MpesaTransactionList() {
 
     setDeleting(id)
     try {
-      await api.delete(`/payments/mpesa/${id}/`)
+      await api.delete(`/payments/mobilepay/${id}/`)
       setTransactions(prev => prev.filter(t => t.id !== id))
       toast({
         title: "Success",
@@ -156,11 +156,10 @@ export function MpesaTransactionList() {
     refetch()
   }
   
-  // Add this function to refetch the transactions
   const refetch = async () => {
     setLoading(true)
     try {
-      const response = await api.get<PaginatedResponse>('/payments/mpesa/', {
+      const response = await api.get<PaginatedResponse>('/payments/mobilepay/', {
         params: {
           page: currentPage,
           page_size: pageSize,

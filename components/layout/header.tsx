@@ -31,6 +31,9 @@ import {
 import { useDebounce } from 'use-debounce'
 import api from '@/lib/axios'  // Using configured Axios with auth interceptors
 import Link from 'next/link'
+import { useAuth } from "@/lib/context/auth-context";  // For logout
+import { useRouter } from "next/navigation";  // For routing after logout
+
 
 // Define a type for search result items (expanded based on serializer fields)
 type User = {
@@ -59,12 +62,30 @@ type SearchResultItem = {
 export function Header() {
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);  // Fixed: Initialize debounce
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Add these lines for logout
+  const { logout } = useAuth();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Add this handleLogout function
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.push('/signin');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -229,7 +250,7 @@ export function Header() {
         <Bell className="h-4 w-4" />
         <span className="sr-only">Toggle notifications</span>
       </Button>
-      <ModeToggle className="h-6 w-6 lg:h-8 lg:w-8 shrink-0" />  {/* Assuming ModeToggle accepts className for sizing */}
+      <ModeToggle className="h-6 w-6 lg:h-8 lg:w-8 shrink-0" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full h-6 w-6 lg:h-8 lg:w-8 shrink-0">
@@ -245,14 +266,20 @@ export function Header() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <Link href="/profile">  {/* New: Wrap My Account in Link for redirection */}
-            <DropdownMenuItem>My Account</DropdownMenuItem>  {/* Changed from DropdownMenuLabel to make it clickable */}
+          <Link href="/profile">
+            <DropdownMenuItem>My Account</DropdownMenuItem>
           </Link>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <Link href="/settings">
+            <DropdownMenuItem>Settings</DropdownMenuItem>
+          </Link>
+          <Link href="/help">
+            <DropdownMenuItem>Support</DropdownMenuItem>
+          </Link>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

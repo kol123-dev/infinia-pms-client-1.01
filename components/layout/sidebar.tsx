@@ -42,6 +42,13 @@ const navigation = [
     icon: Users,
     badge: null,
   },
+  // Add this new item for Users management
+  {
+    name: "Users",
+    href: "/users",
+    icon: Users, // Reuse Users icon, or import and use a different one like UserCog if preferred
+    badge: null, // Optional: Add a badge if you want to show counts/notifications
+  },
   {
     name: "Properties",
     href: "/properties",

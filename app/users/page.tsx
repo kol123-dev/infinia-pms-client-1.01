@@ -40,25 +40,28 @@ import {
 } from "@/components/ui/table"
 
 // Define User type based on backend serializer
+// Remove the duplicate User interface at the top (around lines 42-55) and use this consolidated version
+// that matches backend fields and makes first/last_name optional
 interface User {
   id: string
   email: string
-  first_name: string
-  last_name: string
+  full_name: string  // Primary from backend
+  first_name?: string  // Optional, can derive from full_name
+  last_name?: string   // Optional, can derive from full_name
   phone: string
-  role: 'tenant' | 'landlord' | 'admin' // Add other roles as needed
-  has_profile?: boolean // We'll compute this based on API data or separate check
-  // Add other fields as needed
-  profile?: any; // e.g., { id, ... } or null
-  current_unit?: any; // For tenants
+  role: 'tenant' | 'landlord' | 'admin'
+  has_profile?: boolean
+  profile?: any
+  current_unit?: any
 }
 
 // Update columns for has_profile (based on profile existence)
+// Update columns to use full_name and handle missing profile/unit
 export const columns: ColumnDef<User>[] = [
   {
     accessorKey: 'full_name',
     header: 'Name',
-    cell: ({ row }) => `${row.original.first_name} ${row.original.last_name}`
+    cell: ({ row }) => row.original.full_name || 'Unnamed User' // Use full_name from API; fallback if missing
   },
   {
     accessorKey: 'email',
@@ -300,11 +303,16 @@ export default function UsersPage() {
           params: { page: pageIndex + 1, page_size: pageSize }
         });
         const data = response.data;
-        setUsers(Array.isArray(data.results) ? data.results.map((user: any) => ({
+        console.log('Fetched users:', data);  // Debug log
+        const userList = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
+        setUsers(userList.map((user: any) => ({
           ...user,
-          has_profile: !!user.profile // Compute based on profile existence
-        })) : []);
-        setTotalPages(Math.ceil(data.count / pageSize));
+          full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`,
+          first_name: user.full_name?.split(' ')[0] || user.first_name || '',
+          last_name: user.full_name?.split(' ').slice(1).join(' ') || user.last_name || '',
+          has_profile: !!user.profile
+        })));
+        setTotalPages(data.count ? Math.ceil(data.count / pageSize) : 1);
       } catch (error) {
         console.error('Failed to fetch users:', error);
         toast({ variant: "destructive", description: "Failed to load users" });
@@ -442,3 +450,6 @@ export default function UsersPage() {
     </MainLayout>
   )
 }
+
+// Remove the entire duplicate useEffect block at the bottom (around lines 452-492),
+// as it's outside the component and causing undefined variable errors

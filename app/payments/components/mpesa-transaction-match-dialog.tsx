@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
 import { useToast } from '@/components/ui/use-toast'
 import api from '@/lib/axios'
+import { useCallback } from 'react';
+import axios from '@/lib/axios';  // Add this import (adjust alias if needed, e.g., '../../lib/axios' if no alias)
 
 interface MpesaTransactionMatchDialogProps {
   isOpen: boolean
@@ -25,27 +27,20 @@ export function MpesaTransactionMatchDialog({
   const { toast } = useToast()
 
   // Fetch tenants when dialog opens
+  const fetchTenants = useCallback(async () => {
+    try {
+      const response = await axios.get('/tenants/');  // Now axios is recognized
+      setTenants(response.data);
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+    }
+  }, []);  // Empty deps if no dependencies inside
+
   useEffect(() => {
     if (isOpen) {
-      fetchTenants()
+      fetchTenants();
     }
-  }, [isOpen])
-
-  const fetchTenants = async () => {
-    try {
-      const response = await api.get('/tenants/')
-      // Extract tenants from the results array in the paginated response
-      const tenantsData = response.data.results || []
-      setTenants(tenantsData)
-    } catch (error) {
-      console.error('Error fetching tenants:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to load tenants. Please try again.',
-        variant: 'destructive',
-      })
-    }
-  }
+  }, [isOpen, fetchTenants]);  // Fixes the lint warning
 
   const handleMatch = async () => {
     if (!selectedTenant) {

@@ -34,6 +34,19 @@ jobs:
         # Try npm ci first, fallback to npm install if lock file is out of sync
         npm ci || npm install
 
+    - name: Debug ESLint Setup  # NEW STEP: Add this
+      run: |
+        echo "Node version:"
+        node -v
+        echo "NPM version:"
+        npm -v
+        echo "ESLint version and dependencies:"
+        npm list eslint
+        echo "Sample ESLint config (from package.json scripts):"
+        cat package.json | grep "lint"
+        echo "Full ESLint config:"
+        cat .eslintrc.json || echo "No .eslintrc.json found"
+
     - name: Run lint
       run: npm run lint
 

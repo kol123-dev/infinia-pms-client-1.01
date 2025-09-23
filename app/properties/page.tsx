@@ -21,6 +21,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Property, PropertiesResponse } from "./types"
 
 // Remove the existing interfaces since we're importing them
+import Image from "next/image"
 
 export default function Properties() {
   const [properties, setProperties] = useState<Property[]>([])
@@ -98,11 +99,12 @@ export default function Properties() {
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {properties.map((property) => (
           <Card key={property.id} className="overflow-hidden border border-border/50 rounded-xl shadow-sm">
-            <div className="aspect-[4/3] bg-muted">  
-              <img
+            <div className="aspect-[4/3] bg-muted relative">  
+              <Image
                 src="/placeholder.svg"
                 alt={property.name || 'Unnamed Property'}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             </div>
             <CardHeader className="p-3 sm:p-6">

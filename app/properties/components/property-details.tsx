@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { toast } from "@/components/ui/use-toast"
 import api from "@/lib/axios"
+import Image from 'next/image';
 
 interface PropertyDetailsProps {
   property: Property
@@ -98,11 +99,12 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
         </DialogHeader>
 
         {/* Property Image */}
-        <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-          <img
+        <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
+          <Image
             src="/placeholder.svg"
             alt={property.name || ''}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
         

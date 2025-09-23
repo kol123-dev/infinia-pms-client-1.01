@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"  // Add useCallback here
 import api from "@/lib/axios"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -36,12 +36,7 @@ export default function Units() {
     occupancy_rate: 0
   })
 
-  useEffect(() => {
-    fetchUnits()
-    fetchStats()
-  }, [currentPage])
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await api.get('/units/stats/')
       setStats(response.data)
@@ -53,9 +48,9 @@ export default function Units() {
         description: "Failed to load unit statistics"
       })
     }
-  }
+  }, [toast])
 
-  const fetchUnits = async () => {
+  const fetchUnits = useCallback(async () => {
     try {
       const response = await api.get(`/units/?page=${currentPage + 1}`)
       setUnits(response.data.results)
@@ -70,7 +65,12 @@ export default function Units() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentPage, toast])
+
+  useEffect(() => {
+    fetchUnits()
+    fetchStats()
+  }, [currentPage, fetchStats, fetchUnits])  // Add fetchStats and fetchUnits here
 
   const handleUnitClick = (unit: Unit) => {
     setSelectedUnit(unit);

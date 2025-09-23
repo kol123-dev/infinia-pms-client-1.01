@@ -65,7 +65,7 @@ export function BulkUnitForm({ isOpen, onClose, onSuccess }: BulkUnitFormProps) 
       }
     }
     fetchProperties()
-  }, [])
+  }, [toast])  // Added toast here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

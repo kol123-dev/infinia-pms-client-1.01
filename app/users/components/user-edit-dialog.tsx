@@ -86,7 +86,7 @@ export function UserEditDialog({ user, isOpen, onClose, onUpdate }: UserEditDial
       setAvailableUnits(response.data.results.filter((u: Unit) => u.unit_status === 'VACANT' || u.id.toString() === formData.unit_id));
     };
     fetchUnits();
-  }, [formData.property_id]);
+  }, [formData.property_id, formData.unit_id]);  // Add formData.unit_id here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

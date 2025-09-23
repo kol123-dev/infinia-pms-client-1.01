@@ -103,7 +103,7 @@ export default function Dashboard() {
     if (session) {
       fetchDashboardData();
     }
-  }, [session]);
+  }, [session, toast]);
 
   if (status === 'loading' || loading) {
     return (

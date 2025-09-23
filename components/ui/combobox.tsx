@@ -45,10 +45,10 @@ export function Combobox({ items, value, onChange, placeholder = "Select an opti
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between text-sm sm:text-base py-3"  // Increased padding for touch
+          className="w-full justify-between text-sm sm:text-base py-3"  
         >
           {selectedItem ? selectedItem.label : placeholder}
-          <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />  // Larger icon
+          <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" /> 
         </Button>
       </PopoverTrigger>
       <PopoverContent 
@@ -59,9 +59,9 @@ export function Combobox({ items, value, onChange, placeholder = "Select an opti
         align="start"  // Align to start for better mobile positioning
       >
         <Command>
-          <CommandInput placeholder={placeholder} className="text-base p-3" />  // Larger input text/padding
-          <CommandEmpty className="p-4 text-base text-center">  // Centered, larger empty state
-            No item found. Try a different keyword?
+          <CommandInput placeholder={placeholder} className="text-base p-3" />  
+          <CommandEmpty className="p-4 text-base text-center">  
+            
           </CommandEmpty>
           <CommandGroup>
             {items.map((item) => (
@@ -72,7 +72,7 @@ export function Combobox({ items, value, onChange, placeholder = "Select an opti
                   onChange(item.value);
                   setOpen(false);
                 }}
-                className="text-base py-3"  // Larger items for touch
+                className="text-base py-3"  
               >
                 <Check
                   className={cn(

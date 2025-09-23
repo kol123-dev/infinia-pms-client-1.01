@@ -51,7 +51,7 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
       }
     }
     fetchProperties()
-  }, [])
+  }, [toast])  // Add toast here
 
   // Update the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {

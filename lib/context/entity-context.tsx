@@ -58,6 +58,22 @@ const mockEntities: Entity[] = [
   },
 ]
 
+// Move findEntityById outside the component
+const findEntityById = (id: string, entitiesList: Entity[]): Entity | null => {
+  for (const entity of entitiesList) {
+    if (entity.id === id) return entity
+    if (entity.landlords) {
+      const found = findEntityById(id, entity.landlords)
+      if (found) return found
+    }
+    if (entity.properties) {
+      const found = findEntityById(id, entity.properties)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 export function EntityProvider({ children }: { children: React.ReactNode }) {
   const [currentEntity, setCurrentEntityState] = useState<Entity | null>(null)
   const [entities] = useState<Entity[]>(mockEntities)
@@ -74,27 +90,14 @@ export function EntityProvider({ children }: { children: React.ReactNode }) {
       // Default to agency level
       setCurrentEntityState(entities[0])
     }
-  }, [entities])
+  }, [entities]) // No need to add findEntityById since it's now outside the component
 
   const setCurrentEntity = (entity: Entity) => {
     setCurrentEntityState(entity)
     localStorage.setItem("currentEntityId", entity.id)
   }
 
-  const findEntityById = (id: string, entitiesList: Entity[]): Entity | null => {
-    for (const entity of entitiesList) {
-      if (entity.id === id) return entity
-      if (entity.landlords) {
-        const found = findEntityById(id, entity.landlords)
-        if (found) return found
-      }
-      if (entity.properties) {
-        const found = findEntityById(id, entity.properties)
-        if (found) return found
-      }
-    }
-    return null
-  }
+  // Remove the duplicate findEntityById function here
 
   const getEntityPath = (entityId: string): Entity[] => {
     const path: Entity[] = []

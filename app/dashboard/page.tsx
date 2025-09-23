@@ -128,7 +128,7 @@ export default function Dashboard() {
             </p>
           </div>
           <Badge variant="outline" className="entity-badge w-fit self-start md:self-center">
-            <span className="text-xs sm:text-sm">PropertyPro Management</span>
+            <span className="text-xs sm:text-sm">PropPro Management</span>
             <span className="badge-count text-xs">12</span>
           </Badge>
         </div>

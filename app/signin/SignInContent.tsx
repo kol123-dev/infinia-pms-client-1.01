@@ -67,8 +67,8 @@ export default function SignInContent() {
 
           {/* Larger Heading and Subtext */}
           <div className="space-y-3"> {/* Added more space between heading and subtext */}
-            <h1 className="text-5xl font-bold leading-tight">Holla, Welcome Back</h1> {/* Even larger to match image scale */}
-            <p className="text-muted-foreground text-lg">Hey, welcome back to your special place</p> {/* Increased size for better visibility */}
+            <h2 className="text-5xl font-bold leading-tight">Hi, Welcome Back</h2> {/* Even larger to match image scale */}
+            <p className="text-muted-foreground text-lg">You're just a few taps away.</p> {/* Increased size for better visibility */}
           </div>
 
           {/* Form */}

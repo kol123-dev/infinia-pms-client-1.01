@@ -143,7 +143,7 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="VACANT">Vacant</SelectItem>
-                  <SelectItem value="OCCUPIED">Occupied</SelectItem>
+                  {/* Removed the Occupied option as requested */}
                   <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
@@ -168,7 +168,7 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <label>Rent ($)</label>
+              <label>Rent (KES)</label> {/* Changed from ($) to (KES) */}
               <Input
                 type="number"
                 step="0.01"
@@ -178,7 +178,7 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <label>Deposit ($)</label>
+              <label>Deposit (KES)</label> {/* Changed from ($) to (KES) */}
               <Input
                 type="number"
                 step="0.01"

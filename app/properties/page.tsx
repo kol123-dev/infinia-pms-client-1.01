@@ -97,7 +97,7 @@ export default function Properties() {
       </div>
 
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {properties.map((property) => (
+        {properties.map((property: Property) => (
           <Card key={property.id} className="overflow-hidden border border-border/50 rounded-xl shadow-sm">
             <div className="aspect-[4/3] bg-muted relative">  
               <Image
@@ -127,22 +127,22 @@ export default function Properties() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex items-center">
                   <Building className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span>{property.units.summary.total} units</span>
+                  <span className="text-blue-600">{property.units.summary.total} units</span>
                 </div>
                 <div className="flex items-center">
                   <Users className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span>{property.units.summary.occupied} occupied</span>
+                  <span className="text-blue-600">{property.units.summary.occupied} occupied</span>
                 </div>
                 <div className="flex items-center col-span-1 sm:col-span-2 font-medium">  
-                  <DollarSign className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span>{formatCurrency(property.financials?.summary?.actualMonthlyRevenue || 0)}/month</span>
+                  <span className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex items-center justify-center text-[8px] sm:text-[10px] font-bold">KES</span>
+                  <span className="text-green-600">{formatCurrency(property.financials?.summary?.lastMonthlyRevenue || 0)} Last month</span>
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs sm:text-sm">
                   <span>Occupancy Rate</span>
-                  <span>{Math.round((property.units.summary.occupied / property.units.summary.total) * 100)}%</span>
+                  <span className="text-emerald-600">{Math.round((property.units.summary.occupied / property.units.summary.total) * 100)}%</span>
                 </div>
                 <Progress value={(property.units.summary.occupied / property.units.summary.total) * 100} className="h-1.5 sm:h-2" />
               </div>

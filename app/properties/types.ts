@@ -62,7 +62,7 @@ export interface Property {
   financials: {
     summary: {
       potentialMonthlyRevenue: number
-      actualMonthlyRevenue: number
+      lastMonthlyRevenue: number
       occupancyRate: number
       revenueEfficiency: number
     }

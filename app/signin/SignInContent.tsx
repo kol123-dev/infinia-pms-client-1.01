@@ -75,7 +75,7 @@ export default function SignInContent() {
           <form onSubmit={handleEmailSignIn} className="space-y-6"> {/* Increased space-y for inputs and button */}
             <Input
               type="email"
-              placeholder="stanley@gmail.com"
+              placeholder="imani@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

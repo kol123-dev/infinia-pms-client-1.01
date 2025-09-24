@@ -9,6 +9,9 @@ import { toast } from "@/components/ui/use-toast"
 import api from "@/lib/axios"
 import Image from 'next/image';
 
+// Add this new import to fix the errors
+import { formatCurrency } from "@/lib/utils";
+
 interface PropertyDetailsProps {
   property: Property
   isOpen: boolean
@@ -88,16 +91,16 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl w-full h-[90vh] sm:h-auto overflow-y-auto p-4 sm:p-6">
+     <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-xl w-full h-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6 flex flex-col gap-4"> {/* Added flex flex-col gap-4 for vertical stacking and spacing */}
         <DialogHeader>
           <DialogTitle className="text-xl sm:text-2xl">{property.name}</DialogTitle>
-          <DialogDescription className="flex items-center gap-2 text-sm sm:text-base">
+          <div className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground mt-2">
             <Badge variant="secondary" className="text-xs sm:text-sm">{property.property_type}</Badge>
             <Badge variant="outline" className="text-xs sm:text-sm">{property.building_type}</Badge>
-          </DialogDescription>
+          </div>
         </DialogHeader>
-
+    
         {/* Property Image */}
         <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
           <Image
@@ -108,17 +111,17 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
           />
         </div>
         
-        {/* Location Information */}
-        <div className="bg-muted/50 p-4 rounded-lg">
+        {/* Location Information - Added mt-4 for spacing */}
+        <div className="bg-muted/50 p-4 rounded-lg mt-4"> {/* Added mt-4 */}
           <div className="flex items-center space-x-2">
             <MapPin className="h-5 w-5 text-muted-foreground" />
             <span className="text-lg">{property.location.address}</span>
           </div>
         </div>
-
-        {/* Property Management */}
-        <div className="grid gap-4">
-          <h3 className="text-lg font-semibold">Property Management</h3>
+    
+        {/* Property Management - Added mt-4 for spacing */}
+        <div className="grid gap-4 mt-4"> {/* Added mt-4 */}
+          <h3 className="text-lg font-semibold text-blue-600">Property Management</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border rounded-lg">
               <h4 className="text-sm font-medium text-muted-foreground">Landlord</h4>
@@ -137,33 +140,33 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
 
         {/* Units Information */}
         <div className="grid gap-4">
-          <h3 className="text-lg font-semibold">Units Information</h3>
+          <h3 className="text-lg font-semibold text-blue-600">Units Information</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 border rounded-lg">
               <div className="flex items-center justify-between">
                 <Building className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold">{property.units.summary.total}</span>
+                <span className="text-2xl font-bold text-blue-600">{property.units.summary.total}</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">Total Units</p>
             </div>
             <div className="p-4 border rounded-lg">
               <div className="flex items-center justify-between">
                 <Users className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold">{property.units.summary.occupied}</span>
+                <span className="text-2xl font-bold text-blue-600">{property.units.summary.occupied}</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">Occupied</p>
             </div>
             <div className="p-4 border rounded-lg">
               <div className="flex items-center justify-between">
                 <Users className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold">{property.units.summary.vacant}</span>
+                <span className="text-2xl font-bold text-blue-600">{property.units.summary.vacant}</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">Vacant</p>
             </div>
             <div className="p-4 border rounded-lg">
               <div className="flex items-center justify-between">
                 <Building className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold">{property.units.summary.underMaintenance}</span>
+                <span className="text-2xl font-bold text-blue-600">{property.units.summary.underMaintenance}</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">Under Maintenance</p>
             </div>
@@ -172,12 +175,12 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
 
         {/* Unit Types */}
         <div className="grid gap-4">
-          <h3 className="text-lg font-semibold">Unit Types</h3>
+          <h3 className="text-lg font-semibold text-blue-600">Unit Types</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {Object.entries(property.units.distribution).map(([type, count]) => (
               <div key={type} className="p-4 border rounded-lg">
                 <h4 className="text-sm font-medium text-muted-foreground">{type}</h4>
-                <p className="text-2xl font-bold mt-1">{count.toString()}</p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">{count.toString()}</p>
               </div>
             ))}
           </div>
@@ -185,24 +188,24 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
 
         {/* Financial Information */}
         <div className="grid gap-4">
-          <h3 className="text-lg font-semibold">Financial Information</h3>
+          <h3 className="text-lg font-semibold text-blue-600">Financial Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
               <div className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <h4 className="text-sm font-medium text-muted-foreground">Actual Monthly Revenue</h4>
+                <span className="h-5 w-5 text-muted-foreground flex items-center justify-center text-[10px] font-bold">KES</span>
+                <h4 className="text-sm font-medium text-muted-foreground">Last Monthly Revenue</h4>
               </div>
-              <p className="text-2xl font-bold mt-2">
-                ${property.financials.summary.actualMonthlyRevenue.toLocaleString()}
+              <p className="text-2xl font-bold mt-2 text-green-600">
+                {formatCurrency(property.financials?.summary?.lastMonthlyRevenue ?? 0)}
               </p>
             </div>
             <div className="p-4 border rounded-lg">
               <div className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <span className="h-5 w-5 text-muted-foreground flex items-center justify-center text-[10px] font-bold">KES</span>
                 <h4 className="text-sm font-medium text-muted-foreground">Potential Monthly Revenue</h4>
               </div>
-              <p className="text-2xl font-bold mt-2">
-                ${property.financials.summary.potentialMonthlyRevenue.toLocaleString()}
+              <p className="text-2xl font-bold mt-2 text-green-600">
+                {formatCurrency(property.financials?.summary?.potentialMonthlyRevenue ?? 0)}
               </p>
             </div>
           </div>
@@ -219,8 +222,20 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
         )}
 
         <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <Button className="w-full sm:w-auto text-sm sm:text-base py-2 sm:py-3">Save Changes</Button>
-          <Button variant="outline" className="w-full sm:w-auto text-sm sm:text-base py-2 sm:py-3">Cancel</Button>
+          <Button 
+            variant="destructive" 
+            className="w-full sm:w-auto text-sm sm:text-base py-2 sm:py-3"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            Delete Property
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full sm:w-auto text-sm sm:text-base py-2 sm:py-3"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

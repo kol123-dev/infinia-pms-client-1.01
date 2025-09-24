@@ -64,11 +64,8 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
       occupied: property?.units?.summary?.occupied || 0,
       vacant: property?.units?.summary?.vacant || 0,
       underMaintenance: property?.units?.summary?.underMaintenance || 0
-    },
-    financials: {
-      potentialMonthlyRevenue: property?.financials?.summary?.potentialMonthlyRevenue || 0,
-      actualMonthlyRevenue: property?.financials?.summary?.actualMonthlyRevenue || 0
     }
+    // Removed financials (system-calculated now)
   })
 
   const [landlords, setLandlords] = useState<Landlord[]>([])
@@ -110,8 +107,7 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
         occupied_units: Number(formData.units.occupied) || 0,
         vacant_units: Number(formData.units.vacant) || 0,
         under_maintenance_units: Number(formData.units.underMaintenance) || 0,
-        potential_monthly_revenue: Number(formData.financials.potentialMonthlyRevenue) || 0,
-        actual_monthly_revenue: Number(formData.financials.actualMonthlyRevenue) || 0
+        // Removed potential_monthly_revenue and actual_monthly_revenue
       };
   
       console.log('Request payload:', finalData);
@@ -149,8 +145,8 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
       if (typeof value === 'string' && value.trim() === '') {
         // Convert empty string to 0 for numeric fields
         processedValue = 0;
-      } else if (parent === 'units' || parent === 'financials') {
-        // Ensure numeric values for units and financials
+      } else if (parent === 'units') {  // Removed 'financials' from the check
+        // Ensure numeric values for units
         processedValue = Number(value) || 0;
       }
 
@@ -313,33 +309,6 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
                       type="number"
                       value={formData.units.underMaintenance}
                       onChange={(e) => handleNestedChange("units", "underMaintenance", parseInt(e.target.value))}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Financial Information */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Financial Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="potential_revenue">Potential Monthly Revenue</Label>
-                    <Input
-                      id="potential_revenue"
-                      type="number"
-                      value={formData.financials.potentialMonthlyRevenue}
-                      onChange={(e) => handleNestedChange("financials", "potentialMonthlyRevenue", parseFloat(e.target.value))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="actual_revenue">Actual Monthly Revenue</Label>
-                    <Input
-                      id="actual_revenue"
-                      type="number"
-                      value={formData.financials.actualMonthlyRevenue}
-                      onChange={(e) => handleNestedChange("financials", "actualMonthlyRevenue", parseFloat(e.target.value))}
                       required
                     />
                   </div>

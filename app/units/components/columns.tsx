@@ -65,7 +65,7 @@ export const columns: ColumnDef<Unit>[] = [
     size: 100,
     cell: ({ row }) => {
       const amount = row.getValue("rent") as number
-      return <div className="font-medium">{formatCurrency(amount)}</div>
+      return <div className="font-medium">KES {formatCurrency(amount)}</div>  // Added "KES " prefix, kept styling and formatCurrency for commas/decimals
     },
   },
   {
@@ -74,11 +74,7 @@ export const columns: ColumnDef<Unit>[] = [
     size: 100,
     cell: ({ row }) => {
       const amount = row.getValue("deposit") as number
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount)
-      return <div className="font-medium">{formatted}</div>
+      return <div className="font-medium">KES {formatCurrency(amount)}</div>  // Replaced $ formatter with "KES " + formatCurrency, kept styling
     },
   },
   {

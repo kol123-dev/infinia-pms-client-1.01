@@ -1,10 +1,22 @@
 /** @type {import('next').NextConfig} */
-import withPWA from 'next-pwa';
+const { withSentryConfig } = require('@sentry/nextjs');
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+});
 
 const nextConfig = {
-  experimental: {
-    optimizePackageImports: ['lucide-react', 'recharts'],
-    trustHost: true,  // Add this: Trusts proxy headers for correct host/URL detection
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -12,47 +24,27 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
-    unoptimized: true,
-  },
-  // Add headers configuration
   async headers() {
     return [
       {
         source: '/manifest.json',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/manifest+json',
-          },
-        ],
+        headers: [{ key: 'Access-Control-Allow-Origin', value: '*' }],
       },
     ];
   },
-}
+  // Remove this invalid option
+  // experimental: { trustHost: true },
+};
 
-export default withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  runtimeCaching: [
-    // Add custom caching strategy
-    {
-      urlPattern: /^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: { cacheName: 'google-fonts' }
-    },
-    // Ensure auth routes are not cached
-    {
-      urlPattern: /\/api\/auth\/.*/,
-      handler: 'NetworkOnly'
-    }
-  ]
-})(nextConfig);
+module.exports = withSentryConfig(withPWA(nextConfig), {
+  silent: true,
+  org: 'infinia-pms',
+  project: 'infinia-pms-frontend',
+}, {
+  widenClientFileUpload: true,
+  transpileClientSDK: true,
+  tunnelRoute: '/monitoring',
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});

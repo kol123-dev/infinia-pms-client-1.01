@@ -138,8 +138,6 @@ jobs:
           # Stop any existing instance
           pm2 stop frontend || true
           
-          # Start the application with explicit working directory and port configuration
-          // Around line ~136: Change the direct pm2 start (this is a fallback in your script)
           cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 127.0.0.1
           
           # After build, create a PM2 ecosystem file for runtime env

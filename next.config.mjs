@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
-const { withSentryConfig } = require('@sentry/nextjs');
-const withPWA = require('next-pwa')({
+// Remove the Sentry import and wrapper
+// import { withSentryConfig } from '@sentry/nextjs';
+import withPWA from 'next-pwa';
+
+// Update the withPWA invocation (no change to options)
+const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
@@ -36,15 +40,7 @@ const nextConfig = {
   // experimental: { trustHost: true },
 };
 
-module.exports = withSentryConfig(withPWA(nextConfig), {
-  silent: true,
-  org: 'infinia-pms',
-  project: 'infinia-pms-frontend',
-}, {
-  widenClientFileUpload: true,
-  transpileClientSDK: true,
-  tunnelRoute: '/monitoring',
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
-});
+// Change 'module.exports' to 'export default' and wrap with pwaConfig
+// Export without Sentry
+export default pwaConfig(nextConfig);
+// Remove any withSentryConfig options or parameters

@@ -77,6 +77,12 @@ async function authenticateWithBackend(idToken: string) {
       console.error(`Error status: ${errorResponse?.status}`);
       console.error('Error data:', errorResponse?.data);
     }
+    console.error('Detailed Firebase error:', error);
+    if (error instanceof Error) {
+      console.error('Error code:', (error as AuthError).code);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error;
   }
 }
@@ -95,7 +101,9 @@ const authOptions: NextAuthOptions = {
         
         // Force-set a safe callback URL early if needed
         const baseUrl = process.env.NEXTAUTH_URL || 'https://property.infiniasync.com';
-        if (req?.query?.callbackUrl?.includes('0.0.0.0')) {
+        if (req?.query?.callbackUrl?.includes('0.0.0.0') || 
+            req?.query?.callbackUrl?.includes('localhost') || 
+            req?.query?.callbackUrl?.includes('127.0.0.1')) {
           console.log('Bad callback detected in authorize, overriding to:', baseUrl);
           req.query.callbackUrl = `${baseUrl}/`;  // Override to prevent bad redirect
         }
@@ -235,11 +243,16 @@ const authOptions: NextAuthOptions = {
 
       console.log('Effective base URL calculated:', effectiveBaseUrl);
 
-      if (url.startsWith('/')) {
-        return `${effectiveBaseUrl}${url}`;
+      let sanitizedUrl = url
+        .replace(/0\.0\.0\.0/g, 'property.infiniasync.com')
+        .replace(/127\.0\.0\.1/g, 'property.infiniasync.com')
+        .replace(/localhost/g, 'property.infiniasync.com');
+
+      if (sanitizedUrl.startsWith('/')) {
+        return `${effectiveBaseUrl}${sanitizedUrl}`;
       }
-      if (new URL(url).origin === effectiveBaseUrl) {
-        return url;
+      if (new URL(sanitizedUrl).origin === effectiveBaseUrl) {
+        return sanitizedUrl;
       }
       return effectiveBaseUrl;
     },

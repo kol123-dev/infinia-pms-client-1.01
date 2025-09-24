@@ -43,9 +43,20 @@ export async function middleware(request: NextRequest) {
     });
 
     // Redirect to signin if no token is present
+    // Use a fixed production base URL
+    const isProduction = process.env.NODE_ENV === 'production';
+    const baseUrl = isProduction 
+      ? 'https://property.infiniasync.com' 
+      : 'http://localhost:3000';
+    
     if (!token) {
-      const signInUrl = new URL('/signin', request.url);
-      signInUrl.searchParams.set('callbackUrl', request.url);
+      const signInUrl = new URL('/signin', baseUrl);
+      // Sanitize the callbackUrl to use public domain
+      let callbackUrl = request.url
+        .replace(/0\.0\.0\.0/g, 'property.infiniasync.com')
+        .replace(/127\.0\.0\.1/g, 'property.infiniasync.com')
+        .replace(/localhost/g, 'property.infiniasync.com');
+      signInUrl.searchParams.set('callbackUrl', callbackUrl);
       return NextResponse.redirect(signInUrl);
     }
 

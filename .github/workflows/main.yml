@@ -32,20 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         # Try npm ci first, fallback to npm install if lock file is out of sync
-        npm ci || npm install
-
-    - name: Debug ESLint Setup  # NEW STEP: Add this
-      run: |
-        echo "Node version:"
-        node -v
-        echo "NPM version:"
-        npm -v
-        echo "ESLint version and dependencies:"
-        npm list eslint
-        echo "Sample ESLint config (from package.json scripts):"
-        cat package.json | grep "lint"
-        echo "Full ESLint config:"
-        cat .eslintrc.json || echo "No .eslintrc.json found"
+        npm ci || npm install    
 
     - name: Run lint
       run: npm run lint
@@ -152,7 +139,8 @@ jobs:
           pm2 stop frontend || true
           
           # Start the application with explicit working directory and port configuration
-          cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 0.0.0.0
+          // Around line ~136: Change the direct pm2 start (this is a fallback in your script)
+          cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 127.0.0.1
           
           # After build, create a PM2 ecosystem file for runtime env
           cat << EOF > ecosystem.config.js
@@ -160,7 +148,7 @@ jobs:
             apps: [{
               name: 'frontend',
               script: 'npm',
-              args: 'start -- -p 3000 -H 0.0.0.0',
+              args: 'start -- -p 3000 -H 127.0.0.1',  // Changed from 0.0.0.0
               cwd: '/var/www/infinia-pms/frontend',
               env: {
                 NODE_ENV: 'production',

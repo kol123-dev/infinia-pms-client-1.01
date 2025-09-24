@@ -16,6 +16,18 @@ import { DataTable } from "./components/data-table"
 import { columns } from "./components/columns"
 import { ColumnDef } from "@tanstack/react-table"
 
+// Add these imports after existing imports
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 export default function Units() {
   const [units, setUnits] = useState<Unit[]>([])
   const [selectedUnit, setSelectedUnit] = useState<Unit | undefined>(undefined)
@@ -27,6 +39,8 @@ export default function Units() {
   const [isEditing, setIsEditing] = useState(false)
   const [isBulkFormOpen, setIsBulkFormOpen] = useState(false)
   const { toast } = useToast()
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)  // Add this line here for the delete confirmation dialog
 
   const [stats, setStats] = useState({
     total_units: 0,
@@ -50,27 +64,31 @@ export default function Units() {
     }
   }, [toast])
 
+  const [pageSize, setPageSize] = useState(10); // New state for page size
+  const [totalCount, setTotalCount] = useState(0); // New state for total units count
+
   const fetchUnits = useCallback(async () => {
     try {
-      const response = await api.get(`/units/?page=${currentPage + 1}`)
-      setUnits(response.data.results)
-      setTotalPages(Math.ceil(response.data.count / 10))
+      const response = await api.get(`/units/?page=${currentPage + 1}&page_size=${pageSize}`);
+      setUnits(response.data.results);
+      setTotalCount(response.data.count);
+      setTotalPages(Math.ceil(response.data.count / pageSize));
     } catch (error) {
-      console.error('Error fetching units:', error)
+      console.error('Error fetching units:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to load units"
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [currentPage, toast])
+  }, [currentPage, pageSize, toast]);
 
   useEffect(() => {
-    fetchUnits()
-    fetchStats()
-  }, [currentPage, fetchStats, fetchUnits])  // Add fetchStats and fetchUnits here
+    fetchUnits();
+    fetchStats();
+  }, [currentPage, pageSize, fetchStats, fetchUnits]);  // Added pageSize here
 
   const handleUnitClick = (unit: Unit) => {
     setSelectedUnit(unit);
@@ -189,8 +207,13 @@ export default function Units() {
                   data={units}
                   pageIndex={currentPage}
                   pageCount={totalPages}
-                  pageSize={10}
+                  pageSize={pageSize} // Pass current pageSize
+                  totalCount={totalCount} // New prop for total count
                   onPageChange={(newPage) => setCurrentPage(newPage)}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setCurrentPage(0); // Reset to first page on size change
+                  }} // New prop for handling size change
                   onRowClick={(row) => handleUnitClick(row.original)}
                 />
               </div>
@@ -224,10 +247,47 @@ export default function Units() {
         <UnitDetails
           unit={selectedUnit}
           isOpen={isDetailsOpen}
-          onClose={() => setIsDetailsOpen(false)}
+          onClose={() => {
+            setIsDetailsOpen(false);
+            setSelectedUnit(undefined);  // Add this: Clear selectedUnit
+            setIsFormOpen(false);        // Add this: Ensure edit form is closed
+            setIsEditing(false);         // Add this: Reset editing state
+          }}  // Updated onClose to reset all states
           onEdit={() => handleEdit(selectedUnit)}
+          onDelete={() => setIsDeleteOpen(true)}  // New prop to open confirmation
         />
       )}
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the unit and remove its data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              try {
+                await api.delete(`/units/${selectedUnit?.id}/`);
+                toast({ title: "Unit deleted successfully" });
+                fetchUnits();
+                fetchStats();
+                setIsDetailsOpen(false);
+                setSelectedUnit(undefined);  // Add this: Clear selectedUnit to prevent lingering state
+                setIsFormOpen(false);        // Add this: Ensure edit form is closed
+                setIsEditing(false);         // Add this: Reset editing state
+              } catch (error) {
+                toast({ variant: "destructive", title: "Error deleting unit", description: "Please try again." });
+              }
+            }}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </MainLayout>
   );
 }

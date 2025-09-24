@@ -11,41 +11,58 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Unit } from "../types"
 import { formatCurrency } from "@/lib/utils"
+import { fuzzyFilter } from './data-table'
 
 export const columns: ColumnDef<Unit>[] = [
   {
-    accessorKey: "unit_number",
-    header: "Unit No.",
-    size: 80,
+    accessorKey: 'unit_number',
+    header: 'Unit No.',
+    filterFn: fuzzyFilter,
+    enableGlobalFilter: true,
+    cell: ({ row }) => <div>{row.original.unit_number}</div>,
   },
   {
-    accessorKey: "property",
-    header: "Property",
-    size: 120,
+    accessorFn: (row) => row.property?.name ?? '',
+    id: 'property',
+    header: 'Property',
+    filterFn: fuzzyFilter,
+    enableGlobalFilter: true,
+    cell: ({ row }) => <div className="truncate">{row.original.property.name}</div>,
+  },
+  {
+    accessorFn: (row) => row.current_tenant?.user?.full_name ?? '', // Enables fuzzy filtering on tenant full name
+    id: 'current_tenant',
+    header: 'Tenant',
+    filterFn: fuzzyFilter,
+    enableGlobalFilter: true,
+    size: 150,
     cell: ({ row }) => {
-      const property = row.original.property
-      return <div className="truncate">{property.name}</div>
-    },
-  },
-  {
-    accessorKey: "unit_type",
-    header: "Type",
-    size: 100,
-  },
-  {
-    accessorKey: "size",
-    header: "Size",
-    size: 80,
-    cell: ({ row }) => {
-      return <div>{row.original.size} m²</div>
+      const tenant = row.original.current_tenant
+      return tenant ? (
+        <div className="truncate">
+          <div className="font-medium truncate">{tenant.user.full_name}</div>
+          <div className="text-sm text-muted-foreground truncate">{tenant.user.phone}</div>
+        </div>
+      ) : (
+        <div className="text-muted-foreground">None</div> // Updated from "-" for consistency with your original
+      )
     },
   },
   {
     accessorKey: "unit_status",
-    header: "Status",
-    size: 100,
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Status
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    filterFn: fuzzyFilter,
+    enableGlobalFilter: true,
     cell: ({ row }) => {
-      const status = row.getValue("unit_status")
+      const status = row.getValue("unit_status");
       return (
         <div className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
           ${status === "VACANT" ? "bg-red-100 text-red-800" : 
@@ -56,47 +73,34 @@ export const columns: ColumnDef<Unit>[] = [
            status === "OCCUPIED" ? "Occupied" : 
            "Maintenance"}
         </div>
-      )
+      );
     },
   },
   {
     accessorKey: "rent",
     header: "Rent",
     size: 100,
+    enableGlobalFilter: false,
     cell: ({ row }) => {
       const amount = row.getValue("rent") as number
-      return <div className="font-medium">KES {formatCurrency(amount)}</div>  // Added "KES " prefix, kept styling and formatCurrency for commas/decimals
+      return <div className="font-medium">KES {formatCurrency(amount)}</div>
     },
   },
   {
     accessorKey: "deposit",
     header: "Deposit",
     size: 100,
+    enableGlobalFilter: false,
     cell: ({ row }) => {
       const amount = row.getValue("deposit") as number
-      return <div className="font-medium">KES {formatCurrency(amount)}</div>  // Replaced $ formatter with "KES " + formatCurrency, kept styling
-    },
-  },
-  {
-    accessorKey: "current_tenant",
-    header: "Tenant",
-    size: 150,
-    cell: ({ row }) => {
-      const tenant = row.original.current_tenant
-      return tenant ? (
-        <div className="truncate">
-          <div className="font-medium truncate">{tenant.user.full_name}</div>
-          <div className="text-sm text-muted-foreground truncate">{tenant.user.phone}</div>
-        </div>
-      ) : (
-        <div className="text-muted-foreground">-</div>
-      )
+      return <div className="font-medium">KES {formatCurrency(amount)}</div>
     },
   },
   {
     accessorKey: "lease_end_date",
     header: "Lease Ends",
     size: 100,
+    enableGlobalFilter: false,
     cell: ({ row }) => {
       const date = row.original.lease_end_date
       return date ? (
@@ -107,5 +111,10 @@ export const columns: ColumnDef<Unit>[] = [
         <div className="text-muted-foreground">-</div>
       )
     },
+  },
+  {
+    accessorKey: 'unit_type',
+    header: 'Type',
+    enableGlobalFilter: false,
   },
 ]

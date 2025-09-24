@@ -7,19 +7,23 @@ import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+// Import these at the top if not already (from lucide-react)
+import { Trash2, X, Edit as EditIcon } from "lucide-react"
+
 interface UnitDetailsProps {
   unit: Unit
   isOpen: boolean
   onClose: () => void
   onEdit: () => void
+  onDelete: () => void  // New prop for triggering delete confirmation
 }
 
-export function UnitDetails({ unit, isOpen, onClose, onEdit }: UnitDetailsProps) {
+export function UnitDetails({ unit, isOpen, onClose, onEdit, onDelete }: UnitDetailsProps) {  // Updated props
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 gap-0">
         <ScrollArea className="h-full max-h-[calc(90vh-4rem)]">
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6">  
             <DialogHeader className="px-0 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -43,7 +47,7 @@ export function UnitDetails({ unit, isOpen, onClose, onEdit }: UnitDetailsProps)
             
             <Separator />
             
-            <div className="space-y-6">
+            <div className="space-y-4">  
               <Card className="border-0">
                 <CardContent className="grid sm:grid-cols-2 grid-cols-1 gap-6 p-6">
                   <div className="flex items-center space-x-3">
@@ -104,7 +108,7 @@ export function UnitDetails({ unit, isOpen, onClose, onEdit }: UnitDetailsProps)
               </div>
 
               <Card className="border-0">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-4 space-y-2">  
                   <h4 className="text-sm font-medium">Features</h4>
                   <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
                     <div className="flex items-center space-x-3">
@@ -127,7 +131,7 @@ export function UnitDetails({ unit, isOpen, onClose, onEdit }: UnitDetailsProps)
 
               {unit.current_tenant && (
                 <Card className="border-0">
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-4 space-y-2">  
                     <h4 className="text-sm font-medium">Current Tenant</h4>
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
@@ -150,14 +154,23 @@ export function UnitDetails({ unit, isOpen, onClose, onEdit }: UnitDetailsProps)
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end space-x-3 p-4 border-t">
+        <div className="flex justify-between space-x-3 p-4 border-t">  
+          <Button 
+            variant="destructive" 
+            onClick={onDelete}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />  
+            Delete
+          </Button>
           <Button 
             variant="outline" 
             onClick={onClose}
           >
+            <X className="mr-2 h-4 w-4" />  
             Close
           </Button>
-          <Button onClick={onEdit}>
+          <Button onClick={() => { onEdit(); onClose(); }}>
+            <EditIcon className="mr-2 h-4 w-4" />  
             Edit
           </Button>
         </div>

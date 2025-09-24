@@ -38,6 +38,7 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@sentry/nextjs": "^10.14.0",
+    "@tanstack/match-sorter-utils": "^8.19.4",
     "@tanstack/react-query": "^5.81.5",
     "@tanstack/react-table": "^8.21.3",
     "@types/axios": "^0.14.4",

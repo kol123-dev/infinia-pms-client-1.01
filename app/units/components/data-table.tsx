@@ -6,12 +6,17 @@ import {
   VisibilityState,
   flexRender,
   getCoreRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  FilterFn,
+  Row,
+  FilterMeta, // Added this import for FilterMeta
 } from "@tanstack/react-table";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { rankItem, type RankingInfo } from '@tanstack/match-sorter-utils'
 
 import {
   Table,
@@ -30,8 +35,37 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Add this import for the dropdown
 
-import { Row } from "@tanstack/react-table";
+// Declare module to extend FilterMeta for type safety
+declare module '@tanstack/react-table' {
+  interface FilterMeta {
+    itemRank: RankingInfo
+  }
+}
+
+// Custom fuzzy filter function
+export const fuzzyFilter: FilterFn<any> = (
+  row: Row<any>,
+  columnId: string,
+  value: string,
+  addMeta: (meta: FilterMeta) => void
+) => {
+  // Rank the item using match-sorter
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  // Store the ranking info for potential sorting use
+  addMeta({ itemRank })
+
+  // Return if the item should be filtered in/out
+  return itemRank.passed
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -39,7 +73,9 @@ interface DataTableProps<TData, TValue> {
   pageCount: number;
   pageIndex: number;
   pageSize: number;
+  totalCount: number; // New prop for total count
   onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void; // New prop for page size change
   onRowClick?: (row: Row<TData>) => void;
 }
 
@@ -49,13 +85,15 @@ export function DataTable<TData, TValue>({
   pageCount,
   pageIndex,
   pageSize,
+  totalCount,
   onPageChange,
+  onPageSizeChange,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = React.useState("");
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -65,15 +103,16 @@ export function DataTable<TData, TValue>({
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: fuzzyFilter,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     pageCount: pageCount,
     state: {
       sorting,
       columnFilters,
+      globalFilter,
       columnVisibility,
-      rowSelection,
       pagination: {
         pageIndex,
         pageSize,
@@ -82,16 +121,18 @@ export function DataTable<TData, TValue>({
     manualPagination: true,
   });
 
+  // Calculate display range
+  const start = pageIndex * pageSize + 1;
+  const end = Math.min(start + data.length - 1, totalCount || 0);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Input
             placeholder="Filter units..."
-            value={(table.getColumn("unit_number")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("unit_number")?.setFilterValue(event.target.value)
-            }
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(event.target.value)}
             className="max-w-sm"
           />
           <DropdownMenu>
@@ -149,7 +190,6 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   onClick={() => onRowClick?.(row)}
                   className="cursor-pointer"
                 >
@@ -170,28 +210,63 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+      
+      {/* Simplified pagination footer (removed row selection) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-6 text-sm">
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <span>Showing</span>
+            <span className="font-medium text-foreground">{start}-{end}</span>
+            <span>of</span>
+            <span className="font-medium text-foreground">{totalCount || 0}</span>
+          </div>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <span>Page</span>
+            <span className="font-medium text-foreground">{pageIndex + 1}</span>
+            <span>of</span>
+            <span className="font-medium text-foreground">{pageCount || 1}</span>
+          </div>
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pageIndex - 1)}
-            disabled={pageIndex === 0}
+        
+        <div className="flex items-center gap-2">
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => onPageSizeChange(Number(value))}
           >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pageIndex + 1)}
-            disabled={pageIndex >= pageCount - 1}
-          >
-            Next
-          </Button>
+            <SelectTrigger className="h-8 w-[70px]">
+              <SelectValue>{pageSize}</SelectValue>
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 20, 50, 100].map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <div className="flex">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(pageIndex - 1)}
+              disabled={pageIndex === 0}
+              className="h-8 w-8 p-0 rounded-r-none"
+            >
+              <span className="sr-only">Previous page</span>
+              <ChevronDown className="h-4 w-4 rotate-90" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(pageIndex + 1)}
+              disabled={pageIndex >= pageCount - 1}
+              className="h-8 w-8 p-0 rounded-l-none"
+            >
+              <span className="sr-only">Next page</span>
+              <ChevronDown className="h-4 w-4 -rotate-90" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

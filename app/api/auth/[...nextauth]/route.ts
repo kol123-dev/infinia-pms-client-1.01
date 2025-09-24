@@ -230,24 +230,25 @@ const authOptions: NextAuthOptions = {
     },
     // Updated redirect with proper typing
     async redirect({ url, baseUrl }) {
-      console.log('Redirect callback triggered'); // Confirm if this is even called
+      console.log('Redirect callback triggered');
       console.log('Runtime NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
       console.log('Incoming url:', url);
       console.log('Base URL:', baseUrl);
-
+  
       const isProduction = process.env.NODE_ENV === 'production';
       const productionUrl = 'https://property.infiniasync.com';
       const effectiveBaseUrl = isProduction 
         ? (process.env.NEXTAUTH_URL || productionUrl) 
         : (process.env.NEXTAUTH_URL || 'http://localhost:3000');
-
+  
       console.log('Effective base URL calculated:', effectiveBaseUrl);
-
+  
       let sanitizedUrl = url
         .replace(/0\.0\.0\.0/g, 'property.infiniasync.com')
         .replace(/127\.0\.0\.1/g, 'property.infiniasync.com')
-        .replace(/localhost/g, 'property.infiniasync.com');
-
+        .replace(/localhost/g, 'property.infiniasync.com')
+        .replace(':3000', '');  // NEW: Explicitly remove internal port
+  
       if (sanitizedUrl.startsWith('/')) {
         return `${effectiveBaseUrl}${sanitizedUrl}`;
       }

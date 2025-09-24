@@ -55,7 +55,8 @@ export async function middleware(request: NextRequest) {
       let callbackUrl = request.url
         .replace(/0\.0\.0\.0/g, 'property.infiniasync.com')
         .replace(/127\.0\.0\.1/g, 'property.infiniasync.com')
-        .replace(/localhost/g, 'property.infiniasync.com');
+        .replace(/localhost/g, 'property.infiniasync.com')
+        .replace(':3000', '');  // NEW: Explicitly remove internal port
       signInUrl.searchParams.set('callbackUrl', callbackUrl);
       return NextResponse.redirect(signInUrl);
     }

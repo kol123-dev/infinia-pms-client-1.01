@@ -171,8 +171,6 @@ jobs:
 
           # Start with ecosystem file (loads runtime env)
           pm2 start ecosystem.config.js
-
-          # Save and verify
           pm2 save
           pm2 status
-          pm2 logs frontend --lines 20
+          pm2 logs frontend --lines 20 --nostream  # Added --nostream to print logs and exit immediately

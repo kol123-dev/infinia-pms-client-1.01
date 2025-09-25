@@ -79,12 +79,13 @@ const navigation = [
     icon: FileText,
     badge: null,
   },
-  {
-    name: "Move In/Out",
-    href: "/move",
-    icon: ArrowRightLeft,
-    badge: 3,
-  },
+  // Commented out temporarily to hide the Move In/Out tab
+  // {
+  //   name: "Move In/Out",
+  //   href: "/move",
+  //   icon: ArrowRightLeft,
+  //   badge: 3,
+  // },
   {
     name: "SMS",
     href: "/sms",

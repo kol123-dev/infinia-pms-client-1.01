@@ -361,7 +361,7 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
           </div>
 
           {/* Unit Assignment */}
-          {!tenant.current_unit && (
+          {!tenant.current_unit && tenant.tenant_status !== 'PAST' && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Building className="h-5 w-5" />

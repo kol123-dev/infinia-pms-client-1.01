@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { 
   User, Phone, Home, Calendar, DollarSign, Edit, LogOut, 
   AlertCircle, FileText, CreditCard, Building, Mail,
-  Heart, Trash
+  Heart, Trash, Clock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { toast } from "@/components/ui/use-toast"
-import { format } from "date-fns"
+import { format, intervalToDuration } from "date-fns"
 import api from "@/lib/axios"
 import { TenantEditDialog } from "./tenant-edit-dialog"
 
@@ -29,7 +29,6 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
   const [showMoveOutConfirm, setShowMoveOutConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
   const [paymentHistory, setPaymentHistory] = useState<any[]>([])
-  const [emergencyContact, setEmergencyContact] = useState<any>(null)
   const [contracts, setContracts] = useState<any[]>([])
   const [availableUnits, setAvailableUnits] = useState<any[]>([])
   const [selectedUnit, setSelectedUnit] = useState('')
@@ -50,104 +49,114 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
             setPaymentHistory(response.data.results)
           } else {
             console.error('Invalid payment history data structure:', response.data)
-            setPaymentHistory([])
           }
         })
         .catch(error => {
           console.error('Error fetching payment history:', error)
-          setPaymentHistory([])
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to load payment history"
+            description: "Failed to fetch payment history"
           })
         })
-  
-      setEmergencyContact(tenant.emergency_contact)
-  
+
       api.get('/properties/')
-        .then(response => setProperties(response.data.results))
-        .catch(error => console.error('Error fetching properties:', error))
-    }
-  }, [isOpen, tenant.id, tenant.emergency_contact])
-  
-  useEffect(() => {
-    const fetchUnits = async () => {
-      if (!selectedProperty) {
-        setAvailableUnits([])
-        return
-      }
-      try {
-        const response = await api.get(`/properties/${selectedProperty}/units/`)
-        const vacantUnits = response.data.results.filter((unit: Unit) => unit.unit_status === 'VACANT')
-        setAvailableUnits(vacantUnits)
-      } catch (error) {
-        console.error('Error fetching units:', error)
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load units"
+        .then(response => {
+          setProperties(response.data.results || response.data)
         })
-      }
+        .catch(error => {
+          console.error('Error fetching properties:', error)
+        })
     }
-    fetchUnits()
+  }, [isOpen, tenant.id])
+
+  useEffect(() => {
+    if (selectedProperty) {
+      api.get(`/properties/${selectedProperty}/units/?status=VACANT`)
+        .then(response => {
+          setAvailableUnits(response.data.results || response.data)
+        })
+        .catch(error => {
+          console.error('Error fetching available units:', error)
+        })
+    }
   }, [selectedProperty])
-  
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    if (deleteText === 'DELETE') {
+      onDelete?.()
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleMoveOut = () => {
+    setShowMoveOutConfirm(true)
+  }
+
+  const confirmMoveOut = () => {
+    setShowMoveOutConfirm(false)
+  }
+
   const handleAssignUnit = async () => {
-    if (!selectedUnit || !leaseStartDate || !leaseEndDate) return
-    
-    setIsAssigningUnit(true)
+    if (!selectedUnit || !leaseStartDate) return
+
     try {
-      await api.post(`/units/${selectedUnit}/assign_tenant/`, {
+      setIsAssigningUnit(true)
+      const response = await api.post('/tenants/assign-unit/', {
         tenant_id: tenant.id,
-        lease_start_date: leaseStartDate,
-        lease_end_date: leaseEndDate
+        unit_id: parseInt(selectedUnit),
+        start_date: leaseStartDate,
+        end_date: leaseEndDate || null
       })
+
       toast({
         title: "Success",
         description: "Unit assigned successfully"
       })
-      onClose()
+
+      onEdit?.(response.data)
     } catch (error) {
       console.error('Error assigning unit:', error)
       toast({
+        variant: "destructive",
         title: "Error",
-        description: "Failed to assign unit",
-        variant: "destructive"
+        description: "Failed to assign unit"
       })
     } finally {
       setIsAssigningUnit(false)
     }
   }
 
-  const handleMoveOut = async (tenant: Tenant) => {
-    if (!confirm(`Are you sure you want to move out ${tenant.user?.full_name}?`)) return;
-    try {
-      await api.patch(`/tenants/${tenant.id}/`, {
-        tenant_status: 'PAST',
-        move_out_date: new Date().toISOString().split('T')[0]
-      });
-      if (tenant.current_unit?.id) {
-        await api.patch(`/units/${tenant.current_unit.id}/`, { unit_status: 'VACANT', current_tenant: null });
-      }
-      toast({ description: "Tenant moved out successfully" });
-      onClose();
-    } catch (error) {
-      toast({ variant: "destructive", description: "Failed to move out tenant" });
-    }
-  };
+  const handleEdit = () => {
+    setShowEditDialog(true)
+  }
 
   const handleUpdate = (updatedTenant: Tenant) => {
-    if (onEdit) {
-      onEdit(updatedTenant)
-    }
+    onEdit?.(updatedTenant)
     setShowEditDialog(false)
-    onClose()
     toast({
       title: "Success",
       description: "Tenant details updated successfully"
     })
   }
+
+  const calculateStayDuration = (moveInDate: string | null) => {
+    if (!moveInDate) return 'N/A';
+    
+    const moveIn = new Date(moveInDate);
+    const now = new Date();
+    
+    if (moveIn > now) return '0 months, 0 days';
+    
+    const duration = intervalToDuration({ start: moveIn, end: now });
+    const totalMonths = (duration.years || 0) * 12 + (duration.months || 0);
+    
+    return `${totalMonths} months, ${duration.days || 0} days`;
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -203,11 +212,15 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">Rent: ${tenant.rent_amount || 0}/month</span>
               </div>
+              <div className="flex items-center gap-3">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Time Stayed: {calculateStayDuration(tenant.move_in_date)}</span>
+              </div>
             </div>
           </div>
 
           {/* Emergency Contact */}
-          {emergencyContact && (
+          {tenant.emergency_contact && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
@@ -216,15 +229,15 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 rounded-lg p-4">
                 <div className="flex items-center gap-3">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{emergencyContact.name}</span>
+                  <span className="text-sm">{tenant.emergency_contact.name}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{emergencyContact.phone}</span>
+                  <span className="text-sm">{tenant.emergency_contact.phone}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Heart className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Relationship: {emergencyContact.relationship}</span>
+                  <span className="text-sm">Relationship: {tenant.emergency_contact.relationship}</span>
                 </div>
               </div>
             </div>
@@ -367,88 +380,93 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleAssignUnit}
-                  disabled={!selectedUnit || !leaseStartDate || !leaseEndDate || isAssigningUnit}
-                  className="w-full"
+                <Button 
+                  onClick={handleAssignUnit} 
+                  disabled={!selectedUnit || !leaseStartDate || isAssigningUnit}
                 >
-                  {isAssigningUnit ? 'Assigning...' : 'Assign Unit'}
+                  Assign Unit
                 </Button>
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter className="p-6 pt-0">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowEditDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Edit className="h-4 w-4" /> Edit
-            </Button>
-            {onDelete && (
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2"
-              >
-                <Trash className="h-4 w-4" /> Delete
+        <DialogFooter className="p-6 pt-0 flex justify-between border-t">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          <div className="flex gap-2">
+            {tenant.current_unit && (
+              <Button variant="destructive" onClick={handleMoveOut}>
+                <LogOut className="mr-2 h-4 w-4" /> Move Out
               </Button>
             )}
-            <Button
-              variant="destructive"
-              onClick={() => handleMoveOut(tenant)}
-            >
-              Move Out
+            <Button onClick={handleEdit}>
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash className="mr-2 h-4 w-4" /> Delete
             </Button>
           </div>
         </DialogFooter>
-
-        {showEditDialog && (
-          <TenantEditDialog
-            tenant={tenant}
-            isOpen={showEditDialog}
-            onClose={() => setShowEditDialog(false)}
-            onUpdate={handleUpdate}
-          />
-        )}
       </DialogContent>
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Tenant</DialogTitle>
-              <DialogDescription>
-                This action cannot be undone. Type "DELETE" to confirm.
-              </DialogDescription>
-            </DialogHeader>
-            <Input
-              value={deleteText}
-              onChange={(e) => setDeleteText(e.target.value)}
-              placeholder="Type DELETE to confirm"
-            />
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={onDelete}
-                disabled={deleteText !== 'DELETE'}
-              >
-                Delete Tenant
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Edit Dialog */}
+      <TenantEditDialog
+        tenant={tenant}
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onUpdate={handleUpdate}
+      />
+
+      {/* Delete Confirmation */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Tenant</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. Type DELETE to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteText}
+            onChange={(e) => setDeleteText(e.target.value)}
+            placeholder="Type DELETE"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteText !== 'DELETE'}
+            >
+              Delete Tenant
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Out Confirmation */}
+      <Dialog open={showMoveOutConfirm} onOpenChange={setShowMoveOutConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move Out Tenant</DialogTitle>
+            <DialogDescription>
+              Confirm moving out the tenant from their unit.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMoveOutConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmMoveOut}>
+              Confirm Move Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

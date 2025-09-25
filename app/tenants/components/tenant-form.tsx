@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Property } from "@/app/properties/types"
 import { toast } from "@/components/ui/use-toast"
 import { X } from 'lucide-react'
+import { Checkbox } from "@/components/ui/checkbox"  // Add this import if not already present
 
 // Base interfaces for all forms
 interface UserFormProps {
@@ -330,6 +331,7 @@ export function UnitAssignmentForm({ isOpen, onClose, onSuccess, tenantData }: U
     move_in_date: "",
     move_out_date: ""
   });
+  const [isMoveOutUnknown, setIsMoveOutUnknown] = useState(true);  // New state: default to Unknown
   const [properties, setProperties] = useState<Property[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -383,11 +385,12 @@ export function UnitAssignmentForm({ isOpen, onClose, onSuccess, tenantData }: U
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await api.post(`/units/${formData.unit_id}/assign_tenant/`, {
+      const payload = {
         tenant_id: tenantData.id,
         start_date: formData.move_in_date,
-        end_date: formData.move_out_date
-      });
+        end_date: isMoveOutUnknown ? null : formData.move_out_date  // Send null if unknown
+      };
+      const response = await api.post(`/units/${formData.unit_id}/assign_tenant/`, payload);
       await onSuccess(response.data);
     } catch (error: any) {
       console.error('Error assigning unit:', error);
@@ -468,16 +471,29 @@ export function UnitAssignmentForm({ isOpen, onClose, onSuccess, tenantData }: U
               />
             </div>
             <div className={inputGroupStyles}>
-              <Label htmlFor="move_out_date" className={labelStyles}>Move-out date</Label>
-              <Input
-                id="move_out_date"
-                type="date"
-                value={formData.move_out_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, move_out_date: e.target.value }))}
-                className={inputStyles}
-                disabled={isLoading}
-                required
-              />
+              <Label className={labelStyles}>Move-out date</Label>
+              <div className="flex items-center space-x-2 mb-2">
+                <Checkbox 
+                  id="move_out_unknown" 
+                  checked={isMoveOutUnknown} 
+                  onCheckedChange={(checked) => setIsMoveOutUnknown(!!checked)} 
+                  disabled={isLoading}
+                />
+                <label htmlFor="move_out_unknown" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Unknown
+                </label>
+              </div>
+              {!isMoveOutUnknown && (
+                <Input
+                  id="move_out_date"
+                  type="date"
+                  value={formData.move_out_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, move_out_date: e.target.value }))}
+                  className={inputStyles}
+                  disabled={isLoading}
+                  required
+                />
+              )}
             </div>
           </div>
 

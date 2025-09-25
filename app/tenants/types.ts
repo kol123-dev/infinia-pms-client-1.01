@@ -56,6 +56,14 @@ export interface Tenant {
   lease_agreement_url: string | null
   id_verification_url: string | null
   proof_of_income_url: string | null
+  last_unit?: {  // Add this optional field to match the backend serializer
+    id: number;
+    unit_number: string;
+    property?: {
+      name: string;
+    };
+    // Add other unit fields if needed (e.g., status, rent)
+  };
 }
 
 export interface TenantsResponse {

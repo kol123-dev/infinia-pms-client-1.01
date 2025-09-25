@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { toast } from "@/components/ui/use-toast"
-import { format, intervalToDuration } from "date-fns"
+import { format, intervalToDuration, parseISO } from "date-fns"
 import api from "@/lib/axios"
 import { TenantEditDialog } from "./tenant-edit-dialog"
+import { useRouter } from 'next/navigation';  // Add this line
 
 interface TenantDetailsProps {
   tenant: Tenant
@@ -25,6 +26,7 @@ interface TenantDetailsProps {
 }
 
 export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: TenantDetailsProps) {
+  const router = useRouter();  // Add this line for redirection
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMoveOutConfirm, setShowMoveOutConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
@@ -38,6 +40,7 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
   const [selectedProperty, setSelectedProperty] = useState('')
   const [leaseStartDate, setLeaseStartDate] = useState('')
   const [leaseEndDate, setLeaseEndDate] = useState('')
+  const [moveOutDate, setMoveOutDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   
   useEffect(() => {
     if (isOpen && tenant.id) {
@@ -97,8 +100,41 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
     setShowMoveOutConfirm(true)
   }
 
-  const confirmMoveOut = () => {
-    setShowMoveOutConfirm(false)
+  const confirmMoveOut = async () => {
+    if (!tenant.current_unit?.id || !tenant.current_unit?.property?.id) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing unit or property information"
+      })
+      return
+    }
+
+    try {
+      await api.post(`/properties/${tenant.current_unit.property.id}/units/${tenant.current_unit.id}/end_tenancy/`, {
+        end_date: moveOutDate
+      })
+
+      // Fetch updated tenant data
+      const response = await api.get(`/tenants/${tenant.id}/`)
+      const updatedTenant = response.data
+
+      onEdit?.(updatedTenant)
+      setShowMoveOutConfirm(false)
+      toast({
+        title: "Success",
+        description: "Tenant moved out successfully"
+      })
+      onClose();  // Close the dialog
+      router.push('/tenants');  // Redirect to tenants page
+    } catch (error) {
+      console.error('Error moving out tenant:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to move out tenant"
+      })
+    }
   }
 
   const handleAssignUnit = async () => {
@@ -183,7 +219,7 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">DOB: {tenant.date_of_birth ? format(new Date(tenant.date_of_birth), 'PP') : 'N/A'}</span>
+                <span className="text-sm">DOB: {tenant.date_of_birth ? format(parseISO(tenant.date_of_birth), 'PP') : 'N/A'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Badge variant={tenant.tenant_status.toLowerCase() === 'active' ? 'default' : 'secondary'}>
@@ -202,11 +238,17 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 rounded-lg p-4">
               <div className="flex items-center gap-3">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Unit: {tenant.current_unit?.unit_number || 'No unit assigned'}</span>
+                <span className="text-sm">
+                  Unit: {tenant.last_unit?.unit_number || tenant.current_unit?.unit_number || (tenant.tenant_status === 'PAST' ? 'Previous Unit' : 'No unit assigned')}
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Move-in: {tenant.move_in_date ? format(new Date(tenant.move_in_date), 'PP') : 'N/A'}</span>
+                <span className="text-sm">Move-in: {tenant.move_in_date ? format(parseISO(tenant.move_in_date), 'PP') : 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Move-out: {tenant.move_out_date ? format(parseISO(tenant.move_out_date), 'PP') : 'N/A'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -259,7 +301,7 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
                         <span className="text-sm font-medium">Payment ID: {payment.payment_id}</span>
                         <span className="text-sm">Amount: ${payment.amount}</span>
                         <span className="text-xs text-muted-foreground">
-                          Date: {payment.paid_date ? format(new Date(payment.paid_date), 'PP') : 'N/A'}
+                          Date: {payment.paid_date ? format(parseISO(payment.paid_date), 'PP') : 'N/A'}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           Method: {payment.payment_method} | Type: {payment.payment_type}
@@ -454,9 +496,17 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
           <DialogHeader>
             <DialogTitle>Move Out Tenant</DialogTitle>
             <DialogDescription>
-              Confirm moving out the tenant from their unit.
+              Confirm moving out the tenant from their unit. Please select the move out date.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2">
+            <Label>Move Out Date</Label>
+            <Input
+              type="date"
+              value={moveOutDate}
+              onChange={(e) => setMoveOutDate(e.target.value)}
+            />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowMoveOutConfirm(false)}>
               Cancel

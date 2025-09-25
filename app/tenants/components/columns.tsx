@@ -5,6 +5,7 @@ import { MessageSquare, Eye, Edit, Trash, LogOut ,ArrowUpDown} from "lucide-reac
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
+import { format } from 'date-fns';  // Add this line
 
 interface CustomTableMeta extends TableMeta<Tenant> {
   onMessage?: (tenant: Tenant) => void
@@ -58,15 +59,19 @@ export const columns: ColumnDef<Tenant>[] = [
       )
     },
     cell: ({ row }) => {
-      const tenant = row.original
+      const tenant = row.original;  // Add semicolon to fix potential comma operator issue
+      const unit = tenant.last_unit || tenant.current_unit;  // Prefer last_unit for past tenants; add semicolon
+
+      const isPast = tenant.tenant_status === "PAST";  // Check for PAST status
+
       return (
         <div className="flex flex-col">
-          <span>{tenant.current_unit?.property?.name || "Not Assigned"}</span>
-          <span className="text-green-500 text-sm">
-            Unit {tenant.current_unit?.unit_number}
+          <span>{unit?.property?.name || (isPast ? "Previous Unit" : "Not Assigned")}</span>
+          <span className={isPast ? "text-red-500 text-sm" : "text-green-500 text-sm"}>  
+            Unit {unit?.unit_number || ""}
           </span>
         </div>
-      )
+      );
     },
     enableSorting: true,
   },
@@ -88,11 +93,31 @@ export const columns: ColumnDef<Tenant>[] = [
       const status = row.getValue("tenant_status") as string
       return (
         <Badge
-          variant={status === "ACTIVE" ? "default" : status === "PAST" ? "secondary" : "destructive"}
+          variant={status === "ACTIVE" ? "default" : status === "PAST" ? "destructive" : "destructive"}  // Changed PAST to "destructive" for red color
         >
           {status.toLowerCase()}
         </Badge>
       )
+    },
+    enableSorting: true,
+  },
+  {  // New "Move Out Date" column
+    accessorKey: "move_out_date",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20"
+        >
+          Move Out Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const date = row.original.move_out_date;
+      return date ? format(new Date(date), 'PPP') : '-';
     },
     enableSorting: true,
   },

@@ -76,15 +76,16 @@ export const columns: ColumnDef<User>[] = [
     header: 'Role',
     cell: ({ row }) => <Badge variant="outline">{row.original.role}</Badge>
   },
-  {
-    accessorKey: 'has_profile',
-    header: 'Profile Status',
-    cell: ({ row }) => (
-      row.original.profile 
-        ? <Badge variant="default">Complete</Badge> 
-        : <Badge variant="destructive">Incomplete</Badge>
-    )
-  },
+  // Remove the entire 'has_profile' column definition below
+  // {
+  //   accessorKey: 'has_profile',
+  //   header: 'Profile Status',
+  //   cell: ({ row }) => (
+  //     row.original.profile 
+  //       ? <Badge variant="default">Complete</Badge> 
+  //       : <Badge variant="destructive">Incomplete</Badge>
+  //   )
+  // },
   {
     id: 'actions',
     cell: ({ row, table }) => {

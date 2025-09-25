@@ -92,31 +92,56 @@ export function UserEditDialog({ user, isOpen, onClose, onUpdate }: UserEditDial
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Update user
-      await api.patch(`/auth/users/${user.id}/`, {
+      // Update basic user details (assuming an existing endpoint; adjust if needed)
+      await api.patch(`/auth/users/${user.id}/`, {  // If this causes 404, change to '/auth/me/' or add backend support
         first_name: formData.first_name,
         last_name: formData.last_name,
         phone: formData.phone
       });
-
-      // Update profile
-      const endpoint = user.role === 'tenant' ? `/tenants/${user.profile?.id}/` : `/landlords/${user.profile?.id}/`;
-      await api.patch(endpoint, formData);
-
-      // Update unit if changed (for tenants)
-      if (user.role === 'tenant' && formData.unit_id && (formData.unit_id !== user.profile?.current_unit?.id?.toString())) {
-        await api.post(`/units/${formData.unit_id}/assign_tenant/`, {
-          tenant_id: user.profile.id,
-          lease_start_date: formData.lease_start_date,
-          lease_end_date: formData.lease_end_date
-        });
+  
+      if (user.role === 'tenant') {
+        // Check for existing Tenant profile
+        const tenantResponse = await api.get(`/tenants/?user=${user.id}`);
+        const existingTenant = tenantResponse.data.results[0];  // Assume first result is the match
+  
+        const tenantData = {
+          user: user.id,  // Link to this user (assigns profile)
+          current_unit: parseInt(formData.unit_id) || null,  // Assign unit
+          date_of_birth: (formData as TenantFormData).date_of_birth,
+          status: (formData as TenantFormData).tenant_status,
+          emergency_contact: (formData as TenantFormData).emergency_contact,
+          move_in_date: formData.lease_start_date,  // Map to move_in_date if needed
+          // Add other fields as per TenantWriteSerializer
+        };
+  
+        let updatedTenant;
+        if (existingTenant) {
+          // Update existing Tenant (assign/update profile and unit)
+          updatedTenant = await api.put(`/tenants/${existingTenant.id}/`, tenantData);
+        } else {
+          // Create new Tenant (assign profile and unit)
+          updatedTenant = await api.post(`/tenants/`, tenantData);
+        }
+  
+        // Optional: If unit assignment needs extra action (e.g., mark unit occupied), call Unit endpoint
+        if (formData.unit_id && updatedTenant.data.current_unit) {
+          await api.post(`/units/${formData.unit_id}/assign_tenant/`, {  // If this action exists in UnitViewSet
+            tenant_id: updatedTenant.data.id,
+            lease_start_date: formData.lease_start_date,
+            lease_end_date: formData.lease_end_date
+          });
+        }
+      } else {
+        // Handle non-tenant profiles (e.g., landlord) as before
+        const endpoint = `/landlords/${user.profile?.id}/`;  // Adjust for other roles
+        await api.patch(endpoint, formData);
       }
-
-      toast({ title: "Success", description: "User updated" });
+  
+      toast({ title: "Success", description: "User profile and unit assigned" });
       onUpdate(user);
       onClose();
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to update user" });
+      toast({ variant: "destructive", title: "Error", description: "Failed to update/assign" });
     } finally {
       setIsLoading(false);
     }

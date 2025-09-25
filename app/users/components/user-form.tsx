@@ -169,10 +169,26 @@ export function ProfileCreationForm({ isOpen, onClose, onSuccess, userData, role
     try {
       const endpoint = role === 'tenant' ? '/tenants/' : '/landlords/';
       const profileData = { user: userData.id, ...formData };
-      const response = await api.post(endpoint, profileData);
+
+      // Check for existing profile (for tenants only; adjust for landlords if needed)
+      let existingProfile = null;
+      if (role === 'tenant') {
+        const response = await api.get(`/tenants/?user=${userData.id}`);
+        existingProfile = response.data.results[0];  // Get the first (and likely only) match
+      }
+
+      let response;
+      if (existingProfile) {
+        // Update existing
+        response = await api.patch(`${endpoint}${existingProfile.id}/`, profileData);
+      } else {
+        // Create new
+        response = await api.post(endpoint, profileData);
+      }
+
       await onSuccess(response.data);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to create profile" });
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to create/update profile" });
     } finally {
       setIsLoading(false);
     }
@@ -280,14 +296,31 @@ export function UnitAssignmentForm({ isOpen, onClose, onSuccess, userData }: Use
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Check for existing Tenant
+      const tenantResponse = await api.get(`/tenants/?user=${userData.id}`);
+      let tenant = tenantResponse.data.results[0];
+
+      if (!tenant) {
+        // Create minimal Tenant if none exists
+        const minimalData = { user: userData.id, tenant_status: "APPLICANT" };  // Add minimal required fields
+        const createResponse = await api.post('/tenants/', minimalData);
+        tenant = createResponse.data;
+      }
+
+      // Now assign unit using the Tenant ID
       await api.post(`/units/${formData.unit_id}/assign_tenant/`, {
-        tenant_id: userData.id, // Assuming userData has tenant profile ID; adjust if needed
+        tenant_id: tenant.id,  // Use Tenant ID, not User ID
         lease_start_date: formData.lease_start_date,
         lease_end_date: formData.lease_end_date
       });
       await onSuccess({});
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to assign unit" });
+      console.error('Assignment error:', error);  // For debugging
+      let errorMsg = error.message || "Failed to assign unit";
+      if (error.response?.status === 404) {
+        errorMsg = "Tenant not found—check backend permissions and database for ID mismatches.";
+      }
+      toast({ variant: "destructive", title: "Error", description: errorMsg });
     } finally {
       setIsLoading(false);
     }

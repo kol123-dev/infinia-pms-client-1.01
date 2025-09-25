@@ -76,22 +76,12 @@ export const columns: ColumnDef<User>[] = [
     header: 'Role',
     cell: ({ row }) => <Badge variant="outline">{row.original.role}</Badge>
   },
-  // Remove the entire 'has_profile' column definition below
-  // {
-  //   accessorKey: 'has_profile',
-  //   header: 'Profile Status',
-  //   cell: ({ row }) => (
-  //     row.original.profile 
-  //       ? <Badge variant="default">Complete</Badge> 
-  //       : <Badge variant="destructive">Incomplete</Badge>
-  //   )
-  // },
+  
   {
     id: 'actions',
     cell: ({ row, table }) => {
-      const { onView, onEdit, onDelete, onCreateProfile, onAssignUnit } = table.options.meta as {
+      const { onView, onDelete, onCreateProfile, onAssignUnit } = table.options.meta as {
         onView: (user: User) => void;
-        onEdit: (user: User) => void;
         onDelete: (user: User) => void;
         onCreateProfile: (user: User) => void;
         onAssignUnit: (user: User) => void;
@@ -100,9 +90,8 @@ export const columns: ColumnDef<User>[] = [
       return (
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" onClick={() => onView(u)}><Eye className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(u)}><Edit className="h-4 w-4" /></Button>
           <Button variant="ghost" size="sm" onClick={() => onDelete(u)}><Trash className="h-4 w-4" /></Button>
-          {!u.profile && <Button variant="ghost" size="sm" onClick={() => onCreateProfile(u)}><UserPlus className="h-4 w-4" /></Button>}
+          {!u.profile && u.role !== 'landlord' && <Button variant="ghost" size="sm" onClick={() => onCreateProfile(u)}><UserPlus className="h-4 w-4" /></Button>}
           {u.role === 'tenant' && !u.current_unit && <Button variant="ghost" size="sm" onClick={() => onAssignUnit(u)}><Home className="h-4 w-4" /></Button>}
         </div>
       );

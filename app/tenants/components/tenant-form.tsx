@@ -48,7 +48,7 @@ const buttonStyles = "w-full h-9 px-4 py-2 inline-flex items-center justify-cent
 export function UserCreationForm({ isOpen, onClose, onSuccess }: UserFormProps): ReactElement {
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
+    password: "1234567",  // Default password set here
     first_name: "",
     last_name: "",
     phone: ""
@@ -111,9 +111,10 @@ export function UserCreationForm({ isOpen, onClose, onSuccess }: UserFormProps):
               type="password"
               placeholder="••••••••"
               value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              onChange={(e) => {}}  // Prevent changes
               className={inputStyles}
               disabled={isLoading}
+              readOnly  // Make it non-editable
               required
             />
           </div>

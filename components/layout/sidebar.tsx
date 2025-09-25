@@ -222,10 +222,11 @@ function SidebarContent() {
       {/* Footer - Fixed at bottom */}
       <div className="border-t p-4 flex-shrink-0">
         <div className="flex flex-col gap-4">
-          <div className="entity-badge">
+          {/* Commented out temporarily to hide Current Context */}
+          {/* <div className="entity-badge">
             <span className="text-xs">Current Context</span>
             <span className="badge-count">3</span>
-          </div>
+          </div> */}
           <Button 
             variant="ghost" 
             className="w-full justify-start gap-3 text-muted-foreground hover:text-accent-foreground"

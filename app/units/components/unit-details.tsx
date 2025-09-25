@@ -1,10 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Unit } from "../types"
-import { Building2, Bed, Ruler, CreditCard, PiggyBank, Car, Box, User, Mail, Phone } from "lucide-react"
+import { Unit, UnitTenantHistory } from "../types"  // Updated import to include UnitTenantHistory
+import { Building2, Bed, Ruler, CreditCard, PiggyBank, Car, Box, User, Mail, Phone, Calendar } from "lucide-react"  // Added Calendar icon
 import { Separator } from "@/components/ui/separator"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"  // Added CardHeader
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Import these at the top if not already (from lucide-react)
@@ -19,6 +19,11 @@ interface UnitDetailsProps {
 }
 
 export function UnitDetails({ unit, isOpen, onClose, onEdit, onDelete }: UnitDetailsProps) {  // Updated props
+  // Sort tenant history by end_date descending (most recent first)
+  const sortedHistory = [...(unit.tenant_history || [])].sort((a, b) => {
+    return new Date(b.end_date || '').getTime() - new Date(a.end_date || '').getTime()
+  })
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 gap-0">
@@ -150,6 +155,51 @@ export function UnitDetails({ unit, isOpen, onClose, onEdit, onDelete }: UnitDet
                   </CardContent>
                 </Card>
               )}
+
+              <Card className="border-0">
+                <CardHeader className="p-4 pb-2">
+                  <h4 className="text-sm font-medium">Tenant History</h4>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {sortedHistory.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
+                      <User className="w-6 h-6 mb-2" />
+                      <p>No tenant history available.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-48 overflow-y-auto">  {/* Added scroll for long lists */}
+                      {sortedHistory.map((history: UnitTenantHistory, index: number) => (
+                        <div 
+                          key={index} 
+                          className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <User className="w-5 h-5 text-muted-foreground" />
+                              <p className="text-base font-medium">{history.tenant.user.full_name}</p>
+                            </div>
+                            <div className="flex items-center space-x-3 mt-2 sm:mt-0">
+                              <Phone className="w-5 h-5 text-muted-foreground" />
+                              <p className="text-base">{history.tenant.user.phone}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground">
+                            <div className="flex items-center space-x-3 mb-1 sm:mb-0">
+                              <Calendar className="w-4 h-4" />
+                              <p>Move In: {new Date(history.start_date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <Calendar className="w-4 h-4" />
+                              <p>Move Out: {history.end_date ? new Date(history.end_date).toLocaleDateString() : 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
             </div>
           </div>
         </ScrollArea>

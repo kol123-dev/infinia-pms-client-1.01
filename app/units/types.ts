@@ -26,6 +26,13 @@ export interface Tenant {
   lease_end_date: string
 }
 
+export interface UnitTenantHistory {
+  tenant: Tenant
+  start_date: string
+  end_date: string | null
+}
+
+// Update the Unit interface
 export interface Unit {
   id: number
   unit_id: string
@@ -45,4 +52,5 @@ export interface Unit {
   lease_status?: string
   created_at: string
   updated_at: string
+  tenant_history: UnitTenantHistory[]
 }

@@ -233,11 +233,11 @@ export function TenantCreationForm({ isOpen, onClose, onSuccess, userData }: Ten
       <DialogContent className={dialogContentStyles}>
         <DialogHeader className={dialogHeaderStyles}>
           <div className="flex items-center justify-between">
-            <DialogTitle className={dialogTitleStyles}>Tenant Profile</DialogTitle>
-            <span className={stepIndicatorStyles}>Step 2 of 3</span>
+            <DialogTitle className={dialogTitleStyles}>New Tenant</DialogTitle>
+            <span className={stepIndicatorStyles}>Step 1 of 3</span>
           </div>
           <DialogDescription className={dialogDescriptionStyles}>
-            Complete the tenant profile for {userData?.email}
+            Enter the user's details to create their account
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className={formStyles}>

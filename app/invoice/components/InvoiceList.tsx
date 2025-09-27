@@ -121,7 +121,7 @@ export function InvoiceList({ invoices: propInvoices, onDelete: propOnDelete }: 
   const handleEdit = (invoice: Invoice) => {
     setSelectedInvoice(invoice)
     setIsEditMode(true)
-    // Implement edit logic
+    // Implement edit logic (e.g., open an edit form; this matches payments but can be expanded later)
   }
 
   return (
@@ -148,7 +148,6 @@ export function InvoiceList({ invoices: propInvoices, onDelete: propOnDelete }: 
             </TableRow>
           </TableHeader>
           <TableBody>
-            // Inside the filteredInvoices.map function (around line 130-140)
             {filteredInvoices.map((invoice) => (
               <TableRow key={invoice?.id ?? Math.random()}>
                 <TableCell className="font-medium">{invoice?.invoice_number ?? '-'}</TableCell>
@@ -158,33 +157,137 @@ export function InvoiceList({ invoices: propInvoices, onDelete: propOnDelete }: 
                     <span className="text-sm text-muted-foreground">{invoice?.tenant?.user?.email ?? '-'}</span>
                   </div>
                 </TableCell>
-                {/* Rest of the cells */}
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{invoice?.unit?.property?.name ?? invoice?.property_name ?? '-'}</span>
+                    <span className="text-sm text-green-600">Unit {invoice?.unit?.unit_number ?? '-'}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{formatCurrency(invoice?.amount ?? 0)}</TableCell>
+                <TableCell>{new Date(invoice.due_date).toLocaleDateString()}</TableCell>
+                <TableCell className="hidden sm:table-cell">{invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : "-"}</TableCell>
+                <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                <TableCell className="hidden sm:table-cell">{invoice.payment_method || "-"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInvoice(invoice)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Invoice Details</DialogTitle>
+                          <DialogDescription>
+                            Invoice #{invoice?.invoice_number ?? '-'}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Amount:</div>
+                            <div className="col-span-3">{formatCurrency(invoice?.amount ?? 0)}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Due Date:</div>
+                            <div className="col-span-3">{new Date(invoice.due_date).toLocaleDateString()}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Status:</div>
+                            <div className="col-span-3">{getStatusBadge(invoice.status)}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Tenant:</div>
+                            <div className="col-span-3">{invoice?.tenant?.user?.full_name ?? invoice?.tenant_name ?? '-'}</div>
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="font-semibold">Property:</div>
+                            <div className="col-span-3">{invoice?.unit?.property?.name ?? invoice?.property_name ?? '-'} - Unit {invoice?.unit?.unit_number ?? '-'}</div>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => handleEdit(invoice)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button variant="destructive" onClick={() => {
+                            setIsDeleteDialogOpen(true)
+                            setSelectedInvoice(invoice)
+                          }}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleSendSMS(invoice)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Previous
-        </Button>
-        <span>Page {page}</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage(p => p + 1)}
-          // Disable if no more pages; adjust based on your hook's pagination data
-        >
-          Next
-          <ChevronRight className="h-4 w-4 ml-2" />
-        </Button>
+      
+      {/* Add pagination controls */}
+      <div className="flex items-center justify-between px-2">
+        <div className="text-sm text-muted-foreground">
+          Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, invoicesData?.count || 0)} of {invoicesData?.count || 0} entries
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => p + 1)}
+            disabled={!invoicesData?.next}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Invoice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete invoice #{selectedInvoice?.invoice_number ?? '-'}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                if (selectedInvoice) {
+                  handleDelete(selectedInvoice)
+                  setIsDeleteDialogOpen(false)
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -93,9 +93,15 @@ export default function InvoiceManagementPage() {
                     property: editingSchedule.property || '',
                     tenants: editingSchedule.tenants || [],
                     frequency: editingSchedule.frequency || '',
-                    amount_type: 'unit_rent', // Provide default instead of accessing from Schedule (assuming it's not present)
-                    // Add defaults for any other required ScheduleFormData fields, e.g.:
-                    // some_other_field: editingSchedule.some_other_field || defaultValue,
+                    amount_type: (editingSchedule.amount_type === 'fixed' ? 'fixed' : 'unit_rent'), // Safe mapping to match union type
+                    fixed_amount: undefined, // Default to undefined unless fixed amount is used
+                    tenantMode: 'all', // Default matching dialog
+                    excludedTenants: [], // Default empty array
+                    sendDay: 25, // Default matching dialog
+                    sendTime: '09:00', // Default matching dialog
+                    dueDay: 5, // Default matching dialog
+                    dueTime: '23:59', // Default matching dialog
+                    sendSms: true, // Default matching dialog
                   } : undefined}
                 />
               </>

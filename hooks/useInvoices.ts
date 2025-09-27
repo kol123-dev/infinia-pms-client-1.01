@@ -3,11 +3,15 @@ import api from '@/lib/axios';
 
 import { Invoice } from '@/types/invoice'; // Add this import
 
-// Remove this empty interface:
-// interface Invoice { /* Add your Invoice type here */ }
+type InvoicesData = {
+  results: Invoice[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+};
 
 export const useInvoices = (initialPage: number = 1) => {
-  const [invoicesData, setInvoicesData] = useState<{ results: Invoice[]; count: number }>({ results: [], count: 0 });
+  const [invoicesData, setInvoicesData] = useState<InvoicesData>({ results: [], count: 0, next: null, previous: null });
   const [page, setPage] = useState(initialPage);
   const [loading, setLoading] = useState(true);
 

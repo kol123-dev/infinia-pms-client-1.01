@@ -39,5 +39,11 @@ export interface ScheduleFormData {
   frequency: string;
   amount_type: 'unit_rent' | 'fixed';
   fixed_amount?: number;
-  // Add other form fields
+  tenantMode: 'all' | 'all_except'; // New: for tenant selection mode
+  excludedTenants: string[]; // New: array of excluded tenant IDs (as strings)
+  sendDay: number; // New: day to send invoice (e.g., 25)
+  sendTime: string; // New: time to send (e.g., '09:00')
+  dueDay: number; // New: due day (e.g., 5)
+  dueTime: string; // New: due time (e.g., '23:59')
+  sendSms: boolean; // New: whether to send SMS
 }

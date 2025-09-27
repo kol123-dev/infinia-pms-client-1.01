@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScheduleFormData } from '@/types/invoice';
 import axios from '@/lib/axios';
 import { useToast } from '@/hooks/use-toast';
@@ -22,10 +23,18 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
   const [formData, setFormData] = useState<ScheduleFormData>(initialData || {
     property: '',
     tenants: [],
-    frequency: '',
+    frequency: 'monthly', // Default to monthly as per your request
     amount_type: 'unit_rent',
     fixed_amount: undefined,
+    tenantMode: 'all', // New: 'all' | 'all_except'
+    excludedTenants: [], // New: for exclusions
+    sendDay: 25, // New: default 25
+    sendTime: '09:00', // New: default time
+    dueDay: 5, // New: default 5
+    dueTime: '23:59', // New: default time
+    sendSms: true, // New: default true
   });
+  const [tenantSearch, setTenantSearch] = useState(''); // New: for searching in except mode
 
   useEffect(() => {
     if (initialData) {
@@ -33,48 +42,45 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
     }
   }, [initialData]);
 
-  // Fetch properties
-  // Add these interfaces near the top (after imports)
   interface Property {
     id: number;
     name: string;
   }
-  
+
   interface Tenant {
     id: number;
     user?: {
       full_name?: string;
     };
   }
-  
-  // Update the properties query
+
   const { data: properties = [] } = useQuery<Property[]>({
     queryKey: ['properties'],
     queryFn: () => axios.get('/properties/').then(res => res.data.results || []),
   });
-  
-  // Update the tenants query
+
   const { data: tenants = [] } = useQuery<Tenant[]>({
     queryKey: ['tenants', formData.property],
     queryFn: () => axios.get(`/tenants/?current_unit__property=${formData.property}`).then(res => res.data.results || []),
     enabled: !!formData.property,
   });
 
-  const handleTenantChange = (tenantId: string, checked: boolean) => {
+  const handleExcludedTenantChange = (tenantId: string, checked: boolean) => {
     setFormData(prev => {
-      const newTenants = checked
-        ? [...(prev.tenants as string[]), tenantId]
-        : (prev.tenants as string[]).filter(id => id !== tenantId);
-      return { ...prev, tenants: newTenants };
+      const newExcluded = checked
+        ? [...(prev.excludedTenants ?? []), tenantId]
+        : (prev.excludedTenants ?? []).filter(id => id !== tenantId);
+      return { ...prev, excludedTenants: newExcluded };
     });
   };
 
-  const handleAllTenantsChange = (checked: boolean) => {
-    setFormData(prev => ({ ...prev, tenants: checked ? 'all' : [] }));
-  };
+  const filteredTenants = tenants.filter(tenant =>
+    tenant.user?.full_name?.toLowerCase().includes(tenantSearch.toLowerCase())
+  );
 
   const handleSubmit = () => {
-    if (!formData.property || !formData.frequency || !formData.amount_type || (formData.tenants !== 'all' && (formData.tenants as string[]).length === 0)) {
+    if (!formData.property || !formData.frequency || !formData.amount_type ||
+        (formData.tenantMode === 'all_except' && (formData.excludedTenants ?? []).length === 0)) {
       toast({ variant: 'destructive', title: 'Error', description: 'Please fill all required fields.' });
       return;
     }
@@ -85,8 +91,6 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
     onSubmit(formData);
     onClose();
   };
-
-  const isAllTenants = formData.tenants === 'all';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -111,25 +115,41 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
 
           <div className="grid gap-2">
             <Label>Tenants</Label>
-            <div className="flex items-center space-x-2">
-              <Checkbox checked={isAllTenants} onCheckedChange={handleAllTenantsChange} />
-              <label className="text-sm">All Tenants in Property</label>
-            </div>
-            {!isAllTenants && formData.property && (
-              <div className="max-h-40 overflow-y-auto space-y-2 pl-4">
-                {tenants.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No tenants found for this property.</p>
-                ) : (
-                  tenants.map(tenant => (
-                    <div key={tenant.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={(formData.tenants as string[]).includes(tenant.id.toString())}
-                        onCheckedChange={checked => handleTenantChange(tenant.id.toString(), checked as boolean)}
-                      />
-                      <label className="text-sm">{tenant.user?.full_name || 'Unknown'}</label>
-                    </div>
-                  ))
-                )}
+            <RadioGroup
+              value={formData.tenantMode}
+              onValueChange={v => setFormData({ ...formData, tenantMode: v as 'all' | 'all_except', excludedTenants: [] })}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all" id="all" />
+                <Label htmlFor="all">All Tenants in Property</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all_except" id="all_except" />
+                <Label htmlFor="all_except">All Tenants in Property except</Label>
+              </div>
+            </RadioGroup>
+            {formData.tenantMode === 'all_except' && formData.property && (
+              <div className="space-y-2">
+                <Input
+                  placeholder="Search tenants to exclude..."
+                  value={tenantSearch}
+                  onChange={e => setTenantSearch(e.target.value)}
+                />
+                <div className="max-h-40 overflow-y-auto space-y-2 pl-4">
+                  {filteredTenants.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No tenants found.</p>
+                  ) : (
+                    filteredTenants.map(tenant => (
+                      <div key={tenant.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={(formData.excludedTenants ?? []).includes(tenant.id.toString())}
+                          onCheckedChange={checked => handleExcludedTenantChange(tenant.id.toString(), checked as boolean)}
+                        />
+                        <label className="text-sm">{tenant.user?.full_name || 'Unknown'}</label>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -146,6 +166,48 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
                 <SelectItem value="annually">Annually</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* New: Recurring Date Fields */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Invoice Send Day (e.g., 25th)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={31}
+                value={formData.sendDay ?? 25}
+                onChange={e => setFormData({ ...formData, sendDay: parseInt(e.target.value) || 25 })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Send Time</Label>
+              <Input
+                type="time"
+                value={formData.sendTime ?? '09:00'}
+                onChange={e => setFormData({ ...formData, sendTime: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Due Day (e.g., 5th next month)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={31}
+                value={formData.dueDay ?? 5}
+                onChange={e => setFormData({ ...formData, dueDay: parseInt(e.target.value) || 5 })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Due Time</Label>
+              <Input
+                type="time"
+                value={formData.dueTime ?? '23:59'}
+                onChange={e => setFormData({ ...formData, dueTime: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -173,6 +235,15 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
               />
             </div>
           )}
+
+          {/* New: SMS Option */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={formData.sendSms ?? true}
+              onCheckedChange={checked => setFormData({ ...formData, sendSms: checked as boolean })}
+            />
+            <label className="text-sm">Send SMS Notification</label>
+          </div>
         </div>
         <Button onClick={handleSubmit}>Save</Button>
       </DialogContent>

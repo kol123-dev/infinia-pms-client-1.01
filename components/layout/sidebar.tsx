@@ -74,6 +74,12 @@ const navigation = [
     badge: 5,
   },
   {
+    name: "Invoices",
+    href: "/invoice",
+    icon: FileText,
+    badge: null,
+  },
+  {
     name: "Reports",
     href: "/reports",
     icon: FileText,

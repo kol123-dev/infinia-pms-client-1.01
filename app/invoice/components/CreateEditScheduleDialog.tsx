@@ -169,7 +169,7 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
           </div>
 
           {/* New: Recurring Date Fields */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Invoice Send Day (e.g., 25th)</Label>
               <Input
@@ -189,7 +189,7 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Due Day (e.g., 5th next month)</Label>
               <Input

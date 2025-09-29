@@ -15,18 +15,18 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({ schedules, onEdit, o
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Property</TableHead>
-          <TableHead>Tenants</TableHead>
-          <TableHead>Frequency</TableHead>
-          {/* Add other headers */}
-          <TableHead>Actions</TableHead>
-        </TableRow>
+            <TableHead>Properties</TableHead>
+            <TableHead>Tenants</TableHead>
+            <TableHead>Frequency</TableHead>
+            {/* Add other headers */}
+            <TableHead>Actions</TableHead>
+          </TableRow>
       </TableHeader>
       <TableBody>
         {schedules.map((schedule) => (
           <TableRow key={schedule.id}>
-            <TableCell>{schedule.property}</TableCell>
-            <TableCell>{Array.isArray(schedule.tenants) ? schedule.tenants.join(', ') : schedule.tenants}</TableCell>
+            <TableCell>{Array.isArray(schedule.properties) ? schedule.properties.join(', ') : ''}</TableCell>
+            <TableCell>{schedule.tenant_mode === 'all' ? 'All Tenants' : `All except ${schedule.excluded_tenants?.length || 0} tenants`}</TableCell>
             <TableCell>{schedule.frequency}</TableCell>
             {/* Other cells */}
             <TableCell>

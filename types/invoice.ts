@@ -25,11 +25,18 @@ export interface Invoice {
 
 export interface Schedule {
   id: number;
-  property: string;
-  tenants: string[]; // or appropriate type
+  properties: string[];
+  tenants: string[];
   frequency: string;
-  amount_type?: string; // Add this as optional if it exists in backend data
-  // Add other fields as optional if needed
+  amount_type: 'unit_rent' | 'fixed';
+  fixed_amount?: number;
+  tenant_mode: 'all' | 'all_except';
+  excluded_tenants: string[];
+  send_day: number;
+  send_time: string;
+  due_day: number;
+  due_time: string;
+  send_sms: boolean;
 }
 
 export interface ScheduleFormData {

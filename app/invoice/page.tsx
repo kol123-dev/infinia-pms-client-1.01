@@ -30,11 +30,34 @@ export default function InvoiceManagementPage() {
   };
 
   const handleSubmitSchedule = async (data: ScheduleFormData) => {
+    const transformedData = {
+      ...data,
+      properties: data.property ? [data.property] : [],
+      tenant_mode: data.tenantMode || 'all',
+      excluded_tenants: data.excludedTenants || [],
+      send_day: data.sendDay,
+      send_time: data.sendTime,
+      due_day: data.dueDay,
+      due_time: data.dueTime,
+      amount_type: data.amount_type,
+      fixed_amount: data.fixed_amount,
+      send_sms: data.sendSms,
+      // Remove frontend-specific fields
+      property: undefined,
+      tenants: undefined,
+      tenantMode: undefined,
+      excludedTenants: undefined,
+      sendDay: undefined,
+      sendTime: undefined,
+      dueDay: undefined,
+      dueTime: undefined,
+      sendSms: undefined,
+    };
     try {
       if (editingSchedule) {
-        await api.put(`/payments/invoice-schedules/${editingSchedule.id}/`, data);
+        await api.put(`/payments/invoice-schedules/${editingSchedule.id}/`, transformedData);
       } else {
-        await api.post('/payments/invoice-schedules/', data);
+        await api.post('/payments/invoice-schedules/', transformedData);
       }
       fetchSchedules();
       setIsDialogOpen(false);
@@ -90,18 +113,18 @@ export default function InvoiceManagementPage() {
                   onSubmit={handleSubmitSchedule}
                   initialData={editingSchedule ? {
                     id: editingSchedule.id,
-                    property: editingSchedule.property || '',
-                    tenants: editingSchedule.tenants || [],
+                    property: editingSchedule.properties?.[0] || '',
+                    tenants: [],
                     frequency: editingSchedule.frequency || '',
-                    amount_type: (editingSchedule.amount_type === 'fixed' ? 'fixed' : 'unit_rent'), // Safe mapping to match union type
-                    fixed_amount: undefined, // Default to undefined unless fixed amount is used
-                    tenantMode: 'all', // Default matching dialog
-                    excludedTenants: [], // Default empty array
-                    sendDay: 25, // Default matching dialog
-                    sendTime: '09:00', // Default matching dialog
-                    dueDay: 5, // Default matching dialog
-                    dueTime: '23:59', // Default matching dialog
-                    sendSms: true, // Default matching dialog
+                    amount_type: editingSchedule.amount_type || 'unit_rent',
+                    fixed_amount: editingSchedule.fixed_amount,
+                    tenantMode: editingSchedule.tenant_mode || 'all',
+                    excludedTenants: editingSchedule.excluded_tenants || [],
+                    sendDay: editingSchedule.send_day || 25,
+                    sendTime: editingSchedule.send_time || '09:00',
+                    dueDay: editingSchedule.due_day || 5,
+                    dueTime: editingSchedule.due_time || '23:59',
+                    sendSms: editingSchedule.send_sms ?? true,
                   } : undefined}
                 />
               </>

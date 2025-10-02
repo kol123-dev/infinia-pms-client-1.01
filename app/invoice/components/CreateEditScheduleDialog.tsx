@@ -94,7 +94,7 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Schedule' : 'Create Schedule'}</DialogTitle>
         </DialogHeader>

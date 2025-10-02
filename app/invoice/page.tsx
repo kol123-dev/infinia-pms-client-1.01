@@ -29,6 +29,24 @@ export default function InvoiceManagementPage() {
     setIsDialogOpen(true);
   };
 
+  // Add: open dialog with selected schedule
+  const handleEditSchedule = (schedule: Schedule) => {
+    setEditingSchedule(schedule);
+    setIsDialogOpen(true);
+  };
+
+  // Add: delete schedule and refresh
+  const handleDeleteSchedule = async (id: number) => {
+    const confirmed = window.confirm('Delete this schedule? This cannot be undone.');
+    if (!confirmed) return;
+    try {
+      await api.delete(`/payments/invoice-schedules/${id}/`);
+      fetchSchedules();
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      alert('Failed to delete schedule');
+    }
+  };
   const handleSubmitSchedule = async (data: ScheduleFormData) => {
     const transformedData = {
       ...data,
@@ -99,14 +117,16 @@ export default function InvoiceManagementPage() {
             )}
           </TabsContent>
           <TabsContent value="schedules">
-            <Button onClick={handleCreateSchedule}>Create Schedule</Button>
+            <Button onClick={handleCreateSchedule} className="mb-4">Create Schedule</Button>
             {schedulesLoading ? <p>Loading...</p> : (
               <>
-                <ScheduleList 
-                  schedules={schedules as import('@/types/invoice').Schedule[]} 
-                  onEdit={setEditingSchedule} 
-                  onDelete={(id: number) => { /* delete logic */ }} 
-                />
+                <div className="overflow-x-auto">
+                  <ScheduleList 
+                    schedules={schedules as import('@/types/invoice').Schedule[]} 
+                    onEdit={handleEditSchedule} 
+                    onDelete={handleDeleteSchedule} 
+                  />
+                </div>
                 <CreateEditScheduleDialog
                   isOpen={isDialogOpen}
                   onClose={() => setIsDialogOpen(false)}

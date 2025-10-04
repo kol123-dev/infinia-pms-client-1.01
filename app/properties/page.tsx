@@ -18,6 +18,8 @@ import { PropertyDetails } from "./components/property-details"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { toast } from "@/components/ui/use-toast"
 
+import { Input } from "@/components/ui/input"
+
 import { Property, PropertiesResponse } from "./types"
 
 // Remove the existing interfaces since we're importing them
@@ -31,6 +33,7 @@ export default function Properties() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const handleDelete = async (propertyId: number) => {
     if (confirm("Are you sure you want to delete this property?")) {
@@ -86,6 +89,12 @@ export default function Properties() {
   if (loading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
 
+  // Fix the filter function arrow syntax
+  const filteredProperties = properties.filter((property) =>
+    property.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    property.location.address.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
     <MainLayout>
       <div className="flex items-center justify-between">
@@ -96,8 +105,15 @@ export default function Properties() {
         </Button>
       </div>
 
+      <Input
+        className="mb-6 max-w-sm"
+        placeholder="Search properties by name or location..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {properties.map((property: Property) => (
+        {filteredProperties.map((property: Property) => (
           <Card key={property.id} className="overflow-hidden border border-border/50 rounded-xl shadow-sm">
             <div className="aspect-[4/3] bg-muted relative">  
               <Image

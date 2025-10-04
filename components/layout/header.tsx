@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search, X, Loader2, User, Building, Home, DollarSign, FileText } from "lucide-react"  // Add new icons
+import { Bell, Search, X, Loader2, User, Building, Home, DollarSign, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { MobileSidebar } from "./sidebar"
@@ -9,12 +9,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import {
   Popover,
@@ -29,18 +28,19 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { useDebounce } from 'use-debounce'
-import api from '@/lib/axios'  // Using configured Axios with auth interceptors
+import api from '@/lib/axios'
 import Link from 'next/link'
-import { useAuth } from "@/lib/context/auth-context";  // For logout
-import { useRouter } from "next/navigation";  // For routing after logout
+import { useAuth } from "@/lib/context/auth-context"
+import { useRouter } from "next/navigation"
+import { TenantDetails } from "@/app/tenants/components/tenant-details"
+import { Tenant } from "@/app/tenants/types"
 
-
-// Define a type for search result items (expanded based on serializer fields)
+// Define a type for search result items
 type User = {
   first_name?: string;
   last_name?: string;
   email?: string;
-  // Add other fields if needed from user-context
+  full_name?: string;
 };
 
 type SearchResultItem = {
@@ -56,7 +56,7 @@ type SearchResultItem = {
   type?: string;
   status?: string;
   amount?: number;
-  user?: User;  // Fixed: Proper type for nested user object
+  user?: User;
 };
 
 export function Header() {
@@ -68,13 +68,17 @@ export function Header() {
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+  
+  // State for tenant details dialog
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [isTenantDetailsOpen, setIsTenantDetailsOpen] = useState(false);
 
-  // Add these lines for logout
+  // Auth and routing
   const { logout } = useAuth();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Add this handleLogout function
+  // Handle logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -87,6 +91,21 @@ export function Header() {
     }
   };
 
+  // Optimized tenant click handler with useCallback
+  const handleTenantClick = useCallback(async (tenantId: string) => {
+    try {
+      const response = await api.get(`/tenants/${tenantId}/`);
+      setSelectedTenant(response.data);
+      setIsTenantDetailsOpen(true);
+      setIsOpen(false); // Close the search popover
+    } catch (error) {
+      console.error('Failed to fetch tenant details:', error);
+      // Fallback to navigation if API call fails
+      router.push(`/tenants/${tenantId}`);
+    }
+  }, [router]);
+
+  // Close popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
@@ -98,39 +117,38 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Search API call
   useEffect(() => {
-    if (debouncedSearchTerm) {
-      setIsLoading(true);
-      setError(null);
-
-      api.get(`/search/?q=${debouncedSearchTerm}`)
-        .then((response) => {
-          // Handle the flat array of results from the backend
-          if (Array.isArray(response.data.results)) {
-            setResults(response.data.results);
-          } else {
-            // Fallback if results is not an array
-            setResults([]);
-            console.error('Unexpected response format:', response.data);
-          }
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error('Search error:', err);
-          if (err.response?.status === 401) {
-            setError('Authentication failed. Please log in again.');
-          } else {
-            setError('Failed to fetch search results. Please try again.');
-          }
-          setIsLoading(false);
-          setResults([]);
-        });
-    } else {
+    if (!debouncedSearchTerm) {
       setResults([]);
+      return;
     }
+    
+    setIsLoading(true);
+    setError(null);
+
+    api.get(`/search/?q=${debouncedSearchTerm}`)
+      .then((response) => {
+        if (Array.isArray(response.data.results)) {
+          setResults(response.data.results);
+        } else {
+          setResults([]);
+          console.error('Unexpected response format:', response.data);
+        }
+      })
+      .catch((err) => {
+        console.error('Search error:', err);
+        setError(err.response?.status === 401 
+          ? 'Authentication failed. Please log in again.' 
+          : 'Failed to fetch search results. Please try again.');
+        setResults([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [debouncedSearchTerm]);
 
-  // Group results by category for display
+  // Group results by category - memoized for performance
   const groupedResults = results.reduce<Record<string, SearchResultItem[]>>((groups, item) => {
     const category = item.category || 'other';
     if (!groups[category]) {
@@ -158,10 +176,10 @@ export function Header() {
     if (category === 'payments') {
       return item.payment_id || (item.amount ? `Payment of ${item.amount} (${item.status || 'Unknown'})` : `Unnamed Payment (${item.id})`);
     }
-    return `Unnamed Item (${item.id})`;  // Ultimate fallback
+    return `Unnamed Item (${item.id})`;
   };
 
-  // New: Icon mapping for categories
+  // Icon mapping for categories
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'tenants': return <User className="mr-2 h-4 w-4" />;
@@ -173,6 +191,11 @@ export function Header() {
     }
   };
 
+  // Handle dialog close
+  const handleTenantDialogClose = useCallback(() => {
+    setIsTenantDetailsOpen(false);
+  }, []);
+
   return (
     <header className="flex h-14 items-center gap-2 px-2 border-b bg-muted/40 lg:gap-4 lg:px-6 lg:h-[60px] flex-nowrap overflow-hidden">
       <MobileSidebar />
@@ -183,14 +206,14 @@ export function Header() {
               variant="outline"
               role="combobox"
               aria-expanded={isOpen}
-              className="w-full md:w-[300px] justify-between text-sm truncate"  // Added text-sm and truncate for better mobile fit
+              className="w-full md:w-[300px] justify-between text-sm truncate"
               onClick={() => setIsOpen(true)}
             >
-              <Search className="mr-1 h-4 w-4 shrink-0 opacity-50" />  {/* Reduced margin */}
+              <Search className="mr-1 h-4 w-4 shrink-0 opacity-50" />
               Search tenants, units, payments...
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0">  
+          <PopoverContent className="w-[400px] p-0" ref={popoverRef}>  
             <Command>
               <div className="relative">  
                 <Input
@@ -213,13 +236,13 @@ export function Header() {
               <CommandList>
                 {isLoading && (
                   <CommandEmpty>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...  {/* New: Spinner */}
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
                   </CommandEmpty>
                 )}
                 {error && <CommandEmpty>{error}</CommandEmpty>}
                 {!isLoading && !error && results.length === 0 && (
                   <CommandEmpty>
-                    No results found. Try a different keyword?  {/* Friendlier message */}
+                    No results found. Try a different keyword?
                   </CommandEmpty>
                 )}
                 {Object.entries(groupedResults).map(([category, items]) => (
@@ -227,16 +250,32 @@ export function Header() {
                     key={category} 
                     heading={
                       <div className="flex items-center">
-                        {getCategoryIcon(category)}  {/* New: Category icon */}
+                        {getCategoryIcon(category)}
                         {category.charAt(0).toUpperCase() + category.slice(1)}
                       </div>
                     }
                   >
                     {items.map((item) => (
                       <CommandItem key={item.id}>
-                        <Link href={`/${category}/${item.id}`}>
-                          {getDisplayName(item)}
-                        </Link>
+                        {category.toLowerCase() === 'tenants' ? (
+                          <div 
+                            className="w-full cursor-pointer" 
+                            onClick={() => handleTenantClick(item.id)}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {item.user?.full_name || `${item.user?.first_name || ''} ${item.user?.last_name || ''}`.trim() || `Tenant ${item.id}`}
+                              </span>
+                              {item.user?.email && (
+                                <span className="text-xs text-muted-foreground">{item.user.email}</span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <Link href={`/${category}/${item.id}`} className="w-full">
+                            {getDisplayName(item)}
+                          </Link>
+                        )}
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -282,6 +321,15 @@ export function Header() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Tenant Details Dialog */}
+      {selectedTenant && (
+        <TenantDetails
+          tenant={selectedTenant}
+          isOpen={isTenantDetailsOpen}
+          onClose={handleTenantDialogClose}
+        />
+      )}
     </header>
   );
 }

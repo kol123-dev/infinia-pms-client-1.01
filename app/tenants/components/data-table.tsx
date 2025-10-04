@@ -12,8 +12,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  FilterFn,
+  Row,
 } from "@tanstack/react-table"
 import { ChevronDown, SlidersHorizontal } from "lucide-react"
+import { rankItem } from '@tanstack/match-sorter-utils'
 
 import {
   Table,
@@ -32,6 +35,46 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Tenant } from "../types"
+
+// Custom fuzzy filter function
+export const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  // Rank the item using match-sorter
+  const itemRank = rankItem(row.getValue(columnId), value)
+  
+  // Store the ranking info
+  addMeta({ itemRank })
+  
+  // Return if the item should be filtered in/out
+  return itemRank.passed
+}
+
+// Global filter function that searches across multiple fields
+export const globalTenantFilter = <T extends Tenant>(
+  row: Row<T>,
+  columnId: string,
+  value: string
+): boolean => {
+  const searchTerm = value.toLowerCase();
+  const tenant = row.original;
+  
+  // Search in tenant name
+  if (tenant.user?.full_name?.toLowerCase().includes(searchTerm)) return true;
+  
+  // Search in phone number
+  if (tenant.phone?.toLowerCase().includes(searchTerm)) return true;
+  
+  // Search in property name
+  if (tenant.current_unit?.property?.name?.toLowerCase().includes(searchTerm)) return true;
+  
+  // Search in unit number
+  if (tenant.current_unit?.unit_number?.toLowerCase().includes(searchTerm)) return true;
+  
+  // Search in tenant status
+  if (tenant.tenant_status?.toLowerCase().includes(searchTerm)) return true;
+  
+  return false;
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -43,7 +86,8 @@ interface DataTableProps<TData, TValue> {
   meta?: any
 }
 
-export function DataTable<TData, TValue>({
+// Update the DataTable function to constrain TData to Tenant
+export function DataTable<TData extends Tenant, TValue>({
   columns,
   data,
   pageCount,
@@ -56,11 +100,12 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [globalFilter, setGlobalFilter] = React.useState("")
 
   const table = useReactTable({
     data,
     columns,
-    meta,  // Add this line to pass meta
+    meta,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
@@ -69,12 +114,15 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    globalFilterFn: globalTenantFilter,
+    onGlobalFilterChange: setGlobalFilter,
     pageCount: pageCount,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      globalFilter,
       pagination: {
         pageIndex,
         pageSize,
@@ -88,11 +136,9 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Filter tenants..."
-            value={(table.getColumn("user")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("user")?.setFilterValue(event.target.value)
-            }
+            placeholder="Search tenants by name, phone, property, unit..."
+            value={globalFilter}
+            onChange={(event) => setGlobalFilter(event.target.value)}
             className="max-w-sm"
           />
           <DropdownMenu>

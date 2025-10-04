@@ -34,6 +34,7 @@ import { useAuth } from "@/lib/context/auth-context"
 import { useRouter } from "next/navigation"
 import { TenantDetails } from "@/app/tenants/components/tenant-details"
 import { Tenant } from "@/app/tenants/types"
+import { LandlordDetails } from "@/app/landlords/components/landlord-details"
 
 // Define a type for search result items
 type User = {
@@ -42,6 +43,34 @@ type User = {
   email?: string;
   full_name?: string;
 };
+
+// Define Landlord interface
+interface Landlord {
+  id: number
+  landlord_id: string | null
+  user: {
+    id: number
+    email: string
+    full_name: string
+    phone: string
+    role: string
+    is_active: boolean
+  }
+  agent: any | null
+  name: string | null
+  email: string | null
+  phone: string | null
+  id_number: string | null
+  business_name: string
+  company_registration_number: string | null
+  created_at: string
+  properties: {
+    id: number
+    name: string
+    total_units: number
+    actual_monthly_revenue: number
+  }[] | null
+}
 
 type SearchResultItem = {
   id: string;
@@ -72,6 +101,10 @@ export function Header() {
   // State for tenant details dialog
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [isTenantDetailsOpen, setIsTenantDetailsOpen] = useState(false);
+  
+  // State for landlord details dialog
+  const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null);
+  const [isLandlordDetailsOpen, setIsLandlordDetailsOpen] = useState(false);
 
   // Auth and routing
   const { logout } = useAuth();
@@ -102,6 +135,20 @@ export function Header() {
       console.error('Failed to fetch tenant details:', error);
       // Fallback to navigation if API call fails
       router.push(`/tenants/${tenantId}`);
+    }
+  }, [router]);
+  
+  // Landlord click handler
+  const handleLandlordClick = useCallback(async (landlordId: string) => {
+    try {
+      const response = await api.get(`/landlords/${landlordId}/`);
+      setSelectedLandlord(response.data);
+      setIsLandlordDetailsOpen(true);
+      setIsOpen(false); // Close the search popover
+    } catch (error) {
+      console.error('Failed to fetch landlord details:', error);
+      // Fallback to navigation if API call fails
+      router.push(`/landlords/${landlordId}`);
     }
   }, [router]);
 
@@ -195,6 +242,22 @@ export function Header() {
   const handleTenantDialogClose = useCallback(() => {
     setIsTenantDetailsOpen(false);
   }, []);
+  
+  // Handle landlord dialog close
+  const handleLandlordDialogClose = useCallback(() => {
+    setIsLandlordDetailsOpen(false);
+  }, []);
+  
+  // Dummy handlers for edit and delete (required by LandlordDetails props)
+  const handleLandlordEdit = useCallback((landlord: Landlord) => {
+    setIsLandlordDetailsOpen(false);
+    router.push(`/landlords/${landlord.id}/edit`);
+  }, [router]);
+  
+  const handleLandlordDelete = useCallback((landlord: Landlord) => {
+    setIsLandlordDetailsOpen(false);
+    router.push(`/landlords/${landlord.id}`);
+  }, [router]);
 
   return (
     <header className="flex h-14 items-center gap-2 px-2 border-b bg-muted/40 lg:gap-4 lg:px-6 lg:h-[60px] flex-nowrap overflow-hidden">
@@ -271,6 +334,20 @@ export function Header() {
                               )}
                             </div>
                           </div>
+                        ) : category.toLowerCase() === 'landlords' ? (
+                          <div 
+                            className="w-full cursor-pointer" 
+                            onClick={() => handleLandlordClick(item.id)}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {item.business_name || `${item.user?.first_name || ''} ${item.user?.last_name || ''}`.trim() || `Landlord ${item.id}`}
+                              </span>
+                              {item.user?.email && (
+                                <span className="text-xs text-muted-foreground">{item.user.email}</span>
+                              )}
+                            </div>
+                          </div>
                         ) : (
                           <Link href={`/${category}/${item.id}`} className="w-full">
                             {getDisplayName(item)}
@@ -328,6 +405,17 @@ export function Header() {
           tenant={selectedTenant}
           isOpen={isTenantDetailsOpen}
           onClose={handleTenantDialogClose}
+        />
+      )}
+      
+      {/* Landlord Details Dialog */}
+      {selectedLandlord && (
+        <LandlordDetails
+          landlord={selectedLandlord}
+          isOpen={isLandlordDetailsOpen}
+          onClose={handleLandlordDialogClose}
+          onEdit={handleLandlordEdit}
+          onDelete={handleLandlordDelete}
         />
       )}
     </header>

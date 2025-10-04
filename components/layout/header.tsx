@@ -35,6 +35,8 @@ import { useRouter } from "next/navigation"
 import { TenantDetails } from "@/app/tenants/components/tenant-details"
 import { Tenant } from "@/app/tenants/types"
 import { LandlordDetails } from "@/app/landlords/components/landlord-details"
+import { PropertyDetails } from "@/app/properties/components/property-details"
+import { UnitDetails } from "@/app/units/components/unit-details"
 
 // Define a type for search result items
 type User = {
@@ -72,6 +74,112 @@ interface Landlord {
   }[] | null
 }
 
+// Define Property interface
+interface Property {
+  id: number
+  property_id: string | null
+  name: string | null
+  property_type: string
+  building_type: string
+  description: string
+  location: {
+    address: string
+    coordinates: {
+      lat: number | null
+      lng: number | null
+    }
+  }
+  landlord: {
+    id: number
+    landlord_id: string | null
+    user: {
+      id: number
+      email: string
+      full_name: string
+      phone: string
+      role: string
+      is_active: boolean
+    }
+    agent: {
+      id: number
+      user: {
+        id: number
+        email: string
+        full_name: string
+      }
+    } | null
+    phone: string
+    business_name: string
+    properties: Array<any>
+    created_at: string
+  } | null
+  agent: {
+    id: number
+    name: string
+  } | null
+  property_manager: {
+    id: number
+    name: string
+  } | null
+  // Update the units property in the Property interface
+  units: {
+    summary: {
+      total: number
+      occupied: number
+      vacant: number
+      underMaintenance: number
+      occupancyRate: number
+    }
+    distribution: Record<string, any>
+    metrics: {
+      averageRent: number
+      averageOccupancyDuration: string | null
+      expiringLeases: number
+    }
+  }
+  financials: any | null
+}
+
+// Define Unit interface
+interface Unit {
+  id: number
+  unit_id: string
+  unit_number: string
+  property: {
+    id: number
+    name: string
+    address: string
+    city: string
+    state: string
+    zip_code: string
+  }
+  current_tenant?: {
+    id: number
+    user: {
+      id: number
+      full_name: string
+      email: string
+      phone: string
+    }
+    lease_start_date: string
+    lease_end_date: string
+  }
+  unit_type: string
+  unit_status: 'VACANT' | 'OCCUPIED' | 'MAINTENANCE'
+  floor: number
+  size: number
+  rent: number
+  deposit: number
+  amenities: string[]
+  features: {
+    parking_spots: number
+    storage_unit: boolean
+  }
+  created_at: string
+  updated_at: string
+  tenant_history: any[]
+}
+
 type SearchResultItem = {
   id: string;
   category: string;
@@ -105,6 +213,14 @@ export function Header() {
   // State for landlord details dialog
   const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null);
   const [isLandlordDetailsOpen, setIsLandlordDetailsOpen] = useState(false);
+  
+  // State for property details dialog
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [isPropertyDetailsOpen, setIsPropertyDetailsOpen] = useState(false);
+  
+  // State for unit details dialog
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [isUnitDetailsOpen, setIsUnitDetailsOpen] = useState(false);
 
   // Auth and routing
   const { logout } = useAuth();
@@ -149,6 +265,34 @@ export function Header() {
       console.error('Failed to fetch landlord details:', error);
       // Fallback to navigation if API call fails
       router.push(`/landlords/${landlordId}`);
+    }
+  }, [router]);
+  
+  // Property click handler
+  const handlePropertyClick = useCallback(async (propertyId: string) => {
+    try {
+      const response = await api.get(`/properties/${propertyId}/`);
+      setSelectedProperty(response.data);
+      setIsPropertyDetailsOpen(true);
+      setIsOpen(false); // Close the search popover
+    } catch (error) {
+      console.error('Failed to fetch property details:', error);
+      // Fallback to navigation if API call fails
+      router.push(`/properties/${propertyId}`);
+    }
+  }, [router]);
+  
+  // Unit click handler
+  const handleUnitClick = useCallback(async (unitId: string) => {
+    try {
+      const response = await api.get(`/units/${unitId}/`);
+      setSelectedUnit(response.data);
+      setIsUnitDetailsOpen(true);
+      setIsOpen(false); // Close the search popover
+    } catch (error) {
+      console.error('Failed to fetch unit details:', error);
+      // Fallback to navigation if API call fails
+      router.push(`/units/${unitId}`);
     }
   }, [router]);
 
@@ -248,6 +392,16 @@ export function Header() {
     setIsLandlordDetailsOpen(false);
   }, []);
   
+  // Handle property dialog close
+  const handlePropertyDialogClose = useCallback(() => {
+    setIsPropertyDetailsOpen(false);
+  }, []);
+  
+  // Handle unit dialog close
+  const handleUnitDialogClose = useCallback(() => {
+    setIsUnitDetailsOpen(false);
+  }, []);
+  
   // Dummy handlers for edit and delete (required by LandlordDetails props)
   const handleLandlordEdit = useCallback((landlord: Landlord) => {
     setIsLandlordDetailsOpen(false);
@@ -258,6 +412,21 @@ export function Header() {
     setIsLandlordDetailsOpen(false);
     router.push(`/landlords/${landlord.id}`);
   }, [router]);
+  
+  // Dummy handlers for property delete
+  const handlePropertyDelete = useCallback(() => {
+    setIsPropertyDetailsOpen(false);
+    router.refresh();
+  }, [router]);
+  
+  // Dummy handlers for unit edit and delete
+  const handleUnitEdit = useCallback(() => {
+    setIsUnitDetailsOpen(false);
+  }, []);
+  
+  const handleUnitDelete = useCallback(() => {
+    setIsUnitDetailsOpen(false);
+  }, []);
 
   return (
     <header className="flex h-14 items-center gap-2 px-2 border-b bg-muted/40 lg:gap-4 lg:px-6 lg:h-[60px] flex-nowrap overflow-hidden">
@@ -348,6 +517,28 @@ export function Header() {
                               )}
                             </div>
                           </div>
+                        ) : category.toLowerCase() === 'properties' ? (
+                          <div 
+                            className="w-full cursor-pointer" 
+                            onClick={() => handlePropertyClick(item.id)}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {item.name || item.address || `Property ${item.id}`}
+                              </span>
+                            </div>
+                          </div>
+                        ) : category.toLowerCase() === 'units' ? (
+                          <div 
+                            className="w-full cursor-pointer" 
+                            onClick={() => handleUnitClick(item.id)}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {item.unit_number || `Unit ${item.id}`}
+                              </span>
+                            </div>
+                          </div>
                         ) : (
                           <Link href={`/${category}/${item.id}`} className="w-full">
                             {getDisplayName(item)}
@@ -416,6 +607,27 @@ export function Header() {
           onClose={handleLandlordDialogClose}
           onEdit={handleLandlordEdit}
           onDelete={handleLandlordDelete}
+        />
+      )}
+      
+      {/* Property Details Dialog */}
+      {selectedProperty && (
+        <PropertyDetails
+          property={selectedProperty}
+          isOpen={isPropertyDetailsOpen}
+          onClose={handlePropertyDialogClose}
+          onDelete={handlePropertyDelete}
+        />
+      )}
+      
+      {/* Unit Details Dialog */}
+      {selectedUnit && (
+        <UnitDetails
+          unit={selectedUnit}
+          isOpen={isUnitDetailsOpen}
+          onClose={handleUnitDialogClose}
+          onEdit={handleUnitEdit}
+          onDelete={handleUnitDelete}
         />
       )}
     </header>

@@ -53,7 +53,7 @@ export function PaymentList() {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const response = await api.get('/payments/payments/')  // Updated path to match new backend routing
+        const response = await api.get('/payments/')  // Updated path to match backend routing
         setPayments(response.data.results)
       } catch (error) {
         console.error('Error fetching payments:', error)
@@ -73,7 +73,7 @@ export function PaymentList() {
     // Refresh the payments list
     const fetchPayments = async () => {
       try {
-        const response = await api.get('/payments/payments/')  // Updated path to match new backend routing
+        const response = await api.get('/payments/')  // Updated path to match backend routing
         setPayments(response.data.results)
       } catch (error) {
         console.error('Error fetching payments:', error)

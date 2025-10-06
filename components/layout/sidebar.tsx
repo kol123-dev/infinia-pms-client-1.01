@@ -65,13 +65,13 @@ const navigation = [
     name: "Units",
     href: "/units",
     icon: Building2,
-    badge: 2,
+    badge: null, // was: badge: 2,
   },
   {
     name: "Payments",
     href: "/payments",
     icon: CreditCard,
-    badge: 5,
+    badge: null, // was: badge: 5,
   },
   {
     name: "Invoices",
@@ -96,7 +96,7 @@ const navigation = [
     name: "SMS",
     href: "/sms",
     icon: MessageSquare,
-    badge: 12,
+    badge: null, // was: badge: 12,
   },
 ]
 

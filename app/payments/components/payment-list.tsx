@@ -56,7 +56,7 @@ export function PaymentList() {
       try {
         setLoading(true)
         setError(null)
-        const response = await api.get('/payments/')
+        const response = await api.get('/payments/payments/') // Updated endpoint path
         // Check if response.data exists and has results property
         if (response.data && Array.isArray(response.data.results)) {
           setPayments(response.data.results)
@@ -79,7 +79,7 @@ export function PaymentList() {
       try {
         setLoading(true)
         setError(null)
-        const response = await api.get('/payments/')
+        const response = await api.get('/payments/payments/') // Updated endpoint path
         if (response.data && Array.isArray(response.data.results)) {
           setPayments(response.data.results)
         } else {

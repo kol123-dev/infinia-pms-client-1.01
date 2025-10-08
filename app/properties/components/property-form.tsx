@@ -44,6 +44,14 @@ interface PropertyManager {
   email: string
 }
 
+interface MpesaConfig {
+  shortcode: string
+  consumer_key: string
+  consumer_secret: string
+  passkey: string
+  is_active: boolean
+}
+
 export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyFormProps) {
   const [formData, setFormData] = useState({
     name: property?.name || "",
@@ -64,8 +72,14 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
       occupied: property?.units?.summary?.occupied || 0,
       vacant: property?.units?.summary?.vacant || 0,
       underMaintenance: property?.units?.summary?.underMaintenance || 0
+    },
+    mpesa_config: {
+      shortcode: property?.mpesa_config?.shortcode || "",
+      consumer_key: property?.mpesa_config?.consumer_key || "",
+      consumer_secret: property?.mpesa_config?.consumer_secret || "",
+      passkey: property?.mpesa_config?.passkey || "",
+      is_active: property?.mpesa_config?.is_active ?? true
     }
-    // Removed financials (system-calculated now)
   })
 
   const [landlords, setLandlords] = useState<Landlord[]>([])
@@ -107,7 +121,13 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
         occupied_units: Number(formData.units.occupied) || 0,
         vacant_units: Number(formData.units.vacant) || 0,
         under_maintenance_units: Number(formData.units.underMaintenance) || 0,
-        // Removed potential_monthly_revenue and actual_monthly_revenue
+        mpesa_config: {
+          shortcode: formData.mpesa_config.shortcode,
+          consumer_key: formData.mpesa_config.consumer_key,
+          consumer_secret: formData.mpesa_config.consumer_secret,
+          passkey: formData.mpesa_config.passkey,
+          is_active: formData.mpesa_config.is_active
+        }
       };
   
       console.log('Request payload:', finalData);
@@ -324,6 +344,39 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
                   className="h-32"
                 />
               </div>
+            </div>
+
+            {/* M-Pesa Configuration */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">M-Pesa Configuration</h3>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="mpesa_is_active"
+                    checked={formData.mpesa_config.is_active}
+                    onChange={(e) => handleNestedChange("mpesa_config", "is_active", e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="mpesa_is_active" className="text-sm">Enable M-Pesa</Label>
+                </div>
+              </div>
+              
+              {formData.mpesa_config.is_active && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input
+                        id="mpesa_shortcode"
+                        value={formData.mpesa_config.shortcode}
+                        onChange={(e) => handleNestedChange("mpesa_config", "shortcode", e.target.value)}
+                        placeholder="Enter paybill/till number"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">M-Pesa paybill/till number for rent collection</p>
+                </div>
+              )}
             </div>
 
             <Button type="submit" className="w-full">

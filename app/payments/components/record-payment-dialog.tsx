@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast"
 import { useQuery } from "@tanstack/react-query"
 import axios from "@/lib/axios"
+import { useUser } from "@/lib/context/user-context"
 
 interface RecordPaymentDialogProps {
   children: React.ReactNode
@@ -18,14 +19,19 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+  const { user } = useUser()
   
   const [formData, setFormData] = useState({
     tenant: "",
+    property: "",
+    unit: "",
     amount: "",
     paymentDate: new Date().toISOString().split('T')[0],
-    paymentMethod: "mpesa",
-    reference: "",
-    description: ""
+    paymentMethod: "CASH",
+    paymentStatus: "PAID",
+    paymentType: "RENT",
+    reference: "CASH",
+    description: "RENT PAYMENT"
   })
 
   const { data: tenants } = useQuery({
@@ -36,14 +42,23 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
     }
   })
 
+  const handleTenantChange = (tenantId: string) => {
+    const selectedTenant = tenants?.results.find((t: any) => t.id.toString() === tenantId)
+    setFormData({
+      ...formData,
+      tenant: tenantId,
+      property: selectedTenant?.current_unit?.property?.id || "",
+      unit: selectedTenant?.current_unit?.id || ""
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!formData.tenant || !formData.amount) {
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "Please fill all required fields"
+        description: "Please fill in all required fields",
+        variant: "destructive"
       })
       return
     }
@@ -51,15 +66,32 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
     try {
       setLoading(true)
       
-      await axios.post("/payments/payments/", {
+      // Find the selected tenant's data
+      const selectedTenant = tenants?.results.find((t: any) => t.id.toString() === formData.tenant)
+      
+      // Create payment record with correct field names
+      const paymentResponse = await axios.post("/payments/payments/", {
         tenant: formData.tenant,
+        property: selectedTenant?.current_unit?.property?.id,
+        unit: selectedTenant?.current_unit?.id,
         amount: parseFloat(formData.amount),
         paid_date: formData.paymentDate,
-        payment_method: formData.paymentMethod.toUpperCase(),
-        reference: formData.reference,
-        description: formData.description
+        payment_status: formData.paymentStatus,
+        payment_method: formData.paymentMethod,
+        payment_type: formData.paymentType,
+        account_reference: formData.reference,
       })
-      
+
+      // If it's a cash payment, create the cash payment record
+      if (formData.paymentMethod === "CASH") {
+        await axios.post("/payments/cash/", {
+          payment: paymentResponse.data.id,
+          amount: parseFloat(formData.amount),
+          received_by: user?.id,
+          notes: formData.description
+        })
+      }
+
       toast({
         title: "Success",
         description: "Payment recorded successfully"
@@ -68,21 +100,21 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
       setOpen(false)
       setFormData({
         tenant: "",
+        property: "",
+        unit: "",
         amount: "",
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentMethod: "mpesa",
-        reference: "",
-        description: ""
+        paymentMethod: "CASH",
+        paymentStatus: "PAID",
+        paymentType: "RENT",
+        reference: "CASH",
+        description: "RENT PAYMENT"
       })
-      
-      // Optionally refresh the payments list
-      window.location.reload()
-    } catch (error) {
-      console.error('Error recording payment:', error)
+    } catch (error: any) {
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "Failed to record payment. Please try again."
+        description: error.response?.data?.property?.[0] || error.message || "Failed to record payment",
+        variant: "destructive"
       })
     } finally {
       setLoading(false)
@@ -103,15 +135,18 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
             <Label htmlFor="tenant">Tenant</Label>
             <Select 
               value={formData.tenant} 
-              onValueChange={(value) => setFormData({...formData, tenant: value})}
+              onValueChange={handleTenantChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select tenant" />
               </SelectTrigger>
               <SelectContent>
-                {tenants?.results?.map((tenant: any) => (
-                  <SelectItem key={tenant.id} value={tenant.id.toString()}>
-                    {tenant.user.full_name} - Unit {tenant.current_unit?.unit_number || 'N/A'}
+                {tenants?.results.map((tenant: any) => (
+                  <SelectItem 
+                    key={tenant.id} 
+                    value={tenant.id.toString()}
+                  >
+                    {tenant.user.full_name} - Unit {tenant.current_unit.unit_number}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -125,8 +160,7 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
               type="number"
               value={formData.amount}
               onChange={(e) => setFormData({...formData, amount: e.target.value})}
-              placeholder="0.00"
-              required
+              placeholder="Enter amount"
             />
           </div>
 
@@ -137,7 +171,6 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
               type="date"
               value={formData.paymentDate}
               onChange={(e) => setFormData({...formData, paymentDate: e.target.value})}
-              required
             />
           </div>
 
@@ -151,9 +184,44 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
                 <SelectValue placeholder="Select method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mpesa">M-Pesa</SelectItem>
-                <SelectItem value="bank">Bank Transfer</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="CASH">Cash</SelectItem>
+                <SelectItem value="MPESA">M-Pesa</SelectItem>
+                <SelectItem value="BANK">Bank Transfer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentStatus">Payment Status</Label>
+            <Select 
+              value={formData.paymentStatus} 
+              onValueChange={(value) => setFormData({...formData, paymentStatus: value})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="LATE">Late</SelectItem>
+                <SelectItem value="PARTIAL">Partial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentType">Payment Type</Label>
+            <Select 
+              value={formData.paymentType} 
+              onValueChange={(value) => setFormData({...formData, paymentType: value})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RENT">Rent Payment</SelectItem>
+                <SelectItem value="DEPOSIT">Deposit</SelectItem>
+                <SelectItem value="UTILITY">Utility Payment</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -164,7 +232,7 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
               id="reference"
               value={formData.reference}
               onChange={(e) => setFormData({...formData, reference: e.target.value})}
-              placeholder="e.g. MPESA123456"
+              placeholder="Enter reference"
             />
           </div>
 
@@ -174,7 +242,7 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="e.g. Rent payment for February 2024"
+              placeholder="Enter description"
             />
           </div>
 

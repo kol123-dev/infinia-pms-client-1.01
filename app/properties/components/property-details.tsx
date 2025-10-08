@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Property } from "../types"
 import { Badge } from "@/components/ui/badge"
-import { Building, MapPin, Users, DollarSign } from "lucide-react"
+import { Building, MapPin, Users, DollarSign, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
@@ -207,6 +207,25 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
               <p className="text-2xl font-bold mt-2 text-green-600">
                 {formatCurrency(property.financials?.summary?.potentialMonthlyRevenue ?? 0)}
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* M-Pesa Configuration */}
+        <div className="grid gap-4">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-blue-600">M-Pesa Configuration</h3>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Paybill/Till Number</h4>
+                <p className="text-lg font-semibold mt-1">{property.mpesa_config?.shortcode || 'Not configured'}</p>
+              </div>
+              <Badge variant={property.mpesa_config?.is_active ? "default" : "secondary"}>
+                {property.mpesa_config?.is_active ? 'Active' : 'Inactive'}
+              </Badge>
             </div>
           </div>
         </div>

@@ -72,6 +72,13 @@ export interface Property {
     }>
     unitTypeRevenue: Record<string, any>
   }
+  mpesa_config?: {
+    shortcode: string
+    consumer_key: string
+    consumer_secret: string
+    passkey: string
+    is_active: boolean
+  }
 }
 
 export interface PropertiesResponse {

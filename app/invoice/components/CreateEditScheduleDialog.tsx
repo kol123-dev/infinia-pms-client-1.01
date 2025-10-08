@@ -18,6 +18,16 @@ interface DialogProps {
   initialData?: ScheduleFormData;
 }
 
+// Add this helper function at the top of the file
+function convertToUTC(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const now = new Date();
+  const localDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+  const utcHours = localDate.getUTCHours().toString().padStart(2, '0');
+  const utcMinutes = localDate.getUTCMinutes().toString().padStart(2, '0');
+  return `${utcHours}:${utcMinutes}`;
+}
+
 export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState<ScheduleFormData>(initialData || {
@@ -88,7 +98,15 @@ export const CreateEditScheduleDialog: React.FC<DialogProps> = ({ isOpen, onClos
       toast({ variant: 'destructive', title: 'Error', description: 'Please enter a fixed amount.' });
       return;
     }
-    onSubmit(formData);
+
+    // Convert times to UTC before submitting
+    const submissionData = {
+      ...formData,
+      sendTime: convertToUTC(formData.sendTime || '09:00'),
+      dueTime: convertToUTC(formData.dueTime || '23:59'),
+    };
+
+    onSubmit(submissionData);
     onClose();
   };
 

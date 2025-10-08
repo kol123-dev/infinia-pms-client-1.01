@@ -49,14 +49,23 @@ export function PaymentList() {
   const [searchTerm, setSearchTerm] = useState("")
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const response = await api.get('/payments/')  // Updated path to match backend routing
-        setPayments(response.data.results)
+        setLoading(true)
+        setError(null)
+        const response = await api.get('/payments/')
+        // Check if response.data exists and has results property
+        if (response.data && Array.isArray(response.data.results)) {
+          setPayments(response.data.results)
+        } else {
+          setPayments([])
+        }
       } catch (error) {
         console.error('Error fetching payments:', error)
+        setError('Failed to load payments. Please try again later.')
       } finally {
         setLoading(false)
       }
@@ -65,26 +74,71 @@ export function PaymentList() {
     fetchPayments()
   }, [])
 
-  if (loading) {
-    return <div>Loading...</div>
-  }
-
   const handleDelete = async () => {
-    // Refresh the payments list
     const fetchPayments = async () => {
       try {
-        const response = await api.get('/payments/')  // Updated path to match backend routing
-        setPayments(response.data.results)
+        setLoading(true)
+        setError(null)
+        const response = await api.get('/payments/')
+        if (response.data && Array.isArray(response.data.results)) {
+          setPayments(response.data.results)
+        } else {
+          setPayments([])
+        }
       } catch (error) {
         console.error('Error fetching payments:', error)
+        setError('Failed to load payments. Please try again later.')
+      } finally {
+        setLoading(false)
       }
     }
     fetchPayments()
   }
 
   const handleEdit = (payment: Payment) => {
-    // Navigate to edit page or open edit form
     console.log('Edit payment:', payment)
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Payments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading payments...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Payments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center text-destructive">
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => handleDelete()} // Reuse handleDelete as it already has the fetch logic
+              >
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -116,77 +170,85 @@ export function PaymentList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-bold">{payment.tenant?.user?.full_name || 'N/A'}</span>
-                      <span className="text-sm text-muted-foreground">{payment.tenant?.user?.email || 'N/A'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-bold">{payment.property?.name || 'N/A'}</span>
-                      <span className="text-sm text-green-600">Unit {payment.unit?.unit_number || 'N/A'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-bold">{payment.amount || 0}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{payment.balance_after || 0}</TableCell>
-                  <TableCell>{payment.paid_date || 'N/A'}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Badge variant="outline">{payment.payment_method || 'N/A'}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={payment.payment_status === "PAID" ? "default" : "secondary"}
-                    >
-                      {payment.payment_status || 'N/A'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <PaymentDetailsDialog
-                        payment={payment}
-                        onDelete={handleDelete}
-                        onEdit={() => handleEdit(payment)}
+              {payments && payments.length > 0 ? (
+                payments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold">{payment.tenant?.user?.full_name || 'N/A'}</span>
+                        <span className="text-sm text-muted-foreground">{payment.tenant?.user?.email || 'N/A'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold">{payment.property?.name || 'N/A'}</span>
+                        <span className="text-sm text-green-600">Unit {payment.unit?.unit_number || 'N/A'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-bold">{payment.amount || 0}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{payment.balance_after || 0}</TableCell>
+                    <TableCell>{payment.paid_date || 'N/A'}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="outline">{payment.payment_method || 'N/A'}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={payment.payment_status === "PAID" ? "default" : "secondary"}
                       >
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 bg-blue-50 hover:bg-blue-100 hover:text-blue-600 text-blue-500 border-blue-200"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </PaymentDetailsDialog>
-                      {payment.payment_status === "PAID" && (
-                        <ReceiptDialog
-                          payment={{
-                            id: payment.id.toString(),
-                            receiptNumber: `REC${payment.payment_id}`,
-                            date: payment.paid_date || "",
-                            tenant: {
-                              name: payment.tenant?.user?.full_name || 'N/A',
-                              unit: payment.unit?.unit_number || 'N/A',
-                            },
-                            amount: payment.amount || 0,
-                            paymentMethod: payment.payment_method || "",
-                            reference: payment.payment_id,
-                            paymentId: payment.payment_id
-                          }}
+                        {payment.payment_status || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <PaymentDetailsDialog
+                          payment={payment}
+                          onDelete={handleDelete}
+                          onEdit={() => handleEdit(payment)}
                         >
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8 bg-green-50 hover:bg-green-100 hover:text-green-600 text-green-500 border-green-200"
+                            className="h-8 w-8 bg-blue-50 hover:bg-blue-100 hover:text-blue-600 text-blue-500 border-blue-200"
                           >
-                            <FileText className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        </ReceiptDialog>
-                      )}
-                    </div>
+                        </PaymentDetailsDialog>
+                        {payment.payment_status === "PAID" && (
+                          <ReceiptDialog
+                            payment={{
+                              id: payment.id.toString(),
+                              receiptNumber: `REC${payment.payment_id}`,
+                              date: payment.paid_date || "",
+                              tenant: {
+                                name: payment.tenant?.user?.full_name || 'N/A',
+                                unit: payment.unit?.unit_number || 'N/A',
+                              },
+                              amount: payment.amount || 0,
+                              paymentMethod: payment.payment_method || "",
+                              reference: payment.payment_id,
+                              paymentId: payment.payment_id
+                            }}
+                          >
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 bg-green-50 hover:bg-green-100 hover:text-green-600 text-green-500 border-green-200"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </ReceiptDialog>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8">
+                    <p className="text-muted-foreground">No payments found</p>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>

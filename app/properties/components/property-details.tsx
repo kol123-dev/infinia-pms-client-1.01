@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Property } from "../types"
 import { Badge } from "@/components/ui/badge"
-import { Building, MapPin, Users, DollarSign, CreditCard } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Building, MapPin, Users, DollarSign, CreditCard, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
@@ -20,11 +21,15 @@ interface PropertyDetailsProps {
 }
 
 export function PropertyDetails({ property, isOpen, onClose, onDelete }: PropertyDetailsProps) {
-  console.log('Property data:', property);
-  console.log('Landlord data:', property.landlord);
+  const router = useRouter()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
   
+  const handleExpensesClick = () => {
+    router.push(`/properties/${property.id}/expenses`)
+    onClose()
+  }
+
   const handleDelete = async () => {
     if (deleteText.toLowerCase() !== 'delete') {
       toast({
@@ -100,6 +105,19 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
             <Badge variant="outline" className="text-xs sm:text-sm">{property.building_type}</Badge>
           </div>
         </DialogHeader>
+    
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-4">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleExpensesClick}
+          >
+            <Receipt className="h-4 w-4" />
+            Manage Expenses
+          </Button>
+          {/* Add more quick action buttons here */}
+        </div>
     
         {/* Property Image */}
         <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
@@ -188,7 +206,18 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
 
         {/* Financial Information */}
         <div className="grid gap-4">
-          <h3 className="text-lg font-semibold text-blue-600">Financial Information</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-blue-600">Financial Information</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-blue-600"
+              onClick={handleExpensesClick}
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              View Expenses
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
               <div className="flex items-center space-x-2">

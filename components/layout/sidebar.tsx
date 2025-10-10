@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { DollarSign } from 'lucide-react' // Add this import
 
 const navigation = [
   {
@@ -97,6 +98,12 @@ const navigation = [
     href: "/sms",
     icon: MessageSquare,
     badge: null, // was: badge: 12,
+  },
+  {
+    name: "Expenses",
+    href: "/expenses",
+    icon: DollarSign,
+    badge: null,
   },
 ]
 

@@ -2,15 +2,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Property } from "../types"
 import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
-import { Building, MapPin, Users, DollarSign, CreditCard, Receipt } from "lucide-react"
+import { Building, MapPin, Users, DollarSign, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { toast } from "@/components/ui/use-toast"
 import api from "@/lib/axios"
 import Image from 'next/image';
-
-// Add this new import to fix the errors
 import { formatCurrency } from "@/lib/utils";
 
 interface PropertyDetailsProps {
@@ -24,11 +22,6 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
   const router = useRouter()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
-  
-  const handleExpensesClick = () => {
-    router.push(`/properties/${property.id}/expenses`)
-    onClose()
-  }
 
   const handleDelete = async () => {
     if (deleteText.toLowerCase() !== 'delete') {
@@ -96,8 +89,8 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
   }
 
   return (
-     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md sm:max-w-lg md:max-w-xl w-full h-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6 flex flex-col gap-4"> {/* Added flex flex-col gap-4 for vertical stacking and spacing */}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-xl w-full h-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6 flex flex-col gap-4">
         <DialogHeader>
           <DialogTitle className="text-xl sm:text-2xl">{property.name}</DialogTitle>
           <div className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground mt-2">
@@ -105,19 +98,6 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
             <Badge variant="outline" className="text-xs sm:text-sm">{property.building_type}</Badge>
           </div>
         </DialogHeader>
-    
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={handleExpensesClick}
-          >
-            <Receipt className="h-4 w-4" />
-            Manage Expenses
-          </Button>
-          {/* Add more quick action buttons here */}
-        </div>
     
         {/* Property Image */}
         <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
@@ -129,16 +109,16 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
           />
         </div>
         
-        {/* Location Information - Added mt-4 for spacing */}
-        <div className="bg-muted/50 p-4 rounded-lg mt-4"> {/* Added mt-4 */}
+        {/* Location Information */}
+        <div className="bg-muted/50 p-4 rounded-lg">
           <div className="flex items-center space-x-2">
             <MapPin className="h-5 w-5 text-muted-foreground" />
             <span className="text-lg">{property.location.address}</span>
           </div>
         </div>
     
-        {/* Property Management - Added mt-4 for spacing */}
-        <div className="grid gap-4 mt-4"> {/* Added mt-4 */}
+        {/* Property Management */}
+        <div className="grid gap-4">
           <h3 className="text-lg font-semibold text-blue-600">Property Management</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border rounded-lg">
@@ -206,18 +186,7 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
 
         {/* Financial Information */}
         <div className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-blue-600">Financial Information</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-blue-600"
-              onClick={handleExpensesClick}
-            >
-              <Receipt className="h-4 w-4 mr-2" />
-              View Expenses
-            </Button>
-          </div>
+          <h3 className="text-lg font-semibold text-blue-600">Financial Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
               <div className="flex items-center space-x-2">

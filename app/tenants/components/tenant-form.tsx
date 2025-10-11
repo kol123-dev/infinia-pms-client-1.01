@@ -193,7 +193,7 @@ export function UserCreationForm({ isOpen, onClose, onSuccess }: UserFormProps):
 export function TenantCreationForm({ isOpen, onClose, onSuccess, userData }: TenantFormProps): ReactElement {
   const [formData, setFormData] = useState({
     date_of_birth: "",
-    tenant_status: "APPLICANT",
+    tenant_status: "APPLICANT",  // Changed from tenant_status
     emergency_contact_name: "",
     emergency_contact_phone: "",
     emergency_contact_relationship: ""
@@ -387,8 +387,8 @@ export function UnitAssignmentForm({ isOpen, onClose, onSuccess, tenantData }: U
     try {
       const payload = {
         tenant_id: tenantData.id,
-        start_date: formData.move_in_date,
-        end_date: isMoveOutUnknown ? null : formData.move_out_date  // Send null if unknown
+        lease_start_date: formData.move_in_date,
+        lease_end_date: isMoveOutUnknown ? null : formData.move_out_date
       };
       const response = await api.post(`/units/${formData.unit_id}/assign_tenant/`, payload);
       await onSuccess(response.data);

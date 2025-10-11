@@ -71,7 +71,7 @@ export default function TenantsPage() {
   }
 
   // Calculate summary statistics
-  const totalActiveUnits = tenants.filter(tenant => tenant.tenant_status === 'ACTIVE').length
+  const totalActiveUnits = tenants.filter(tenant => tenant.status === 'ACTIVE').length
   
   // Update the calculation to handle potential null/undefined values and ensure number conversion
   const totalRentRevenue = tenants.reduce((total, tenant) => {

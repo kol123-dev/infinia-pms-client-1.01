@@ -1,11 +1,11 @@
 import { ColumnDef, TableMeta } from "@tanstack/react-table"
-import { Tenant } from "../types" // Adjust if path differs
+import { Tenant } from "../types" 
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Eye, Edit, Trash, LogOut ,ArrowUpDown} from "lucide-react"
+import { MessageSquare, Eye, Edit, Trash, LogOut, ArrowUpDown} from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
-import { format } from 'date-fns';  // Add this line
+import { format } from 'date-fns'
 
 interface CustomTableMeta extends TableMeta<Tenant> {
   onMessage?: (tenant: Tenant) => void
@@ -59,16 +59,15 @@ export const columns: ColumnDef<Tenant>[] = [
       )
     },
     cell: ({ row }) => {
-      const tenant = row.original;  // Add semicolon to fix potential comma operator issue
-      const unit = tenant.last_unit || tenant.current_unit;  // Prefer last_unit for past tenants; add semicolon
-
-      const isPast = tenant.tenant_status === "PAST";  // Check for PAST status
+      const tenant = row.original;
+      const unit = tenant.last_unit || tenant.current_unit;
+      const isPast = tenant.status === "PAST";
 
       return (
         <div className="flex flex-col">
           <span>{unit?.property?.name || (isPast ? "Previous Unit" : "Not Assigned")}</span>
           <span className={isPast ? "text-red-500 text-sm" : "text-green-500 text-sm"}>  
-            Unit {unit?.unit_number || ""}
+            {unit?.unit_number ? `Unit ${unit.unit_number}` : ""}
           </span>
         </div>
       );
@@ -76,7 +75,7 @@ export const columns: ColumnDef<Tenant>[] = [
     enableSorting: true,
   },
   {
-    accessorKey: "tenant_status",
+    accessorKey: "status",
     header: ({ column }) => {
       return (
         <Button
@@ -90,10 +89,11 @@ export const columns: ColumnDef<Tenant>[] = [
       )
     },
     cell: ({ row }) => {
-      const status = row.getValue("tenant_status") as string
+      const status = row.getValue("status") as string || "unknown";
+      
       return (
         <Badge
-          variant={status === "ACTIVE" ? "default" : status === "PAST" ? "destructive" : "destructive"}  // Changed PAST to "destructive" for red color
+          variant={status === "ACTIVE" ? "default" : status === "PAST" ? "destructive" : "destructive"}
         >
           {status.toLowerCase()}
         </Badge>
@@ -101,8 +101,8 @@ export const columns: ColumnDef<Tenant>[] = [
     },
     enableSorting: true,
   },
-  {  // New "Move Out Date" column
-    accessorKey: "move_out_date",
+  {
+    accessorKey: "lease_start_date",
     header: ({ column }) => {
       return (
         <Button
@@ -110,17 +110,38 @@ export const columns: ColumnDef<Tenant>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20"
         >
-          Move Out Date
+          Lease Start Date
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
     cell: ({ row }) => {
-      const date = row.original.move_out_date;
+      const date = row.original.lease_start_date;
       return date ? format(new Date(date), 'PPP') : '-';
     },
     enableSorting: true,
   },
+  {
+    accessorKey: "lease_end_date",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20"
+        >
+          Lease End Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const date = row.original.lease_end_date;
+      return date ? format(new Date(date), 'PPP') : '-';
+    },
+    enableSorting: true,
+  },
+  // Removed the first duplicate "Rent" column here
   {
     accessorKey: "current_unit.rent",
     header: ({ column }) => {

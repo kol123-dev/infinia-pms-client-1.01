@@ -5,6 +5,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 import { TrendingUp } from "lucide-react"
 import { FinancialData, ChartConfig } from "../types"
+import { formatCurrency } from "@/lib/utils"
 
 interface FinancialReportProps {
   financialData: FinancialData[]
@@ -12,17 +13,28 @@ interface FinancialReportProps {
 }
 
 export function FinancialReport({ financialData, chartConfig }: FinancialReportProps) {
+  const totals = financialData.reduce(
+    (acc, item) => {
+      acc.revenue += item.revenue || 0
+      acc.expenses += item.expenses || 0
+      acc.profit += item.profit || 0
+      acc.taxable_income += (item.taxable_income ?? (item.revenue - item.expenses)) || 0
+      acc.net_profit += (item.net_profit ?? item.profit) || 0
+      return acc
+    },
+    { revenue: 0, expenses: 0, profit: 0, taxable_income: 0, net_profit: 0 }
+  )
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">$271,231</div>
-            <p className="text-xs text-muted-foreground">+8.2% from last period</p>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.revenue)}</div>
+            <p className="text-xs text-muted-foreground">Summed across selected months</p>
           </CardContent>
         </Card>
         <Card>
@@ -31,18 +43,28 @@ export function FinancialReport({ financialData, chartConfig }: FinancialReportP
             <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">$180,500</div>
-            <p className="text-xs text-muted-foreground">+5.1% from last period</p>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totals.expenses)}</div>
+            <p className="text-xs text-muted-foreground">Summed across selected months</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taxable Income</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totals.taxable_income)}</div>
+            <p className="text-xs text-muted-foreground">Revenue minus non-tax expenses</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
+            <TrendingUp className="h-4 w-4 text-indigo-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">$90,731</div>
-            <p className="text-xs text-muted-foreground">+12.3% from last period</p>
+            <div className="text-2xl font-bold text-indigo-600">{formatCurrency(totals.net_profit)}</div>
+            <p className="text-xs text-muted-foreground">Revenue minus all expenses</p>
           </CardContent>
         </Card>
       </div>

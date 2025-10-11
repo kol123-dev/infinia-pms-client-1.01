@@ -12,6 +12,8 @@ export type Expense = {
   calculation_type?: string
   calculation_value?: number
   property?: string
+  recurrence_frequency?: string
+  percentage_base?: string
 }
 
 export function useExpenses() {
@@ -41,10 +43,32 @@ export function useExpenses() {
     }
   }
 
+  const updateExpense = async (id: string, data: Partial<Expense>) => {
+    try {
+      await axios.put(`/properties/expenses/${id}/`, data)
+      await fetchExpenses()
+    } catch (error) {
+      console.error("Error updating expense:", error)
+      throw error
+    }
+  }
+
+  const deleteExpense = async (id: string) => {
+    try {
+      await axios.delete(`/properties/expenses/${id}/`)
+      await fetchExpenses()
+    } catch (error) {
+      console.error("Error deleting expense:", error)
+      throw error
+    }
+  }
+
   return {
     expenses,
     loading,
     fetchExpenses,
-    createExpense
+    createExpense,
+    updateExpense,
+    deleteExpense
   }
 }

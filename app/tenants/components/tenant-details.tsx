@@ -180,10 +180,10 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
     })
   }
 
-  const calculateStayDuration = (moveInDate: string | null) => {
-    if (!moveInDate) return 'N/A';
+  const calculateStayDuration = (startDate: string | null) => {
+    if (!startDate) return 'N/A';
     
-    const moveIn = new Date(moveInDate);
+    const moveIn = new Date(startDate);
     const now = new Date();
     
     if (moveIn > now) return '0 months, 0 days';
@@ -222,8 +222,8 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
                 <span className="text-sm">DOB: {tenant.date_of_birth ? format(parseISO(tenant.date_of_birth), 'PP') : 'N/A'}</span>
               </div>
               <div className="flex items-center gap-3">
-                <Badge variant={tenant.tenant_status.toLowerCase() === 'active' ? 'default' : 'secondary'}>
-                  {tenant.tenant_status}
+                <Badge variant={tenant.status.toLowerCase() === 'active' ? 'default' : 'secondary'}>
+                  {tenant.status}
                 </Badge>
               </div>
             </div>
@@ -239,16 +239,16 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
               <div className="flex items-center gap-3">
                 <Building className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  Unit: {tenant.last_unit?.unit_number || tenant.current_unit?.unit_number || (tenant.tenant_status === 'PAST' ? 'Previous Unit' : 'No unit assigned')}
+                  Unit: {tenant.last_unit?.unit_number || tenant.current_unit?.unit_number || (tenant.status === 'PAST' ? 'Previous Unit' : 'No unit assigned')}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Move-in: {tenant.move_in_date ? format(parseISO(tenant.move_in_date), 'PP') : 'N/A'}</span>
+                <span className="text-sm">Move-in: {tenant.lease_start_date ? format(parseISO(tenant.lease_start_date), 'PP') : 'N/A'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Move-out: {tenant.move_out_date ? format(parseISO(tenant.move_out_date), 'PP') : 'N/A'}</span>
+                <span className="text-sm">Move-out: {tenant.lease_end_date ? format(parseISO(tenant.lease_end_date), 'PP') : 'N/A'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -256,7 +256,7 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
               </div>
               <div className="flex items-center gap-3">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Time Stayed: {calculateStayDuration(tenant.move_in_date)}</span>
+                <span className="text-sm">Time Stayed: {calculateStayDuration(tenant.lease_start_date || null)}</span>
               </div>
             </div>
           </div>
@@ -361,7 +361,7 @@ export function TenantDetails({ tenant, isOpen, onClose, onDelete, onEdit }: Ten
           </div>
 
           {/* Unit Assignment */}
-          {!tenant.current_unit && tenant.tenant_status !== 'PAST' && (
+          {!tenant.current_unit && tenant.status !== 'PAST' && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Building className="h-5 w-5" />

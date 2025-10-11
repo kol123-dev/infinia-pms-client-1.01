@@ -71,7 +71,7 @@ export const globalTenantFilter = <T extends Tenant>(
   if (tenant.current_unit?.unit_number?.toLowerCase().includes(searchTerm)) return true;
   
   // Search in tenant status
-  if (tenant.tenant_status?.toLowerCase().includes(searchTerm)) return true;
+  if (tenant.status?.toLowerCase().includes(searchTerm)) return true;
   
   return false;
 }

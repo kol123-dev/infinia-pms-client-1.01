@@ -53,7 +53,8 @@ export function TenantReport({ tenants, loading }: TenantReportProps) {
                       <td className="p-2">{tenant.user?.full_name || ''}</td>
                       <td className="p-2">{tenant.user?.email || ''}</td>
                       <td className="p-2">{tenant.user?.phone || ''}</td>
-                      <td className="p-2">{tenant.tenant_status || ''}</td>
+                      {/* Status: prefer 'status', fallback to 'tenant_status' */}
+                      <td className="p-2">{tenant.status || tenant.tenant_status || ''}</td>
                       <td className="p-2">{tenant.current_unit?.unit_number || 'None'}</td>
                       <td className="p-2">{tenant.property_name || tenant.current_unit?.property?.name || 'None'}</td>
                       <td className="p-2">

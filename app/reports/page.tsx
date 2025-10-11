@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,7 +16,8 @@ import {
   Tenant, 
   Payment,
   ReportType,
-  TimeRange
+  TimeRange,
+  UnitForReport
 } from "./types"
 import { Expense } from "@/hooks/useExpenses"
 import { FinancialReport } from "./components/financial-report"
@@ -70,7 +71,24 @@ export default function Reports() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(false)
+  const [unitsReport, setUnitsReport] = useState<UnitForReport[]>([])
+  const [occupancyData, setOccupancyData] = useState<OccupancyData[]>([])
+  const [pieData, setPieData] = useState<PieData[]>([])
   const { toast } = useToast()
+  const [backendFinancialData, setBackendFinancialData] = useState<FinancialData[]>([])
+  // Add caches to deduplicate repeated monthly_summary calls
+  const monthlySummaryCacheRef = useRef<Map<string, {
+    monthly_revenue: number
+    total_expenses: number
+    taxable_income: number
+    net_profit: number
+  }>>(new Map())
+  const monthlySummaryPendingRef = useRef<Map<string, Promise<{
+    monthly_revenue: number
+    total_expenses: number
+    taxable_income: number
+    net_profit: number
+  }>>>(new Map())
 
   useEffect(() => {
     fetchData()
@@ -88,6 +106,67 @@ export default function Reports() {
       if (reportType === "financial" || reportType === "occupancy") {
         const propertiesResponse = await api.get('/properties/')
         setProperties(propertiesResponse.data.results || [])
+        // Fetch units for occupancy directory and summary
+        const unitsResponse = await api.get('/units/?page_size=500')
+        const units = unitsResponse.data.results || []
+        setUnitsReport(units)
+        
+        // Build per-property occupancy from units
+        const byProperty: Record<string, { occupied: number; vacant: number; maintenance: number; total: number }> = {}
+        
+        units.forEach((u: UnitForReport) => {
+            const prop = u.property?.name || "Unknown"
+            const entry = byProperty[prop] || { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
+            entry.total += 1
+        
+            const norm = String(u.unit_status ?? "").toUpperCase()
+            if (norm.includes("OCCUP")) {
+                entry.occupied += 1
+            } else if (norm.includes("VAC")) {
+                entry.vacant += 1
+            } else if (norm.includes("MAINT")) {
+                entry.maintenance += 1
+            } else {
+                // Fallback: infer from tenant presence if status is unknown
+                if (u.current_tenant?.user?.full_name) entry.occupied += 1
+                else entry.vacant += 1
+            }
+        
+            byProperty[prop] = entry
+        })
+        
+        const occData: OccupancyData[] = Object.entries(byProperty).map(([property, c]) => ({
+            property,
+            occupied: c.occupied,
+            total: c.total,
+            rate: c.total > 0 ? Math.round((c.occupied / c.total) * 100) : 0,
+        }))
+        setOccupancyData(occData)
+        
+        // Overall pie data (include maintenance)
+        const totals = Object.values(byProperty).reduce(
+            (acc, c) => {
+                acc.occupied += c.occupied
+                acc.vacant += c.vacant
+                acc.maintenance += c.maintenance
+                acc.total += c.total
+                return acc
+            },
+            { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
+        )
+        
+        setPieData([
+            { name: "Occupied", value: totals.occupied, color: "#22c55e" },
+            { name: "Vacant", value: totals.vacant, color: "#f59e0b" },
+            { name: "Maintenance", value: totals.maintenance, color: "#3b82f6" },
+        ])
+        // When in financial report, fetch backend monthly summaries aggregated across properties
+        if (reportType === "financial") {
+          const propsArr = propertiesResponse.data.results || []
+          await buildBackendFinancial(propsArr)
+        } else {
+          setBackendFinancialData([])
+        }
       }
       
       if (reportType === "financial" || reportType === "tenant") {
@@ -111,12 +190,25 @@ export default function Reports() {
     }
   }
 
+  // Inside the export handlers where buttons are rendered
+  const computedFinancialData = useMemo<FinancialData[]>(
+    () => {
+      const source = backendFinancialData.length ? backendFinancialData : financialData
+      return source.map(d => ({
+        ...d,
+        taxable_income: d.taxable_income ?? (d.revenue - d.expenses),
+        net_profit: d.net_profit ?? d.profit,
+      }))
+    },
+    [backendFinancialData]
+  )
+
   const handleExportPDF = () => {
-    exportPDF(reportType, financialData, occupancyData, expenses, tenants)
+    exportPDF(reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport)
   }
 
   const handleExportCSV = () => {
-    exportCSV(reportType, financialData, occupancyData, expenses, tenants)
+    exportCSV(reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport)
   }
 
   return (
@@ -161,17 +253,18 @@ export default function Reports() {
       </div>
 
       {reportType === "financial" && (
-        <FinancialReport financialData={financialData} chartConfig={chartConfig} />
+        <FinancialReport financialData={computedFinancialData} chartConfig={chartConfig} />
       )}
 
       {reportType === "occupancy" && (
         <OccupancyReport 
           occupancyData={occupancyData} 
           pieData={pieData} 
-          chartConfig={chartConfig} 
+          chartConfig={chartConfig}
+          units={unitsReport}
+          loading={loading}
         />
       )}
-
       {reportType === "expense" && (
         <ExpenseReport expenses={expenses} loading={loading} />
       )}
@@ -181,4 +274,89 @@ export default function Reports() {
       )}
     </MainLayout>
   )
+
+  // Helper: build month slugs and labels for selected range
+  function getMonths(range: TimeRange): { slug: string; label: string }[] {
+    const now = new Date()
+    const count =
+      range === "1month" ? 1 :
+      range === "3months" ? 3 :
+      range === "6months" ? 6 : 12
+    const months: { slug: string; label: string }[] = []
+    for (let i = count - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const slug = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+      const label = d.toLocaleString(undefined, { month: "short" })
+      months.push({ slug, label })
+    }
+    return months
+  }
+
+  // Helper: aggregate backend monthly summaries across properties
+  async function buildBackendFinancial(propsArr: Property[]) {
+    const months = getMonths(timeRange)
+    const aggregated: FinancialData[] = []
+  
+    for (const m of months) {
+      let revenue = 0
+      let expenses = 0
+      let taxable = 0
+      let net = 0
+  
+      for (const p of propsArr || []) {
+        const key = `${p.id}-${m.slug}`
+        try {
+          // Use cached result or a shared in-flight promise to avoid duplicates
+          let cached = monthlySummaryCacheRef.current.get(key)
+          if (!cached) {
+            let pending = monthlySummaryPendingRef.current.get(key)
+            if (!pending) {
+              pending = api
+                .get(`/properties/expenses/monthly_summary/?property=${p.id}&month=${m.slug}`)
+                .then(res => {
+                  const d = res.data || {}
+                  const normalized = {
+                    monthly_revenue: Number(d.monthly_revenue || 0),
+                    total_expenses: Number(d.total_expenses || 0),
+                    taxable_income: Number(d.taxable_income || 0),
+                    net_profit: Number.isFinite(Number(d.net_profit))
+                      ? Number(d.net_profit)
+                      : (Number(d.monthly_revenue || 0) - Number(d.total_expenses || 0)),
+                  }
+                  monthlySummaryCacheRef.current.set(key, normalized)
+                  monthlySummaryPendingRef.current.delete(key)
+                  return normalized
+                })
+                .catch(() => {
+                  const fallback = { monthly_revenue: 0, total_expenses: 0, taxable_income: 0, net_profit: 0 }
+                  monthlySummaryCacheRef.current.set(key, fallback)
+                  monthlySummaryPendingRef.current.delete(key)
+                  return fallback
+                })
+              monthlySummaryPendingRef.current.set(key, pending)
+            }
+            cached = await pending
+          }
+  
+          revenue += cached.monthly_revenue
+          expenses += cached.total_expenses
+          taxable += cached.taxable_income
+          net += cached.net_profit
+        } catch {
+          // Skip this property on error to avoid breaking other parts
+        }
+      }
+  
+      aggregated.push({
+        month: m.label,
+        revenue,
+        expenses,
+        profit: net,
+        taxable_income: taxable,
+        net_profit: net,
+      })
+    }
+  
+    setBackendFinancialData(aggregated)
+  }
 }

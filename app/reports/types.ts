@@ -5,6 +5,8 @@ export interface FinancialData {
   revenue: number
   expenses: number
   profit: number
+  taxable_income?: number
+  net_profit?: number
 }
 
 export interface OccupancyData {
@@ -43,6 +45,8 @@ export interface Tenant {
     email?: string
     phone?: string
   }
+  // Add API 'status' to align with backend responses
+  status?: string
   tenant_status?: string
   current_unit?: {
     unit_number?: string
@@ -69,3 +73,29 @@ export interface Payment {
 
 export type ReportType = 'financial' | 'occupancy' | 'expense' | 'tenant'
 export type TimeRange = '1month' | '3months' | '6months' | '1year'
+
+export interface UnitForReport {
+  id: number
+  unit_id?: string
+  unit_number: string
+  property: { name: string }
+  unit_type: string
+  unit_status: 'VACANT' | 'OCCUPIED' | 'MAINTENANCE' | string
+  rent: number | string
+  current_tenant?: {
+    user: {
+      full_name: string
+      email?: string
+      phone?: string
+    }
+  }
+  tenant_history?: Array<{
+    tenant: {
+      user: {
+        full_name: string
+      }
+    }
+    start_date: string
+    end_date: string | null
+  }>
+}

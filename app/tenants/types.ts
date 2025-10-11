@@ -49,20 +49,21 @@ export interface Tenant {
   rent_amount: number | null
   payment_due_day: number | null
   balance_due: number
-  tenant_status: 'ACTIVE' | 'PAST' | 'EVICTED' | 'APPLICANT'
+  status: 'ACTIVE' | 'PAST' | 'EVICTED' | 'APPLICANT'
   emergency_contact: EmergencyContact | null
   notes: string | null
   created_at: string
   lease_agreement_url: string | null
   id_verification_url: string | null
   proof_of_income_url: string | null
-  last_unit?: {  // Add this optional field to match the backend serializer
+  lease_start_date?: string | null
+  lease_end_date?: string | null
+  last_unit?: {
     id: number;
     unit_number: string;
     property?: {
       name: string;
     };
-    // Add other unit fields if needed (e.g., status, rent)
   };
 }
 

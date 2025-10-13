@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"  // Added MessageSquare
 import { DashboardCharts } from "@/components/dashboard/charts"
-import { RecentActivity } from "@/components/dashboard/recent-activity"
+// import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -246,12 +246,17 @@ export default function Dashboard() {
           <div className="xl:col-span-2 h-full">
             <DashboardCharts />
           </div>
+          {/* Commented out: Recent Activity (to be revisited later) */}
+          {/*
           <div className="min-h-[300px]">
             <RecentActivity />
           </div>
+          */}
         </div>
 
         {/* Occupancy Overview - Collapsible on Mobile */}
+        {/* Commented out: Occupancy Overview section (to be revisited later) */}
+        {/*
         <Card className="card-enhanced">
           <CardHeader className="pb-3 sm:pb-6">
             <CardTitle className="text-base sm:text-lg font-semibold">Occupancy Overview</CardTitle>
@@ -285,6 +290,7 @@ export default function Dashboard() {
             ))}
           </CardContent>
         </Card>
+        */}
 
         {/* Floating Action Button - Mobile Only */}
         <FloatingActionButton className="md:hidden">

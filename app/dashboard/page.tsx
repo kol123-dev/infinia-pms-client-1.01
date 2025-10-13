@@ -243,7 +243,7 @@ export default function Dashboard() {
 
         {/* Charts and Activity - Stacked on Mobile */}
         <div className="space-y-4 lg:space-y-0 lg:grid lg:gap-4 xl:gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          <div className="xl:col-span-2 h-full">
+          <div className="lg:col-span-2 xl:col-span-3 h-full">
             <DashboardCharts />
           </div>
           {/* Commented out: Recent Activity (to be revisited later) */}

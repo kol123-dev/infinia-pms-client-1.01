@@ -39,14 +39,14 @@ const chartConfig = {
 
 export function DashboardCharts() {
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <Card className="card-enhanced">
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card className="card-enhanced w-full">
         <CardHeader className="pb-3 sm:pb-6">
           <CardTitle className="text-base sm:text-lg font-semibold">Revenue vs Expenses</CardTitle>
           <CardDescription className="text-sm">Monthly financial overview with trend analysis</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="aspect-[4/3] w-full">
+          <ChartContainer config={chartConfig} className="w-full h-[340px] md:h-[380px] lg:h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={revenueData}
@@ -92,13 +92,13 @@ export function DashboardCharts() {
         </CardContent>
       </Card>
 
-      <Card className="card-enhanced">
+      <Card className="card-enhanced w-full">
         <CardHeader className="pb-3 sm:pb-6">
           <CardTitle className="text-base sm:text-lg font-semibold">Occupancy Rate Trend</CardTitle>
           <CardDescription className="text-sm">6-month occupancy performance tracking</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="aspect-[4/3] w-full">
+          <ChartContainer config={chartConfig} className="w-full h-[340px] md:h-[380px] lg:h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={occupancyData}

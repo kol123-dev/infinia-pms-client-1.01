@@ -66,6 +66,33 @@ export default function LandlordsPage() {
   const [nextPage, setNextPage] = useState<string | null>(null)
   const [previousPage, setPreviousPage] = useState<string | null>(null)
 
+  // Add state for potential monthly revenue totals
+  const [potentialTotals, setPotentialTotals] = useState<Record<number, number>>({})
+
+  // Helper to fetch potential monthly revenue for each property and sum by landlord
+  const hydratePotentialTotals = async (items: Landlord[]) => {
+    const totals: Record<number, number> = {}
+    await Promise.all(
+      items.map(async (ld) => {
+        const props = ld.properties ?? []
+        const sums = await Promise.all(
+          props.map(async (p) => {
+            try {
+              const res = await api.get(`/properties/${p.id}/`)
+              const val = res.data?.financials?.summary?.potentialMonthlyRevenue ?? 0
+              return Number(val) || 0
+            } catch (e) {
+              console.warn('Failed to fetch property potential revenue', p.id, e)
+              return 0
+            }
+          })
+        )
+        totals[ld.id] = sums.reduce((a, b) => a + b, 0)
+      })
+    )
+    setPotentialTotals(totals)
+  }
+
   const fetchLandlords = async (url: string = '/landlords/') => {
     setLoading(true)
     try {
@@ -75,6 +102,9 @@ export default function LandlordsPage() {
       setTotalCount(landlordsData.count)
       setNextPage(landlordsData.next)
       setPreviousPage(landlordsData.previous)
+
+      // Hydrate summed potential revenue from the property endpoint
+      await hydratePotentialTotals(landlordsData.results)
     } catch (err) {
       setError('Failed to fetch landlords')
       console.error('Error fetching landlords:', err)
@@ -96,9 +126,18 @@ export default function LandlordsPage() {
       toast({ description: "Landlord created successfully", variant: "success" })
       setIsFormOpen(false)
       fetchLandlords()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating landlord:', error)
-      toast({ variant: "destructive", description: "Failed to create landlord" })
+      const data = error?.response?.data
+      let description = data?.error || data?.message || "Failed to create landlord"
+      if (data?.errors && typeof data.errors === 'object') {
+        const messages = Object.entries(data.errors).map(([field, msg]) => {
+          const text = Array.isArray(msg) ? msg.join(', ') : msg
+          return `${field}: ${text}`
+        })
+        description = messages.join(' | ')
+      }
+      toast({ variant: "destructive", description, duration: 5000 })
     }
   }
 
@@ -189,13 +228,15 @@ export default function LandlordsPage() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Properties</TableHead>
                   <TableHead>Total Units</TableHead>
-                  <TableHead>Monthly Revenue</TableHead>
+                  {/* Replace label */}
+                  <TableHead>Potential Monthly Revenue</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {landlords.map((landlord) => (
                   <TableRow key={landlord.id}>
+                    {/* Landlord */}
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
@@ -209,6 +250,7 @@ export default function LandlordsPage() {
                         </div>
                       </div>
                     </TableCell>
+                    {/* Contact */}
                     <TableCell>
                       <div className="space-y-1">
                         <div className="flex items-center">
@@ -221,22 +263,22 @@ export default function LandlordsPage() {
                         </div>
                       </div>
                     </TableCell>
+                    {/* Properties */}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4" />
                         <span>{landlord.properties?.length || 0} Properties</span>
                       </div>
                     </TableCell>
+                    {/* Total Units */}
                     <TableCell>
                       {landlord.properties?.reduce((total, property) => total + (property.total_units || 0), 0) || 0} Units
                     </TableCell>
+                    {/* Potential Monthly Revenue */}
                     <TableCell>
-                      ${landlord.properties?.reduce((total, property) => total + (property.actual_monthly_revenue || 0), 0).toLocaleString() || '0'}
+                      {formatCurrency(potentialTotals[landlord.id] ?? 0)}
                     </TableCell>
-                    <TableCell>
-                      {formatCurrency(landlord.properties?.reduce((total, property) => 
-                        total + (property.actual_monthly_revenue || 0), 0) || 0)}
-                    </TableCell>
+                    {/* Actions */}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button

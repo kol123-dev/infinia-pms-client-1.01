@@ -85,10 +85,21 @@ export default function SMS() {
   
   const handleSendMessage = async (message: string, recipients: string[], groups: string[]) => {
     try {
-      await axios.post("/communications/messages/bulk/", {  // Add trailing slash back
+      // Separate manual numbers from tenant IDs
+      const tenantIds = recipients.filter((r) => /^\d+$/.test(r)).map((r) => Number(r))
+      const manualNumbers = recipients.filter((r) => !/^\d+$/.test(r))
+
+      // Prefer landlord from selected group when available
+      const groupLandlordId =
+        (tenantGroups?.results || [])
+          .find((g) => groups.length && String(g.id) === String(groups[0]))?.landlord?.id
+
+      await axios.post("/communications/messages/bulk/", {
         body: message,
         recipient_groups: groups,
-        individual_recipient: recipients
+        individual_recipient: manualNumbers,
+        individual_recipient_ids: tenantIds,
+        landlord: groupLandlordId || user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id
       })
       queryClient.invalidateQueries({ queryKey: ["sms-messages"] })
     } catch (error) {

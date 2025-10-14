@@ -61,11 +61,21 @@ function UserCreationForm({ isOpen, onClose, onSuccess }: UserFormProps): ReactE
         throw new Error('Landlord profile not found');
       }
     } catch (error: any) {
+      const data = error?.response?.data
+      let description = data?.error || data?.message || "Failed to create user"
+      if (data?.errors && typeof data.errors === 'object') {
+        const messages = Object.entries(data.errors).map(([field, msg]) => {
+          const text = Array.isArray(msg) ? msg.join(', ') : msg
+          return `${field}: ${text}`
+        })
+        description = messages.join(' | ')
+      }
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.response?.data?.error || error.response?.data?.message || "Failed to create user"
-      });
+        title: "Validation Error",
+        description,
+        duration: 5000
+      })
     } finally {
       setIsLoading(false);
     }

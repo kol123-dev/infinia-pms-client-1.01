@@ -1,9 +1,13 @@
+'use client'
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Building, Phone, Mail, CreditCard, Calendar, FileText, X } from "lucide-react"
 import { format } from 'date-fns'
+import { useEffect, useState } from "react"
+import api from "@/lib/axios"
 
 interface Landlord {
   id: number
@@ -44,6 +48,33 @@ export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }:
   if (!landlord) return null
 
   const totalRevenue = landlord.properties?.reduce((sum, prop) => sum + (prop.actual_monthly_revenue || 0), 0) || 0
+
+  // Fetch property potential monthly revenue
+  const [potentialByPropertyId, setPotentialByPropertyId] = useState<Record<number, number>>({})
+
+  useEffect(() => {
+    if (!isOpen || !landlord) return
+    const load = async () => {
+      const entries = await Promise.all(
+        (landlord.properties ?? []).map(async (p) => {
+          try {
+            const res = await api.get(`/properties/${p.id}/`)
+            const val = res.data?.financials?.summary?.potentialMonthlyRevenue ?? 0
+            return [p.id, Number(val) || 0] as [number, number]
+          } catch {
+            return [p.id, 0]
+          }
+        })
+      )
+      setPotentialByPropertyId(Object.fromEntries(entries))
+    }
+    load()
+  }, [isOpen, landlord?.id])
+
+  const totalPotential = (landlord.properties ?? []).reduce(
+    (sum, p) => sum + (potentialByPropertyId[p.id] ?? 0),
+    0
+  )
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -98,13 +129,13 @@ export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }:
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold uppercase text-muted-foreground">Properties</h4>
                   <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                    Total Revenue: ${totalRevenue.toLocaleString()}/month
+                    {/* Show total potential instead of actual */}
+                    Total Potential Revenue: ${totalPotential.toLocaleString()}/month
                   </Badge>
                 </div>
                 <div className="space-y-2">
                   {landlord.properties.map((property) => (
-                    <div key={property.id} 
-                      className="flex items-center justify-between rounded-md border p-2 hover:bg-secondary/5 transition-colors">
+                    <div key={property.id} className="flex items-center justify-between rounded-md border p-2 hover:bg-secondary/5 transition-colors">
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-primary" />
                         <span className="text-sm font-medium">{property.name}</span>
@@ -114,7 +145,7 @@ export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }:
                           {property.total_units} Units
                         </Badge>
                         <Badge variant="outline" className="text-xs text-green-600 bg-green-50">
-                          ${(property.actual_monthly_revenue || 0).toLocaleString()}/mo
+                          {`$${(potentialByPropertyId[property.id] ?? 0).toLocaleString()}/mo`}
                         </Badge>
                       </div>
                     </div>

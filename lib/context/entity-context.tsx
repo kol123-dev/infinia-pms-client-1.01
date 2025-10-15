@@ -26,7 +26,7 @@ const EntityContext = createContext<EntityContextType | undefined>(undefined)
 const mockEntities: Entity[] = [
   {
     id: "agency-1",
-    name: "PropertyPro Management",
+    name: "InfiniaSync Property",
     type: "agency",
     unreadCount: 12,
     landlords: [

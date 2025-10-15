@@ -17,25 +17,19 @@ export default function HelpPage() {
         </div>
 
         <Tabs defaultValue="faq" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          {/* Reduced tabs list to two items */}
+          <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="faq" className="flex gap-2">
               <FileQuestion className="h-4 w-4" />
               <span>FAQ</span>
-            </TabsTrigger>
-            <TabsTrigger value="guides" className="flex gap-2">
-              <Book className="h-4 w-4" />
-              <span>User Guides</span>
             </TabsTrigger>
             <TabsTrigger value="contact" className="flex gap-2">
               <Phone className="h-4 w-4" />
               <span>Contact Support</span>
             </TabsTrigger>
-            <TabsTrigger value="resources" className="flex gap-2">
-              <Mail className="h-4 w-4" />
-              <span>Resources</span>
-            </TabsTrigger>
           </TabsList>
 
+          {/* Keep FAQ content */}
           <TabsContent value="faq">
             <div className="grid gap-6">
               <Card>
@@ -71,42 +65,7 @@ export default function HelpPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="guides">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Guides</CardTitle>
-                <CardDescription>
-                  Detailed guides to help you use the system effectively
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Getting Started Guide</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Learn the basics of navigating and using the property management system.
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">View Guide</a>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Property Management Guide</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Learn how to add, edit, and manage properties in the system.
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">View Guide</a>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Financial Management Guide</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Learn how to handle payments, invoices, and financial reports.
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">View Guide</a>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
+          {/* Keep Contact Support content */}
           <TabsContent value="contact">
             <Card>
               <CardHeader>
@@ -132,49 +91,6 @@ export default function HelpPage() {
                       <p className="text-sm text-muted-foreground">support@infiniasync.com</p>
                       <p className="text-xs text-muted-foreground">We typically respond within 24 hours</p>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="resources">
-            <Card>
-              <CardHeader>
-                <CardTitle>Resources</CardTitle>
-                <CardDescription>
-                  Additional resources to help you get the most out of the system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Video Tutorials</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Watch step-by-step video guides for common tasks
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">View Tutorials</a>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Knowledge Base</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Browse our extensive collection of articles and guides
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">Browse Articles</a>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Webinars</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Register for upcoming webinars or watch recordings
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">View Webinars</a>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="text-lg font-medium mb-2">Community Forum</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Connect with other users and share tips and tricks
-                    </p>
-                    <a href="#" className="text-sm text-brand-500 hover:underline">Join Community</a>
                   </div>
                 </div>
               </CardContent>

@@ -18,7 +18,7 @@ export function ExpenseReport({ expenses, loading }: ExpenseReportProps) {
           <CardDescription>Detailed breakdown of all expenses</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto max-h-[60vh] overflow-y-auto">
             <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="border-b bg-muted/50">

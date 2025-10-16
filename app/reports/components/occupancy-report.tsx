@@ -91,7 +91,7 @@ export function OccupancyReport({ occupancyData, pieData, chartConfig, units, lo
           <CardDescription>All units with current and past tenants, status, type, and rent</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto max-h-[60vh] overflow-y-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
@@ -150,7 +150,7 @@ export function OccupancyReport({ occupancyData, pieData, chartConfig, units, lo
           <CardDescription>Units by status per property</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto max-h-[60vh] overflow-y-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">

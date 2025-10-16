@@ -17,8 +17,8 @@ export function TenantReport({ tenants, loading }: TenantReportProps) {
           <CardTitle>Tenant Report</CardTitle>
           <CardDescription>Complete tenant directory and status</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+        <CardContent className="pt-0 pb-24 sm:pb-6">
+          <div className="rounded-md border overflow-x-auto max-h-[60vh] overflow-y-auto pb-4">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">

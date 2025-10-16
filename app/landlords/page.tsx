@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Building, Phone, Mail, Plus, Eye, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react"
+import { Building, Phone, Mail, Plus, Eye, MessageSquare, ChevronLeft, ChevronRight, Users, DollarSign, TrendingUp } from "lucide-react"
 import api from "@/lib/axios"
 import { LandlordDetails } from "./components/landlord-details"
 import { LandlordForm } from "./components/landlord-form"
@@ -168,13 +168,25 @@ export default function LandlordsPage() {
 
   // Calculate summary statistics
   const totalProperties = landlords.reduce((total, landlord) => total + (landlord.properties?.length || 0), 0)
-  const combinedRevenue = landlords.reduce((total, landlord) => 
-    total + (landlord.properties?.reduce((sum, property) => sum + (property.actual_monthly_revenue || 0), 0) || 0), 0
+  const combinedRevenue = landlords.reduce(
+    (total, landlord) =>
+      total +
+      (landlord.properties?.reduce(
+        (sum, property) => sum + (property.actual_monthly_revenue || 0),
+        0
+      ) || 0),
+    0
+  )
+  // NEW: Sum potential monthly revenue across landlords (hydrated earlier)
+  const combinedPotentialRevenue = Object.values(potentialTotals).reduce(
+    (sum, val) => sum + (Number(val) || 0),
+    0
   )
 
   return (
     <>
       <MainLayout>
+        {/* Header unchanged */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-lg font-semibold md:text-2xl">Landlords</h1>
           <Button onClick={() => setShowOnboarding(true)}>
@@ -183,34 +195,114 @@ export default function LandlordsPage() {
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        {/* Stats Grid - Mobile (compact accents + icons) */}
+        <div className="md:hidden mb-6">
+          <div className="grid grid-cols-2 gap-2">
+            <Card className="card-enhanced w-full">
+              <CardHeader className="p-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Landlords</CardTitle>
+                <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                  <Users className="h-4 w-4 text-blue-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold text-blue-600">{totalCount}</div>
+                <p className="text-xs text-muted-foreground">Active partnerships</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-enhanced w-full">
+              <CardHeader className="p-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Properties</CardTitle>
+                <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                  <Building className="h-4 w-4 text-blue-500" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold text-blue-500">{totalProperties}</div>
+                <p className="text-xs text-muted-foreground">Under management</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-enhanced w-full">
+              <CardHeader className="p-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Combined Revenue</CardTitle>
+                <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold text-emerald-600">{formatCurrency(combinedRevenue)}</div>
+                <p className="text-xs text-muted-foreground">Monthly total</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-enhanced w-full">
+              <CardHeader className="p-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Potential Revenue</CardTitle>
+                <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                  <TrendingUp className="h-4 w-4 text-teal-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold text-teal-600">{formatCurrency(combinedPotentialRevenue)}</div>
+                <p className="text-xs text-muted-foreground">Monthly potential</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Stats Grid - Desktop (same accents + icons) */}
+        <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Landlords</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalCount}</div>
-              <p className="text-xs text-blue-600/75 dark:text-blue-400/75">Active partnerships</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Properties</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalProperties}</div>
-              <p className="text-xs text-purple-600/75 dark:text-purple-400/75">Under management</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Combined Revenue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {formatCurrency(combinedRevenue)}
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Landlords</CardTitle>
+              <div className="p-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                <Users className="h-4 w-4 text-blue-600" />
               </div>
-              <p className="text-xs text-emerald-600/75 dark:text-emerald-400/75">Monthly total</p>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold text-blue-600">{totalCount}</div>
+              <p className="text-xs text-muted-foreground">Active partnerships</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Properties</CardTitle>
+              <div className="p-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                <Building className="h-4 w-4 text-blue-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold text-blue-500">{totalProperties}</div>
+              <p className="text-xs text-muted-foreground">Under management</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Combined Revenue</CardTitle>
+              <div className="p-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold text-emerald-600">{formatCurrency(combinedRevenue)}</div>
+              <p className="text-xs text-muted-foreground">Monthly total</p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Potential Revenue</CardTitle>
+              <div className="p-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                <TrendingUp className="h-4 w-4 text-teal-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-2xl font-bold text-teal-600">{formatCurrency(combinedPotentialRevenue)}</div>
+              <p className="text-xs text-muted-foreground">Monthly potential</p>
             </CardContent>
           </Card>
         </div>

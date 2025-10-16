@@ -213,16 +213,18 @@ export default function Reports() {
 
   return (
     <MainLayout>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
         <h1 className="text-lg font-semibold md:text-2xl">Reports & Analytics</h1>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleExportPDF}>
+        <div className="w-full sm:w-auto grid grid-cols-2 gap-2 sm:flex sm:space-x-2">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={handleExportPDF}>
             <Download className="mr-2 h-4 w-4" />
-            Export PDF
+            <span className="sm:hidden">PDF</span>
+            <span className="hidden sm:inline">Export PDF</span>
           </Button>
-          <Button variant="outline" onClick={handleExportCSV}>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            <span className="sm:hidden">CSV</span>
+            <span className="hidden sm:inline">Export CSV</span>
           </Button>
         </div>
       </div>

@@ -26,44 +26,45 @@ export function FinancialReport({ financialData, chartConfig }: FinancialReportP
   )
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+      {/* top stats grid */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Revenue</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.revenue)}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{formatCurrency(totals.revenue)}</div>
             <p className="text-xs text-muted-foreground">Summed across selected months</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Expenses</CardTitle>
             <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totals.expenses)}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-red-600">{formatCurrency(totals.expenses)}</div>
             <p className="text-xs text-muted-foreground">Summed across selected months</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxable Income</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium">Taxable Income</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totals.taxable_income)}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(totals.taxable_income)}</div>
             <p className="text-xs text-muted-foreground">Revenue minus non-tax expenses</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium">Net Profit</CardTitle>
             <TrendingUp className="h-4 w-4 text-indigo-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{formatCurrency(totals.net_profit)}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-indigo-600">{formatCurrency(totals.net_profit)}</div>
             <p className="text-xs text-muted-foreground">Revenue minus all expenses</p>
           </CardContent>
         </Card>
@@ -74,7 +75,7 @@ export function FinancialReport({ financialData, chartConfig }: FinancialReportP
           <CardTitle>Financial Performance</CardTitle>
           <CardDescription>Revenue, expenses, and profit over time</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0 pb-24 sm:pb-6">
           <ChartContainer config={chartConfig}>
             <BarChart data={financialData}>
               <XAxis dataKey="month" />

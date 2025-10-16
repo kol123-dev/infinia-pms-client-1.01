@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -76,7 +76,6 @@ export default function Reports() {
   const [pieData, setPieData] = useState<PieData[]>([])
   const { toast } = useToast()
   const [backendFinancialData, setBackendFinancialData] = useState<FinancialData[]>([])
-  // Add caches to deduplicate repeated monthly_summary calls
   const monthlySummaryCacheRef = useRef<Map<string, {
     monthly_revenue: number
     total_expenses: number
@@ -90,77 +89,128 @@ export default function Reports() {
     net_profit: number
   }>>>(new Map())
 
-  useEffect(() => {
-    fetchData()
-  }, [reportType, timeRange])
+  // Make buildBackendFinancial stable and defined before fetchData
+  const buildBackendFinancial = useCallback(async (propsArr: Property[]) => {
+    const months = getMonths(timeRange)
+    const aggregated: FinancialData[] = []
 
-  const fetchData = async () => {
+    for (const m of months) {
+      let revenue = 0
+      let expenses = 0
+      let taxable = 0
+      let net = 0
+
+      for (const p of propsArr || []) {
+        const key = `${p.id}-${m.slug}`
+        try {
+          let cached = monthlySummaryCacheRef.current.get(key)
+          if (!cached) {
+            let pending = monthlySummaryPendingRef.current.get(key)
+            if (!pending) {
+              pending = api
+                .get(`/properties/expenses/monthly_summary/?property=${p.id}&month=${m.slug}`)
+                .then(res => {
+                  const d = res.data || {}
+                  const normalized = {
+                    monthly_revenue: Number(d.monthly_revenue || 0),
+                    total_expenses: Number(d.total_expenses || 0),
+                    taxable_income: Number(d.taxable_income || 0),
+                    net_profit: Number.isFinite(Number(d.net_profit))
+                      ? Number(d.net_profit)
+                      : (Number(d.monthly_revenue || 0) - Number(d.total_expenses || 0)),
+                  }
+                  monthlySummaryCacheRef.current.set(key, normalized)
+                  monthlySummaryPendingRef.current.delete(key)
+                  return normalized
+                })
+                .catch(() => {
+                  const fallback = { monthly_revenue: 0, total_expenses: 0, taxable_income: 0, net_profit: 0 }
+                  monthlySummaryCacheRef.current.set(key, fallback)
+                  monthlySummaryPendingRef.current.delete(key)
+                  return fallback
+                })
+              monthlySummaryPendingRef.current.set(key, pending)
+            }
+            cached = await pending
+          }
+
+          revenue += cached.monthly_revenue
+          expenses += cached.total_expenses
+          taxable += cached.taxable_income
+          net += cached.net_profit
+        } catch {
+          // Skip on error
+        }
+      }
+
+      aggregated.push({
+        month: m.label,
+        revenue,
+        expenses,
+        profit: net,
+        taxable_income: taxable,
+        net_profit: net,
+      })
+    }
+
+    setBackendFinancialData(aggregated)
+  }, [timeRange])
+
+  // Wrap fetchData with useCallback and depend on buildBackendFinancial
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch data based on report type
       if (reportType === "financial" || reportType === "expense") {
         const expensesResponse = await api.get('/properties/expenses/')
         setExpenses(Array.isArray(expensesResponse.data) ? expensesResponse.data : [])
       }
-      
+
       if (reportType === "financial" || reportType === "occupancy") {
         const propertiesResponse = await api.get('/properties/')
         setProperties(propertiesResponse.data.results || [])
-        // Fetch units for occupancy directory and summary
         const unitsResponse = await api.get('/units/?page_size=500')
         const units = unitsResponse.data.results || []
         setUnitsReport(units)
-        
-        // Build per-property occupancy from units
+
         const byProperty: Record<string, { occupied: number; vacant: number; maintenance: number; total: number }> = {}
-        
         units.forEach((u: UnitForReport) => {
-            const prop = u.property?.name || "Unknown"
-            const entry = byProperty[prop] || { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
-            entry.total += 1
-        
-            const norm = String(u.unit_status ?? "").toUpperCase()
-            if (norm.includes("OCCUP")) {
-                entry.occupied += 1
-            } else if (norm.includes("VAC")) {
-                entry.vacant += 1
-            } else if (norm.includes("MAINT")) {
-                entry.maintenance += 1
-            } else {
-                // Fallback: infer from tenant presence if status is unknown
-                if (u.current_tenant?.user?.full_name) entry.occupied += 1
-                else entry.vacant += 1
-            }
-        
-            byProperty[prop] = entry
+          const prop = u.property?.name || "Unknown"
+          const entry = byProperty[prop] || { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
+          entry.total += 1
+
+          const norm = String(u.unit_status ?? "").toUpperCase()
+          if (norm.includes("OCCUP")) entry.occupied += 1
+          else if (norm.includes("VAC")) entry.vacant += 1
+          else if (norm.includes("MAINT")) entry.maintenance += 1
+          else entry[u.current_tenant?.user?.full_name ? "occupied" : "vacant"] += 1
+
+          byProperty[prop] = entry
         })
-        
+
         const occData: OccupancyData[] = Object.entries(byProperty).map(([property, c]) => ({
-            property,
-            occupied: c.occupied,
-            total: c.total,
-            rate: c.total > 0 ? Math.round((c.occupied / c.total) * 100) : 0,
+          property,
+          occupied: c.occupied,
+          total: c.total,
+          rate: c.total > 0 ? Math.round((c.occupied / c.total) * 100) : 0,
         }))
         setOccupancyData(occData)
-        
-        // Overall pie data (include maintenance)
+
         const totals = Object.values(byProperty).reduce(
-            (acc, c) => {
-                acc.occupied += c.occupied
-                acc.vacant += c.vacant
-                acc.maintenance += c.maintenance
-                acc.total += c.total
-                return acc
-            },
-            { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
+          (acc, c) => {
+            acc.occupied += c.occupied
+            acc.vacant += c.vacant
+            acc.maintenance += c.maintenance
+            acc.total += c.total
+            return acc
+          },
+          { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
         )
-        
         setPieData([
-            { name: "Occupied", value: totals.occupied, color: "#22c55e" },
-            { name: "Vacant", value: totals.vacant, color: "#f59e0b" },
-            { name: "Maintenance", value: totals.maintenance, color: "#3b82f6" },
+          { name: "Occupied", value: totals.occupied, color: "#22c55e" },
+          { name: "Vacant", value: totals.vacant, color: "#f59e0b" },
+          { name: "Maintenance", value: totals.maintenance, color: "#3b82f6" },
         ])
-        // When in financial report, fetch backend monthly summaries aggregated across properties
+
         if (reportType === "financial") {
           const propsArr = propertiesResponse.data.results || []
           await buildBackendFinancial(propsArr)
@@ -168,12 +218,12 @@ export default function Reports() {
           setBackendFinancialData([])
         }
       }
-      
+
       if (reportType === "financial" || reportType === "tenant") {
         const tenantsResponse = await api.get('/tenants/')
         setTenants(tenantsResponse.data.results || [])
       }
-      
+
       if (reportType === "financial") {
         const paymentsResponse = await api.get('/payments/payments/')
         setPayments(paymentsResponse.data.results || [])
@@ -188,9 +238,14 @@ export default function Reports() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [reportType, buildBackendFinancial, toast])
 
-  // Inside the export handlers where buttons are rendered
+  // Depend on the stable fetchData
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Single declaration of computedFinancialData
   const computedFinancialData = useMemo<FinancialData[]>(
     () => {
       const source = backendFinancialData.length ? backendFinancialData : financialData
@@ -203,32 +258,51 @@ export default function Reports() {
     [backendFinancialData]
   )
 
-  const handleExportPDF = () => {
+  // Single declaration of export handlers
+  const handleExportPDF = useCallback(() => {
     exportPDF(reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport)
-  }
+  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport])
 
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     exportCSV(reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport)
-  }
+  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport])
 
   return (
     <MainLayout>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
-        <h1 className="text-lg font-semibold md:text-2xl">Reports & Analytics</h1>
-        <div className="w-full sm:w-auto grid grid-cols-2 gap-2 sm:flex sm:space-x-2">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={handleExportPDF}>
-            <Download className="mr-2 h-4 w-4" />
+      {/* Polished header + actions */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between md:flex-nowrap flex-wrap gap-3 md:gap-4 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight md:whitespace-nowrap">Reports & Analytics</h1>
+          <p className="text-sm text-muted-foreground hidden md:block">
+            Export and analyze your property performance
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 rounded-lg md:h-9 w-full sm:w-auto"
+            onClick={handleExportPDF}
+          >
+            <Download className="h-4 w-4" />
             <span className="sm:hidden">PDF</span>
             <span className="hidden sm:inline">Export PDF</span>
           </Button>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={handleExportCSV}>
-            <Download className="mr-2 h-4 w-4" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 rounded-lg md:h-9 w-full sm:w-auto"
+            onClick={handleExportCSV}
+          >
+            <Download className="h-4 w-4" />
             <span className="sm:hidden">CSV</span>
             <span className="hidden sm:inline">Export CSV</span>
           </Button>
         </div>
       </div>
 
+      {/* Filters */}
+      {/* Keep the rest identical to avoid disrupting other parts */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <Select value={reportType} onValueChange={(value) => setReportType(value as ReportType)}>
           <SelectTrigger className="w-[200px]">
@@ -292,73 +366,5 @@ export default function Reports() {
       months.push({ slug, label })
     }
     return months
-  }
-
-  // Helper: aggregate backend monthly summaries across properties
-  async function buildBackendFinancial(propsArr: Property[]) {
-    const months = getMonths(timeRange)
-    const aggregated: FinancialData[] = []
-  
-    for (const m of months) {
-      let revenue = 0
-      let expenses = 0
-      let taxable = 0
-      let net = 0
-  
-      for (const p of propsArr || []) {
-        const key = `${p.id}-${m.slug}`
-        try {
-          // Use cached result or a shared in-flight promise to avoid duplicates
-          let cached = monthlySummaryCacheRef.current.get(key)
-          if (!cached) {
-            let pending = monthlySummaryPendingRef.current.get(key)
-            if (!pending) {
-              pending = api
-                .get(`/properties/expenses/monthly_summary/?property=${p.id}&month=${m.slug}`)
-                .then(res => {
-                  const d = res.data || {}
-                  const normalized = {
-                    monthly_revenue: Number(d.monthly_revenue || 0),
-                    total_expenses: Number(d.total_expenses || 0),
-                    taxable_income: Number(d.taxable_income || 0),
-                    net_profit: Number.isFinite(Number(d.net_profit))
-                      ? Number(d.net_profit)
-                      : (Number(d.monthly_revenue || 0) - Number(d.total_expenses || 0)),
-                  }
-                  monthlySummaryCacheRef.current.set(key, normalized)
-                  monthlySummaryPendingRef.current.delete(key)
-                  return normalized
-                })
-                .catch(() => {
-                  const fallback = { monthly_revenue: 0, total_expenses: 0, taxable_income: 0, net_profit: 0 }
-                  monthlySummaryCacheRef.current.set(key, fallback)
-                  monthlySummaryPendingRef.current.delete(key)
-                  return fallback
-                })
-              monthlySummaryPendingRef.current.set(key, pending)
-            }
-            cached = await pending
-          }
-  
-          revenue += cached.monthly_revenue
-          expenses += cached.total_expenses
-          taxable += cached.taxable_income
-          net += cached.net_profit
-        } catch {
-          // Skip this property on error to avoid breaking other parts
-        }
-      }
-  
-      aggregated.push({
-        month: m.label,
-        revenue,
-        expenses,
-        profit: net,
-        taxable_income: taxable,
-        net_profit: net,
-      })
-    }
-  
-    setBackendFinancialData(aggregated)
   }
 }

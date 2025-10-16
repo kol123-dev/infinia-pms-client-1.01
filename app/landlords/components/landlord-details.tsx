@@ -45,10 +45,6 @@ interface LandlordDetailsProps {
 }
 
 export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }: LandlordDetailsProps) {
-  if (!landlord) return null
-
-  const totalRevenue = landlord.properties?.reduce((sum, prop) => sum + (prop.actual_monthly_revenue || 0), 0) || 0
-
   // Fetch property potential monthly revenue
   const [potentialByPropertyId, setPotentialByPropertyId] = useState<Record<number, number>>({})
 
@@ -56,7 +52,7 @@ export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }:
     if (!isOpen || !landlord) return
     const load = async () => {
       const entries = await Promise.all(
-        (landlord.properties ?? []).map(async (p) => {
+        (landlord?.properties ?? []).map(async (p) => {
           try {
             const res = await api.get(`/properties/${p.id}/`)
             const val = res.data?.financials?.summary?.potentialMonthlyRevenue ?? 0
@@ -69,9 +65,14 @@ export function LandlordDetails({ landlord, isOpen, onClose, onEdit, onDelete }:
       setPotentialByPropertyId(Object.fromEntries(entries))
     }
     load()
-  }, [isOpen, landlord?.id])
+  }, [isOpen, landlord])
 
-  const totalPotential = (landlord.properties ?? []).reduce(
+  if (!landlord) return null
+
+  const totalRevenue =
+    landlord?.properties?.reduce((sum, prop) => sum + (prop.actual_monthly_revenue || 0), 0) || 0
+
+  const totalPotential = (landlord?.properties ?? []).reduce(
     (sum, p) => sum + (potentialByPropertyId[p.id] ?? 0),
     0
   )

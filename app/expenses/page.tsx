@@ -11,7 +11,7 @@ export default function ExpensesPage() {
   const { expenses, loading, fetchExpenses, createExpense, deleteExpense, updateExpense } = useExpenses()
   useEffect(() => {
     fetchExpenses()
-  }, [])
+  }, [fetchExpenses])
 
   // Derived stats per property for recurring calculations
   const [occupiedCounts, setOccupiedCounts] = useState<Record<string, number>>({})

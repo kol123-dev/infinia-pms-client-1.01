@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import axios from "@/lib/axios"
 
 export type Expense = {
@@ -20,7 +20,7 @@ export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(false)
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     setLoading(true)
     try {
       const response = await axios.get('/properties/expenses/')
@@ -31,9 +31,9 @@ export function useExpenses() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const createExpense = async (data: Partial<Expense>) => {
+  const createExpense = useCallback(async (data: Partial<Expense>) => {
     try {
       await axios.post('/properties/expenses/', data)
       await fetchExpenses()
@@ -41,9 +41,9 @@ export function useExpenses() {
       console.error("Error creating expense:", error)
       throw error
     }
-  }
+  }, [fetchExpenses])
 
-  const updateExpense = async (id: string, data: Partial<Expense>) => {
+  const updateExpense = useCallback(async (id: string, data: Partial<Expense>) => {
     try {
       await axios.put(`/properties/expenses/${id}/`, data)
       await fetchExpenses()
@@ -51,9 +51,9 @@ export function useExpenses() {
       console.error("Error updating expense:", error)
       throw error
     }
-  }
+  }, [fetchExpenses])
 
-  const deleteExpense = async (id: string) => {
+  const deleteExpense = useCallback(async (id: string) => {
     try {
       await axios.delete(`/properties/expenses/${id}/`)
       await fetchExpenses()
@@ -61,7 +61,7 @@ export function useExpenses() {
       console.error("Error deleting expense:", error)
       throw error
     }
-  }
+  }, [fetchExpenses])
 
   return {
     expenses,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -70,7 +70,7 @@ export default function LandlordsPage() {
   const [potentialTotals, setPotentialTotals] = useState<Record<number, number>>({})
 
   // Helper to fetch potential monthly revenue for each property and sum by landlord
-  const hydratePotentialTotals = async (items: Landlord[]) => {
+  const hydratePotentialTotals = useCallback(async (items: Landlord[]) => {
     const totals: Record<number, number> = {}
     await Promise.all(
       items.map(async (ld) => {
@@ -91,9 +91,9 @@ export default function LandlordsPage() {
       })
     )
     setPotentialTotals(totals)
-  }
+  }, [])
 
-  const fetchLandlords = async (url: string = '/landlords/') => {
+  const fetchLandlords = useCallback(async (url: string = '/landlords/') => {
     setLoading(true)
     try {
       const response = await api.get(url)
@@ -103,7 +103,6 @@ export default function LandlordsPage() {
       setNextPage(landlordsData.next)
       setPreviousPage(landlordsData.previous)
 
-      // Hydrate summed potential revenue from the property endpoint
       await hydratePotentialTotals(landlordsData.results)
     } catch (err) {
       setError('Failed to fetch landlords')
@@ -111,11 +110,11 @@ export default function LandlordsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [hydratePotentialTotals])
 
   useEffect(() => {
     fetchLandlords()
-  }, [])
+  }, [fetchLandlords])
 
   if (loading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>

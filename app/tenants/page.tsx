@@ -89,16 +89,25 @@ export default function TenantsPage() {
   return (
     <MainLayout>
       {/* Header and actions */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
         <h1 className="text-lg font-semibold md:text-2xl">Tenants</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsGroupDialogOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            Create Group
+        <div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex">
+          <Button
+            variant="outline"
+            className="h-10 px-3 text-xs md:h-9 md:px-4 md:text-sm"
+            onClick={() => setIsGroupDialogOpen(true)}
+          >
+            <Users className="h-4 w-4" />
+            <span className="hidden xs:inline ml-2">Create Group</span>
+            <span className="xs:hidden ml-2">Group</span>
           </Button>
-          <Button onClick={() => { setIsEditing(false); setIsFormOpen(true) }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Tenant
+          <Button
+            className="h-10 px-3 text-xs md:h-9 md:px-4 md:text-sm"
+            onClick={() => { setIsEditing(false); setIsFormOpen(true) }}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden xs:inline ml-2">Add Tenant</span>
+            <span className="xs:hidden ml-2">Add</span>
           </Button>
         </div>
       </div>
@@ -243,7 +252,7 @@ export default function TenantsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Tenant Directory</CardTitle>
-          <CardDescription>Manage all tenant information and communications</CardDescription>
+          {/* <CardDescription>Manage all tenant information and communications</CardDescription> */}
         </CardHeader>
         <CardContent>
           <DataTable

@@ -18,14 +18,20 @@ import { RecordPaymentDialog } from "./components/record-payment-dialog"
 export default function PaymentsPage() {
   return (
     <MainLayout>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <h1 className="text-2xl font-bold">Payments Management</h1>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+        <div className="w-full sm:w-auto grid grid-cols-2 gap-2 sm:flex sm:space-x-2">
           <CreateInvoiceDialog>
-            <Button className="w-full sm:w-auto">Create Invoice</Button>
+            <Button className="w-full sm:w-auto">
+              <span className="sm:hidden">Invoice</span>
+              <span className="hidden sm:inline">Create Invoice</span>
+            </Button>
           </CreateInvoiceDialog>
           <RecordPaymentDialog>
-            <Button variant="secondary" className="w-full sm:w-auto">Record Payment</Button>
+            <Button variant="secondary" className="w-full sm:w-auto">
+              <span className="sm:hidden">Payment</span>
+              <span className="hidden sm:inline">Record Payment</span>
+            </Button>
           </RecordPaymentDialog>
         </div>
       </div>

@@ -63,6 +63,9 @@ jobs:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        timeout: 10m            # Increase SSH connection timeout (non-blocking)
+        command_timeout: 60m    # Increase remote command timeout to handle builds
+        script_stop: true       # Stop on first error for clarity
         script: |
           # Ensure Node.js is installed
           if ! command -v node &> /dev/null; then
@@ -71,38 +74,23 @@ jobs:
             sudo apt-get install -y nodejs
           fi
           
-          # Check Node.js version
           node -v
           npm -v
           
           cd /var/www/infinia-pms/frontend
           
-          # Clean up any local changes and cache files
           git reset --hard HEAD
           git clean -fd
-          
-          # Remove node_modules and build artifacts
-          rm -rf node_modules
-          rm -rf .next
-          rm -rf out
-          
-          # Remove the unused pnpm lock file to avoid confusion
+          rm -rf node_modules .next out
           rm -f pnpm-lock.yaml
-          
-          # Stash any remaining local changes
-          git stash
-          
-          # Pull latest changes
+          git stash || true
           git pull origin main
           
-          # Install dependencies
           npm ci || npm install
           
-          # Instead of creating .env.local directly with hardcoded values, copy from .env.production
           git checkout .env.production
           cp .env.production .env.local
           
-          # Build the application with explicit environment variables
           NEXT_PUBLIC_API_URL=https://property.infiniasync.com/api/v1 \
           NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }} \
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }} \
@@ -115,38 +103,31 @@ jobs:
           NEXTAUTH_URL=https://property.infiniasync.com \
           npm run build
           
-          # Verify build was successful and check for specific files
           if [ ! -d ".next" ]; then
             echo "❌ Build failed - .next directory not found"
             exit 1
           fi
-          
           if [ ! -f ".next/prerender-manifest.json" ]; then
             echo "❌ Build failed - prerender-manifest.json not found"
             exit 1
           fi
-          
           echo "✅ Build successful - .next directory created with required files"
           ls -la .next/
           
-          # Install PM2 globally if not already installed
           if ! command -v pm2 &> /dev/null; then
             echo "PM2 not found, installing..."
             sudo npm install -g pm2
           fi
           
-          # Stop any existing instance
           pm2 stop frontend || true
-          
           cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 0.0.0.0
           
-          # After build, create a PM2 ecosystem file for runtime env
           cat << EOF > ecosystem.config.js
           module.exports = {
             apps: [{
               name: 'frontend',
               script: 'npm',
-              args: 'start -- -p 3000 -H 127.0.0.1',  // Changed from 0.0.0.0
+              args: 'start -- -p 3000 -H 127.0.0.1',
               cwd: '/var/www/infinia-pms/frontend',
               env: {
                 NODE_ENV: 'production',
@@ -165,12 +146,9 @@ jobs:
           }
           EOF
 
-          # Stop existing instance
           pm2 stop frontend || true
           pm2 delete frontend || true
-
-          # Start with ecosystem file (loads runtime env)
           pm2 start ecosystem.config.js
           pm2 save
           pm2 status
-          pm2 logs frontend --lines 20 --nostream  # Added --nostream to print logs and exit immediately
+          pm2 logs frontend --lines 20 --nostream || true  # Ensure logs command exits immediately

@@ -18,8 +18,8 @@ export function ExpenseReport({ expenses, loading }: ExpenseReportProps) {
           <CardDescription>Detailed breakdown of all expenses</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <table className="w-full">
+          <div className="rounded-md border overflow-x-auto">
+            <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="p-2 text-left font-medium">Date</th>

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Bar, BarChart, Line, LineChart, XAxis, YAxis, ResponsiveContainer, Legend } from "recharts"
+import { Bar, BarChart, Line, LineChart, XAxis, YAxis, Legend } from "recharts"
 
 const revenueData = [
   { month: "Jan", revenue: 42000, expenses: 28000 },
@@ -46,48 +46,49 @@ export function DashboardCharts() {
           <CardDescription className="text-sm">Monthly financial overview with trend analysis</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="w-full h-[340px] md:h-[380px] lg:h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={revenueData}
-                margin={{
-                  top: 10,
-                  right: 10,
-                  left: 10,
-                  bottom: 5,
-                }}
-                barCategoryGap="15%"
-              >
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                  interval={0}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                  width={40}
-                />
-                <ChartTooltip
-                  content={<ChartTooltipContent />}
-                  formatter={(value: number, name: string) => [
-                    `$${value.toLocaleString()}`,
-                    name === "revenue" ? "Revenue" : "Expenses",
-                  ]}
-                />
-                <Legend
-                  wrapperStyle={{ paddingTop: "10px", fontSize: "12px" }}
-                  iconType="rect"
-                  className="chart-legend"
-                />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[2, 2, 0, 0]} name="Revenue" />
-                <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[2, 2, 0, 0]} name="Expenses" />
-              </BarChart>
-            </ResponsiveContainer>
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto w-full h-[340px] md:h-[380px] lg:h-[420px]"
+          >
+            <BarChart
+              data={revenueData}
+              margin={{
+                top: 10,
+                right: 10,
+                left: 10,
+                bottom: 5,
+              }}
+              barCategoryGap="15%"
+            >
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickLine={{ stroke: "hsl(var(--border))" }}
+                interval={0}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickLine={{ stroke: "hsl(var(--border))" }}
+                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                width={40}
+              />
+              <ChartTooltip
+                content={<ChartTooltipContent />}
+                formatter={(value: number, name: string) => [
+                  `$${value.toLocaleString()}`,
+                  name === "revenue" ? "Revenue" : "Expenses",
+                ]}
+              />
+              <Legend
+                wrapperStyle={{ paddingTop: "10px", fontSize: "12px" }}
+                iconType="rect"
+                className="chart-legend"
+              />
+              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[2, 2, 0, 0]} name="Revenue" />
+              <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[2, 2, 0, 0]} name="Expenses" />
+            </BarChart>
           </ChartContainer>
         </CardContent>
       </Card>
@@ -98,47 +99,48 @@ export function DashboardCharts() {
           <CardDescription className="text-sm">6-month occupancy performance tracking</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="w-full h-[340px] md:h-[380px] lg:h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={occupancyData}
-                margin={{
-                  top: 10,
-                  right: 10,
-                  left: 10,
-                  bottom: 5,
-                }}
-              >
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                  interval={0}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                  domain={[70, 100]}
-                  tickFormatter={(value) => `${value}%`}
-                  width={35}
-                />
-                <ChartTooltip
-                  content={<ChartTooltipContent />}
-                  formatter={(value: number) => [`${value}%`, "Occupancy Rate"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="rate"
-                  stroke="var(--color-rate)"
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-rate)", strokeWidth: 2, r: 3 }}
-                  activeDot={{ r: 4, stroke: "var(--color-rate)", strokeWidth: 2, fill: "var(--color-rate)" }}
-                  name="Occupancy Rate"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto w-full h-[340px] md:h-[380px] lg:h-[420px]"
+          >
+            <LineChart
+              data={occupancyData}
+              margin={{
+                top: 10,
+                right: 10,
+                left: 10,
+                bottom: 5,
+              }}
+            >
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickLine={{ stroke: "hsl(var(--border))" }}
+                interval={0}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickLine={{ stroke: "hsl(var(--border))" }}
+                domain={[70, 100]}
+                tickFormatter={(value) => `${value}%`}
+                width={35}
+              />
+              <ChartTooltip
+                content={<ChartTooltipContent />}
+                formatter={(value: number) => [`${value}%`, "Occupancy Rate"]}
+              />
+              <Line
+                type="monotone"
+                dataKey="rate"
+                stroke="var(--color-rate)"
+                strokeWidth={2}
+                dot={{ fill: "var(--color-rate)", strokeWidth: 2, r: 3 }}
+                activeDot={{ r: 4, stroke: "var(--color-rate)", strokeWidth: 2, fill: "var(--color-rate)" }}
+                name="Occupancy Rate"
+              />
+            </LineChart>
           </ChartContainer>
         </CardContent>
       </Card>

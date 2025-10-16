@@ -103,79 +103,140 @@ export default function TenantsPage() {
         </div>
       </div>
 
-      {/* Summary cards: mobile = single-row horizontal scroll, desktop = 4-column grid */}
-      <div className="swipeable-container flex-nowrap gap-3 overflow-x-auto mb-6 md:grid md:grid-cols-4 md:overflow-visible">
-        <div className="swipeable-item w-[280px] md:w-auto">
-          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Tenants</CardTitle>
-              <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+      {/* Summary cards - Mobile (compact 2-col grid, no horizontal scroll) */}
+      <div className="md:hidden mb-6">
+        <div className="grid grid-cols-2 gap-2">
+          <Card className="card-enhanced w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Active Tenants</CardTitle>
+              <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
                 <Users className="h-4 w-4 text-brand-600" />
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold text-foreground">{totalActiveUnits}</div>
+            <CardContent className="p-2 pt-0">
+              <div className="text-lg font-bold text-foreground">{totalActiveUnits}</div>
               <div className="flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-green-600" />
-                <p className="text-xs text-green-600">Active tenants</p>
+                <p className="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-green-600">Active tenants</p>
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="swipeable-item w-[280px] md:w-auto">
-          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Tenants</CardTitle>
-              <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+          <Card className="card-enhanced w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Total Tenants</CardTitle>
+              <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
                 <Users className="h-4 w-4 text-brand-600" />
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold text-foreground">{totalTenantsCount}</div>
+            <CardContent className="p-2 pt-0">
+              <div className="text-lg font-bold text-foreground">{totalTenantsCount}</div>
               <div className="flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-green-600" />
-                <p className="text-xs text-green-600">All tenants</p>
+                <p className="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-green-600">All tenants</p>
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="swipeable-item w-[280px] md:w-auto">
-          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Expected Monthly Rent</CardTitle>
-              <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+          <Card className="card-enhanced w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Expected Monthly Rent</CardTitle>
+              <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
                 <DollarSign className="h-4 w-4 text-brand-600" />
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold text-foreground">{formatCurrency(totalRentRevenue)}</div>
+            <CardContent className="p-2 pt-0">
+              <div className="text-lg font-bold text-foreground">{formatCurrency(totalRentRevenue)}</div>
               <div className="flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-green-600" />
-                <p className="text-xs text-green-600">Total rent revenue</p>
+                <p className="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-green-600">Total rent revenue</p>
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="swipeable-item w-[280px] md:w-auto">
-          <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Balance Due</CardTitle>
-              <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+          <Card className="card-enhanced w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Balance Due</CardTitle>
+              <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
                 <AlertCircle className="h-4 w-4 text-brand-600" />
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-2xl font-bold text-foreground">{formatCurrency(totalBalanceDue)}</div>
+            <CardContent className="p-2 pt-0">
+              <div className="text-lg font-bold text-foreground">{formatCurrency(totalBalanceDue)}</div>
               <div className="flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-orange-600" />
-                <p className="text-xs text-orange-600">Outstanding payments</p>
+                <p className="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-orange-600">Outstanding payments</p>
               </div>
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Summary cards - Desktop (unchanged, 4-col grid) */}
+      <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Tenants</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <Users className="h-4 w-4 text-brand-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">{totalActiveUnits}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <p className="text-xs text-green-600">Active tenants</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Tenants</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <Users className="h-4 w-4 text-brand-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">{totalTenantsCount}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <p className="text-xs text-green-600">All tenants</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Expected Monthly Rent</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <DollarSign className="h-4 w-4 text-brand-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(totalRentRevenue)}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-600" />
+              <p className="text-xs text-green-600">Total rent revenue</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-enhanced hover:shadow-theme-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Balance Due</CardTitle>
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
+              <AlertCircle className="h-4 w-4 text-brand-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(totalBalanceDue)}</div>
+            <div className="flex items-center gap-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-orange-600" />
+              <p className="text-xs text-orange-600">Outstanding payments</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tenant Directory */}

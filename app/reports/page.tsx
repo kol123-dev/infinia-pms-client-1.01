@@ -302,7 +302,6 @@ export default function Reports() {
       </div>
 
       {/* Filters */}
-      {/* Keep the rest identical to avoid disrupting other parts */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <Select value={reportType} onValueChange={(value) => setReportType(value as ReportType)}>
           <SelectTrigger className="w-[200px]">
@@ -368,3 +367,5 @@ export default function Reports() {
     return months
   }
 }
+
+

@@ -98,7 +98,7 @@ export default function TenantsPage() {
             onClick={() => setIsGroupDialogOpen(true)}
           >
             <Users className="h-4 w-4" />
-            <span className="hidden xs:inline ml-2">Create Group</span>
+            <span className="hidden xs:inline ml-2">Create Groups</span>
             <span className="xs:hidden ml-2">Group</span>
           </Button>
           <Button

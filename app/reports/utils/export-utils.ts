@@ -7,13 +7,18 @@ import { FinancialData, OccupancyData, Tenant, UnitForReport } from "../types"
 import { Expense } from "@/hooks/useExpenses"
 import * as XLSX from "xlsx"
 
+// Add: simple slugify for filenames
+const slug = (s?: string) => (s || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "")
+
 export const exportPDF = (
   reportType: string, 
   financialData: FinancialData[], 
   occupancyData: OccupancyData[], 
   expenses: Expense[], 
   tenants: Tenant[],
-  units: UnitForReport[] = []
+  units: UnitForReport[] = [],
+  // Add: options for contextual info (property filter)
+  options?: { property?: string }
 ) => {
   // Create PDF in landscape orientation for tenant reports
   const doc = new jsPDF(reportType === "tenant" ? "landscape" : "portrait")
@@ -206,8 +211,9 @@ export const exportPDF = (
   doc.setTextColor(100, 100, 100)
   doc.text(" © 2025 Infinia Sync Properties", 14, doc.internal.pageSize.getHeight() - 10)
   
-  // Save the PDF
-  doc.save(`${reportType}-report.pdf`)
+  // Save the PDF (append property tag if provided)
+  const tag = options?.property ? `-${slug(options.property)}` : ""
+  doc.save(`${reportType}-report${tag}.pdf`)
 }
 
 export const exportCSV = (
@@ -216,7 +222,9 @@ export const exportCSV = (
   occupancyData: OccupancyData[], 
   expenses: Expense[], 
   tenants: Tenant[],
-  units: UnitForReport[] = []
+  units: UnitForReport[] = [],
+  // Add: options for contextual info (property filter)
+  options?: { property?: string }
 ) => {
   const sheetName =
     reportType === "financial" ? "Financial" :
@@ -407,5 +415,7 @@ export const exportCSV = (
   })
 
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
-  XLSX.writeFile(wb, `${reportType}-report.xlsx`)
+  // Add: property tag to filename, consistent with exportPDF
+  const tag = options?.property ? `-${slug(options.property)}` : ""
+  XLSX.writeFile(wb, `${reportType}-report${tag}.xlsx`)
 }

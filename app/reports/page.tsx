@@ -89,18 +89,39 @@ export default function Reports() {
     net_profit: number
   }>>>(new Map())
 
-  // Make buildBackendFinancial stable and defined before fetchData
+  // Add: property filter state (default: all)
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | 'all'>('all')
+  const selectedPropertyName = useMemo(
+    () => properties.find(p => String(p.id) === selectedPropertyId)?.name,
+    [properties, selectedPropertyId]
+  )
+
+  // Removed duplicate declarations:
+  // - occupancies
+  // - payments (duplicate)
+  // - loading (duplicate)
+  // - unitsReport (duplicate)
+  // - occupancyData (duplicate)
+  // - pieData (duplicate)
+  // - toast (duplicate)
+  // - backendFinancialData (duplicate)
+  // - monthlySummaryCacheRef (duplicate)
+  // - monthlySummaryPendingRef (duplicate)
+
   const buildBackendFinancial = useCallback(async (propsArr: Property[]) => {
     const months = getMonths(timeRange)
     const aggregated: FinancialData[] = []
-
+    const filteredProps = selectedPropertyId === 'all'
+      ? (propsArr || [])
+      : (propsArr || []).filter(p => String(p.id) === selectedPropertyId)
+  
     for (const m of months) {
       let revenue = 0
       let expenses = 0
       let taxable = 0
       let net = 0
-
-      for (const p of propsArr || []) {
+  
+      for (const p of filteredProps) {
         const key = `${p.id}-${m.slug}`
         try {
           let cached = monthlySummaryCacheRef.current.get(key)
@@ -133,7 +154,7 @@ export default function Reports() {
             }
             cached = await pending
           }
-
+  
           revenue += cached.monthly_revenue
           expenses += cached.total_expenses
           taxable += cached.taxable_income
@@ -142,7 +163,7 @@ export default function Reports() {
           // Skip on error
         }
       }
-
+  
       aggregated.push({
         month: m.label,
         revenue,
@@ -152,10 +173,11 @@ export default function Reports() {
         net_profit: net,
       })
     }
-
+  
     setBackendFinancialData(aggregated)
-  }, [timeRange])
-
+  // Add selectedPropertyId to deps to rebuild when filter changes
+  }, [timeRange, selectedPropertyId])
+  
   // Wrap fetchData with useCallback and depend on buildBackendFinancial
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -260,12 +282,30 @@ export default function Reports() {
 
   // Single declaration of export handlers
   const handleExportPDF = useCallback(() => {
-    exportPDF(reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport)
-  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport])
+    exportPDF(
+      reportType,
+      computedFinancialData,
+      occupancyData,
+      expenses,
+      tenants,
+      unitsReport,
+      // Pass property filter context for financial report
+      { property: selectedPropertyName }
+    )
+  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport, selectedPropertyName])
 
   const handleExportCSV = useCallback(() => {
-    exportCSV(reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport)
-  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport])
+    exportCSV(
+      reportType,
+      computedFinancialData,
+      occupancyData,
+      expenses,
+      tenants,
+      unitsReport,
+      // Pass property filter context for financial report
+      { property: selectedPropertyName }
+    )
+  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport, selectedPropertyName])
 
   return (
     <MainLayout>
@@ -314,6 +354,7 @@ export default function Reports() {
             <SelectItem value="tenant">Tenant Report</SelectItem>
           </SelectContent>
         </Select>
+
         <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Time Range" />
@@ -325,6 +366,26 @@ export default function Reports() {
             <SelectItem value="1year">1 Year</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* New: Property filter (financial report only) */}
+        {reportType === "financial" && (
+          <Select
+            value={selectedPropertyId}
+            onValueChange={(value) => setSelectedPropertyId(value as string)}
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Property" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Properties</SelectItem>
+              {properties.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {reportType === "financial" && (

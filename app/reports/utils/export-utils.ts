@@ -223,7 +223,6 @@ export const exportCSV = (
   expenses: Expense[], 
   tenants: Tenant[],
   units: UnitForReport[] = [],
-  // Add: options for contextual info (property filter)
   options?: { property?: string }
 ) => {
   const sheetName =
@@ -313,7 +312,9 @@ export const exportCSV = (
       }
     }
     XLSX.utils.book_append_sheet(wb, unitWs, "Unit Directory")
-    XLSX.writeFile(wb, `occupancy-report.xlsx`)
+    // Append property tag to occupancy filename
+    const tag = options?.property ? `-${slug(options.property)}` : ""
+    XLSX.writeFile(wb, `occupancy-report${tag}.xlsx`)
     return
   }
 

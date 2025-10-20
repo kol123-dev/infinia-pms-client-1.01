@@ -192,10 +192,16 @@ export default function Reports() {
         setProperties(propertiesResponse.data.results || [])
         const unitsResponse = await api.get('/units/?page_size=500')
         const units = unitsResponse.data.results || []
-        setUnitsReport(units)
+
+        // Apply property filter to units for occupancy view/export
+        const unitsToUse = selectedPropertyId === 'all'
+          ? units
+          : units.filter((u: UnitForReport) => String(u.property?.id) === selectedPropertyId)
+
+        setUnitsReport(unitsToUse)
 
         const byProperty: Record<string, { occupied: number; vacant: number; maintenance: number; total: number }> = {}
-        units.forEach((u: UnitForReport) => {
+        unitsToUse.forEach((u: UnitForReport) => {
           const prop = u.property?.name || "Unknown"
           const entry = byProperty[prop] || { occupied: 0, vacant: 0, maintenance: 0, total: 0 }
           entry.total += 1
@@ -260,7 +266,8 @@ export default function Reports() {
     } finally {
       setLoading(false)
     }
-  }, [reportType, buildBackendFinancial, toast])
+  // Include selectedPropertyId so occupancy recomputes when filter changes
+  }, [reportType, selectedPropertyId, buildBackendFinancial, toast])
 
   // Depend on the stable fetchData
   useEffect(() => {
@@ -367,8 +374,8 @@ export default function Reports() {
           </SelectContent>
         </Select>
 
-        {/* New: Property filter (financial report only) */}
-        {reportType === "financial" && (
+        {/* Property filter for Financial and Occupancy */}
+        {(reportType === "financial" || reportType === "occupancy") && (
           <Select
             value={selectedPropertyId}
             onValueChange={(value) => setSelectedPropertyId(value as string)}

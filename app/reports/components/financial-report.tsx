@@ -104,6 +104,50 @@ export function FinancialReport({ financialData, chartConfig }: FinancialReportP
           </ChartContainer>
         </CardContent>
       </Card>
+
+      {/* New: Financial data table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Financial Report Table</CardTitle>
+          <CardDescription>Monthly breakdown of revenue, expenses, and profit</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0 pb-24 sm:pb-6">
+          <div className="rounded-md border overflow-x-auto max-h-[60vh] overflow-y-auto pb-4">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="p-2 text-left font-medium">Month</th>
+                  <th className="p-2 text-left font-medium">Revenue</th>
+                  <th className="p-2 text-left font-medium">Expenses</th>
+                  <th className="p-2 text-left font-medium">Taxable Income</th>
+                  <th className="p-2 text-left font-medium">Net Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {financialData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-4 text-center text-sm text-muted-foreground">
+                      No data available
+                    </td>
+                  </tr>
+                ) : (
+                  financialData.map((item, idx) => (
+                    <tr key={idx} className="border-b">
+                      <td className="p-2 text-sm">{item.month}</td>
+                      <td className="p-2 text-sm">{formatCurrency(item.revenue)}</td>
+                      <td className="p-2 text-sm">{formatCurrency(item.expenses)}</td>
+                      <td className="p-2 text-sm">
+                        {formatCurrency(item.taxable_income ?? (item.revenue - item.expenses))}
+                      </td>
+                      <td className="p-2 text-sm">{formatCurrency(item.net_profit ?? item.profit)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

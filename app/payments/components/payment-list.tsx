@@ -248,8 +248,8 @@ export function PaymentList() {
 
   // Sorting state
   type SortDirection = "asc" | "desc" | null
-  const [sortKey, setSortKey] = useState<ColumnKey | null>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  const [sortKey, setSortKey] = useState<ColumnKey | null>("paid_date")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
   
   const setSort = (key: ColumnKey, direction: "asc" | "desc") => {
     // Toggle off if clicking the same direction again
@@ -805,7 +805,7 @@ export function PaymentList() {
             <TableBody>
               {paginatedPayments && paginatedPayments.length > 0 ? (
                 paginatedPayments.map((payment) => (
-                  <TableRow key={payment.id}>
+                  <TableRow key={payment.payment_id ?? `${payment.id}-${payment.paid_date}-${payment.tenant?.user?.email ?? ''}`}>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold">{payment.tenant?.user?.full_name || 'N/A'}</span>

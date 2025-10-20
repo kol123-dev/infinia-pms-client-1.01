@@ -206,7 +206,7 @@ export default function Reports() {
         // Apply property filter to units for occupancy view/export
         const unitsToUse = selectedPropertyId === 'all'
           ? units
-          : units.filter((u: UnitForReport) => String(u.property?.id) === selectedPropertyId)
+          : units.filter((u: UnitForReport) => selectedPropertyName ? (u.property?.name === selectedPropertyName) : false)
 
         setUnitsReport(unitsToUse)
 
@@ -301,8 +301,6 @@ export default function Reports() {
   const tenantsFiltered = useMemo(() => {
     if (selectedPropertyId === 'all') return tenants
     return tenants.filter(t => {
-      const propId = t.current_unit?.property?.id
-      if (propId != null) return String(propId) === selectedPropertyId
       const pname = t.property_name || t.current_unit?.property?.name
       return selectedPropertyName ? pname === selectedPropertyName : false
     })
@@ -430,7 +428,7 @@ export default function Reports() {
         />
       )}
       {reportType === "expense" && (
-        <ExpenseReport expenses={expenses} loading={loading} />
+        <ExpenseReport expenses={expenses} loading={loading} properties={properties} />
       )}
 
       {reportType === "tenant" && (

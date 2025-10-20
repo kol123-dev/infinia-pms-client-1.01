@@ -20,14 +20,19 @@ export function FinancialReport({ financialData, chartConfig }: FinancialReportP
       acc.profit += item.profit || 0
       acc.taxable_income += (item.taxable_income ?? (item.revenue - item.expenses)) || 0
       acc.net_profit += (item.net_profit ?? item.profit) || 0
+      // Compute tax amount from available fields
+      const taxForItem =
+        ((item.taxable_income ?? (item.revenue - item.expenses)) || 0) -
+        ((item.net_profit ?? item.profit) || 0)
+      acc.tax_amount += Math.max(0, taxForItem)
       return acc
     },
-    { revenue: 0, expenses: 0, profit: 0, taxable_income: 0, net_profit: 0 }
+    { revenue: 0, expenses: 0, profit: 0, taxable_income: 0, net_profit: 0, tax_amount: 0 }
   )
   return (
     <div className="space-y-6">
       {/* top stats grid */}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs sm:text-sm font-medium">Total Revenue</CardTitle>
@@ -66,6 +71,17 @@ export function FinancialReport({ financialData, chartConfig }: FinancialReportP
           <CardContent className="pt-0">
             <div className="text-lg sm:text-2xl font-bold text-indigo-600">{formatCurrency(totals.net_profit)}</div>
             <p className="text-xs text-muted-foreground">Revenue minus all expenses</p>
+          </CardContent>
+        </Card>
+        {/* New: Tax Amount */}
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium">Tax Amount</CardTitle>
+            <TrendingUp className="h-4 w-4 text-amber-600" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-amber-600">{formatCurrency(totals.tax_amount)}</div>
+            <p className="text-xs text-muted-foreground">Taxable Income minus Net Profit</p>
           </CardContent>
         </Card>
       </div>

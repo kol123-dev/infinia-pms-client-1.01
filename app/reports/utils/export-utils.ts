@@ -17,8 +17,7 @@ export const exportPDF = (
   expenses: Expense[], 
   tenants: Tenant[],
   units: UnitForReport[] = [],
-  // Add: options for contextual info (property filter)
-  options?: { property?: string }
+  options?: { property?: string; propertyNameById?: Record<string, string> }
 ) => {
   // Create PDF in landscape orientation for tenant reports
   const doc = new jsPDF(reportType === "tenant" ? "landscape" : "portrait")
@@ -118,11 +117,12 @@ export const exportPDF = (
     })
   } else if (reportType === "expense") {
     autoTable(doc, {
-      head: [['Date', 'Name', 'Type', 'Amount', 'Recurring']],
+      head: [['Date', 'Name', 'Type', 'Property', 'Amount', 'Recurring']],
       body: expenses.map(item => [
         new Date(item.date).toLocaleDateString(),
         item.name,
         item.expense_type,
+        options?.propertyNameById?.[String(item.property ?? "")] || options?.property || String(item.property ?? "") || "",
         formatCurrency(item.amount),
         item.is_recurring ? 'Yes' : 'No'
       ]),
@@ -223,7 +223,7 @@ export const exportCSV = (
   expenses: Expense[], 
   tenants: Tenant[],
   units: UnitForReport[] = [],
-  options?: { property?: string }
+  options?: { property?: string; propertyNameById?: Record<string, string> }
 ) => {
   const sheetName =
     reportType === "financial" ? "Financial" :
@@ -333,10 +333,11 @@ export const exportCSV = (
       Date: new Date(item.date).toLocaleDateString(),
       Name: item.name,
       Type: item.expense_type,
+      Property: options?.propertyNameById?.[String(item.property ?? "")] || options?.property || String(item.property ?? "") || "",
       Amount: item.amount,
       Recurring: item.is_recurring ? "Yes" : "No",
     }))
-    headers = ["Date", "Name", "Type", "Amount", "Recurring"]
+    headers = ["Date", "Name", "Type", "Property", "Amount", "Recurring"]
   } else if (reportType === "tenant") {
     rows = tenants.map(item => ({
       Name: item.user?.full_name || "",
@@ -370,7 +371,7 @@ export const exportCSV = (
   const widthMap: Record<string, number[]> = {
     financial: [12, 12, 12, 16, 14],
     occupancy: [20, 16, 12, 16],
-    expense: [14, 24, 16, 12, 12],
+    expense: [14, 24, 16, 20, 12, 12],
     tenant:  [20, 28, 18, 12, 10, 22, 14, 14, 10, 12],
   }
   ws["!cols"] = (widthMap[reportType] || headers.map(() => 16)).map(wch => ({ wch }))
@@ -418,5 +419,4 @@ export const exportCSV = (
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
   // Add: property tag to filename, consistent with exportPDF
   const tag = options?.property ? `-${slug(options.property)}` : ""
-  XLSX.writeFile(wb, `${reportType}-report${tag}.xlsx`)
-}
+  XLSX.writeFile(wb, `${reportType}-report${tag}.xlsx`)}

@@ -3,13 +3,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/utils"
 import { Expense } from "@/hooks/useExpenses"
+import { Property } from "../types"
 
 interface ExpenseReportProps {
   expenses: Expense[]
   loading: boolean
+  properties?: Property[]
 }
 
-export function ExpenseReport({ expenses, loading }: ExpenseReportProps) {
+export function ExpenseReport({ expenses, loading, properties }: ExpenseReportProps) {
   return (
     <div className="space-y-6">
       <Card>
@@ -25,6 +27,7 @@ export function ExpenseReport({ expenses, loading }: ExpenseReportProps) {
                   <th className="p-2 text-left font-medium">Date</th>
                   <th className="p-2 text-left font-medium">Name</th>
                   <th className="p-2 text-left font-medium">Type</th>
+                  <th className="p-2 text-left font-medium">Property</th>
                   <th className="p-2 text-left font-medium">Amount</th>
                   <th className="p-2 text-left font-medium">Recurring</th>
                   <th className="p-2 text-left font-medium">Description</th>
@@ -33,13 +36,13 @@ export function ExpenseReport({ expenses, loading }: ExpenseReportProps) {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8">
+                    <td colSpan={7} className="text-center py-8">
                       <p className="text-muted-foreground">Loading expenses...</p>
                     </td>
                   </tr>
                 ) : expenses.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8">
+                    <td colSpan={7} className="text-center py-8">
                       <p className="text-muted-foreground">No expenses found</p>
                     </td>
                   </tr>
@@ -49,6 +52,9 @@ export function ExpenseReport({ expenses, loading }: ExpenseReportProps) {
                       <td className="p-2">{new Date(expense.date).toLocaleDateString()}</td>
                       <td className="p-2">{expense.name}</td>
                       <td className="p-2">{expense.expense_type}</td>
+                      <td className="p-2">
+                        {properties?.find(p => String(p.id) === String(expense.property))?.name || "-"}
+                      </td>
                       <td className="p-2">{formatCurrency(expense.amount)}</td>
                       <td className="p-2">{expense.is_recurring ? "Yes" : "No"}</td>
                       <td className="p-2">{expense.description || "-"}</td>

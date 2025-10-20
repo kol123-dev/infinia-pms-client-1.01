@@ -9,8 +9,8 @@ import { Eye, FileText, Filter, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ReceiptDialog } from "./receipt-dialog"
 import { PaymentDetailsDialog } from "./payment-details-dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import api from "@/lib/axios"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Payment {
   id: number
@@ -51,6 +51,11 @@ export function PaymentList() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Pagination state
+  const [pageSize, setPageSize] = useState<number>(50)
+  const pageSizeOptions = [10, 25, 50, 100, 200]
+  const [page, setPage] = useState<number>(1)
 
   // Column/filter configuration
   type ColumnType = "string" | "number" | "date"
@@ -110,6 +115,41 @@ export function PaymentList() {
   const [selectedOperator, setSelectedOperator] = useState<Operator>("contains")
   const [filterValue, setFilterValue] = useState<string>("")
   const [filterValueTo, setFilterValueTo] = useState<string>("")
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Fetch all pages so we have the full dataset for client-side pagination
+        const PAGE_SIZE_API = 200
+        const all: Payment[] = []
+        let pageNum = 1
+        let hasNext = true
+
+        while (hasNext) {
+          const resp = await api.get('/payments/payments/', {
+            params: { page: pageNum, page_size: PAGE_SIZE_API }
+          })
+          const data = resp.data
+          if (data && Array.isArray(data.results)) {
+            all.push(...data.results)
+          }
+          hasNext = Boolean(data?.next)
+          pageNum += 1
+        }
+
+        setPayments(all)
+      } catch (error) {
+        console.error('Error fetching payments:', error)
+        setError('Failed to load payments. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPayments()
+  }, [])
 
   const addFilter = () => {
     if (!filterValue && selectedOperator !== "between") return
@@ -209,35 +249,35 @@ export function PaymentList() {
     return list
   }, [payments, searchTerm, filters])
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await api.get('/payments/payments/') // Updated endpoint path
-        // Check if response.data exists and has results property
-        if (response.data && Array.isArray(response.data.results)) {
-          setPayments(response.data.results)
-        } else {
-          setPayments([])
-        }
-      } catch (error) {
-        console.error('Error fetching payments:', error)
-        setError('Failed to load payments. Please try again later.')
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Derived pagination values
+  const totalItems = filteredPayments.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const paginatedPayments = useMemo(() => {
+    const startIndex = (page - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    return filteredPayments.slice(startIndex, endIndex)
+  }, [filteredPayments, page, pageSize])
 
-    fetchPayments()
-  }, [])
+  const showingStart = totalItems === 0 ? 0 : (page - 1) * pageSize + 1
+  const showingEnd = Math.min(page * pageSize, totalItems)
+
+  // Reset page when filters/search change
+  useEffect(() => {
+    setPage(1)
+  }, [filters, searchTerm])
+
+  // Clamp page when total pages change
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [totalPages, page])
 
   const handleDelete = async () => {
+    // This should ideally re-trigger the main fetch effect
     const fetchPayments = async () => {
       try {
         setLoading(true)
         setError(null)
-        const response = await api.get('/payments/payments/') // Updated endpoint path
+        const response = await api.get('/payments/payments/')
         if (response.data && Array.isArray(response.data.results)) {
           setPayments(response.data.results)
         } else {
@@ -285,10 +325,10 @@ export function PaymentList() {
           <div className="flex items-center justify-center py-8">
             <div className="text-center text-destructive">
               <p>{error}</p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="mt-4"
-                onClick={() => handleDelete()} // Reuse handleDelete as it already has the fetch logic
+                onClick={handleDelete} // Re-fetches data
               >
                 Try Again
               </Button>
@@ -428,20 +468,20 @@ export function PaymentList() {
             </div>
 
             {filters.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-3">
                 {filters.map((f) => {
                   const col = columnDefByKey(f.column)
                   const label =
                     f.operator === "between"
                       ? `${col.label} ${f.operator} ${f.value} — ${f.valueTo}`
-                      : `${col.label} ${f.operator} ${f.value}`
+                      : `${col.label} ${f.operator} "${f.value}"`
                   return (
                     <Badge key={f.id} variant="secondary" className="flex items-center gap-1">
                       {label}
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-4 w-4 p-0"
+                        className="h-4 w-4 p-0 hover:bg-transparent"
                         onClick={() => removeFilter(f.id)}
                       >
                         <X className="h-3 w-3" />
@@ -470,8 +510,8 @@ export function PaymentList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPayments && filteredPayments.length > 0 ? (
-                filteredPayments.map((payment) => (
+              {paginatedPayments && paginatedPayments.length > 0 ? (
+                paginatedPayments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>
                       <div className="flex flex-col">
@@ -526,7 +566,7 @@ export function PaymentList() {
                               amount: payment.amount || 0,
                               paymentMethod: payment.payment_method || "",
                               reference: payment.payment_id,
-                              paymentId: payment.payment_id
+                              paymentId: payment.payment_id,
                             }}
                           >
                             <Button
@@ -552,6 +592,63 @@ export function PaymentList() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Top pagination controls */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Rows per page</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => {
+                setPageSize(Number(v))
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Page size" />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((sz) => (
+                  <SelectItem key={sz} value={String(sz)}>
+                    {sz}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">
+              Showing {showingStart}-{showingEnd} of {totalItems}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(1)} disabled={page <= 1}>
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              Prev
+            </Button>
+            <span className="text-sm">Page {page} of {totalPages}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              Next
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(totalPages)} disabled={page >= totalPages}>
+              Last
+            </Button>
+          </div>
+        </div>
+
+       
+
+        {/* Removed the duplicate bottom pagination block */}
       </CardContent>
     </Card>
   )

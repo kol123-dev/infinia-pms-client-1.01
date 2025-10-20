@@ -187,6 +187,12 @@ export default function Reports() {
         setExpenses(Array.isArray(expensesResponse.data) ? expensesResponse.data : [])
       }
 
+      // New: ensure properties are available for Tenant filter
+      if (reportType === "tenant") {
+        const propertiesResponse = await api.get('/properties/')
+        setProperties(propertiesResponse.data.results || [])
+      }
+
       if (reportType === "financial" || reportType === "occupancy") {
         const propertiesResponse = await api.get('/properties/')
         setProperties(propertiesResponse.data.results || [])
@@ -287,6 +293,17 @@ export default function Reports() {
     [backendFinancialData]
   )
 
+  // New: filter tenants by selected property for Tenant report
+  const tenantsFiltered = useMemo(() => {
+    if (selectedPropertyId === 'all') return tenants
+    return tenants.filter(t => {
+      const propId = t.current_unit?.property?.id
+      if (propId != null) return String(propId) === selectedPropertyId
+      const pname = t.property_name || t.current_unit?.property?.name
+      return selectedPropertyName ? pname === selectedPropertyName : false
+    })
+  }, [tenants, selectedPropertyId, selectedPropertyName])
+
   // Single declaration of export handlers
   const handleExportPDF = useCallback(() => {
     exportPDF(
@@ -294,12 +311,12 @@ export default function Reports() {
       computedFinancialData,
       occupancyData,
       expenses,
-      tenants,
+      // Use filtered tenants in exports
+      tenantsFiltered,
       unitsReport,
-      // Pass property filter context for financial report
       { property: selectedPropertyName }
     )
-  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport, selectedPropertyName])
+  }, [reportType, computedFinancialData, occupancyData, expenses, tenantsFiltered, unitsReport, selectedPropertyName])
 
   const handleExportCSV = useCallback(() => {
     exportCSV(
@@ -307,12 +324,12 @@ export default function Reports() {
       computedFinancialData,
       occupancyData,
       expenses,
-      tenants,
+      // Use filtered tenants in exports
+      tenantsFiltered,
       unitsReport,
-      // Pass property filter context for financial report
       { property: selectedPropertyName }
     )
-  }, [reportType, computedFinancialData, occupancyData, expenses, tenants, unitsReport, selectedPropertyName])
+  }, [reportType, computedFinancialData, occupancyData, expenses, tenantsFiltered, unitsReport, selectedPropertyName])
 
   return (
     <MainLayout>
@@ -374,8 +391,8 @@ export default function Reports() {
           </SelectContent>
         </Select>
 
-        {/* Property filter for Financial and Occupancy */}
-        {(reportType === "financial" || reportType === "occupancy") && (
+        {/* Property filter for Financial, Occupancy, and Tenant */}
+        {(reportType === "financial" || reportType === "occupancy" || reportType === "tenant") && (
           <Select
             value={selectedPropertyId}
             onValueChange={(value) => setSelectedPropertyId(value as string)}
@@ -413,7 +430,8 @@ export default function Reports() {
       )}
 
       {reportType === "tenant" && (
-        <TenantReport tenants={tenants} loading={loading} />
+        // Use filtered tenants for Tenant report
+        <TenantReport tenants={tenantsFiltered} loading={loading} />
       )}
     </MainLayout>
   )

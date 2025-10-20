@@ -182,13 +182,17 @@ export default function Reports() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
+      // Fetch expenses with property filter for Financial and Expense reports
       if (reportType === "financial" || reportType === "expense") {
-        const expensesResponse = await api.get('/properties/expenses/')
+        const expenseUrl = selectedPropertyId === 'all'
+          ? '/properties/expenses/'
+          : `/properties/expenses/?property=${selectedPropertyId}`
+        const expensesResponse = await api.get(expenseUrl)
         setExpenses(Array.isArray(expensesResponse.data) ? expensesResponse.data : [])
       }
 
-      // New: ensure properties are available for Tenant filter
-      if (reportType === "tenant") {
+      // Ensure properties are loaded for Expense and Tenant filters
+      if (reportType === "tenant" || reportType === "expense") {
         const propertiesResponse = await api.get('/properties/')
         setProperties(propertiesResponse.data.results || [])
       }
@@ -391,8 +395,8 @@ export default function Reports() {
           </SelectContent>
         </Select>
 
-        {/* Property filter for Financial, Occupancy, and Tenant */}
-        {(reportType === "financial" || reportType === "occupancy" || reportType === "tenant") && (
+        {/* Property filter for Financial, Occupancy, Tenant, and Expense */}
+        {(reportType === "financial" || reportType === "occupancy" || reportType === "tenant" || reportType === "expense") && (
           <Select
             value={selectedPropertyId}
             onValueChange={(value) => setSelectedPropertyId(value as string)}

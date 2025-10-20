@@ -5,12 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Eye, FileText, Filter, X, ArrowUp, ArrowDown } from "lucide-react"
+import { Eye, FileText, Filter, X, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ReceiptDialog } from "./receipt-dialog"
 import { PaymentDetailsDialog } from "./payment-details-dialog"
 import api from "@/lib/axios"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import * as XLSX from "xlsx"
+import { exportPaymentsToPDF, exportPaymentsToXLSX } from "@/app/payments/utils/payment-export"
 
 interface Payment {
   id: number
@@ -313,6 +317,48 @@ export function PaymentList() {
   const showingStart = totalItems === 0 ? 0 : (page - 1) * pageSize + 1
   const showingEnd = Math.min(page * pageSize, totalItems)
 
+  const exportRows = useMemo<(string | number)[][]>(() => {
+    const fmtDate = (iso?: string): string => {
+      if (!iso) return ""
+      const d = new Date(iso)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, "0")
+      const day = String(d.getDate()).padStart(2, "0")
+      return `${y}-${m}-${day}`
+    }
+    return sortedPayments.map((p) => [
+      p.payment_id ?? "",
+      p.tenant?.user?.full_name ?? "",
+      p.tenant?.user?.email ?? "",
+      p.property?.name ?? "",
+      p.unit?.unit_number ?? "",
+      Number(p.amount ?? 0),
+      Number(p.balance_after ?? 0),
+      fmtDate(p.paid_date),
+      p.payment_method ?? "",
+      p.payment_status ?? "",
+    ])
+  }, [sortedPayments])
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    autoTable(doc, {
+      head: [["Payment ID", "Tenant", "Email", "Property", "Unit", "Amount", "Balance", "Date", "Method", "Status"]],
+      body: exportRows,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [240, 240, 240], textColor: 20 },
+    })
+    doc.save("payments.pdf")
+  }
+
+  const handleExportXLSX = () => {
+    const header = ["Payment ID", "Tenant", "Email", "Property", "Unit", "Amount", "Balance", "Date", "Method", "Status"]
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...exportRows])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Payments")
+    XLSX.writeFile(workbook, "payments.xlsx")
+  }
+
   // Reset page on filter/search/sort change
   useEffect(() => {
     setPage(1)
@@ -395,27 +441,47 @@ export function PaymentList() {
     <Card>
       <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
-          <CardTitle>Recent Payments</CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowFilters((s) => !s)} className="h-9">
-              <Filter className="mr-2 h-4 w-4" />
-              Filters
-            </Button>
-            {filters.length > 0 && (
-              <Button variant="ghost" onClick={clearFilters} className="h-9">
-                Clear All
+            <CardTitle>Recent Payments</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowFilters((s) => !s)} className="h-9">
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
               </Button>
-            )}
+              <Button
+                variant="outline"
+                onClick={() => exportPaymentsToPDF(exportRows)}
+                className="h-9"
+                disabled={loading || sortedPayments.length === 0}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => exportPaymentsToXLSX(exportRows)}
+                className="h-9"
+                disabled={loading || sortedPayments.length === 0}
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                XLSX
+              </Button>
+              {filters.length > 0 && (
+                <Button variant="ghost" onClick={clearFilters} className="h-9">
+                  Clear All
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search payments..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search payments..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
         </div>
 
         {showFilters && (
@@ -878,5 +944,4 @@ export function PaymentList() {
         {/* Removed the duplicate bottom pagination block */}
       </CardContent>
     </Card>
-  )
-}
+  )}

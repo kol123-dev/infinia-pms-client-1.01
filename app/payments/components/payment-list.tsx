@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Eye, FileText, Filter, X } from "lucide-react"
+import { Eye, FileText, Filter, X, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ReceiptDialog } from "./receipt-dialog"
 import { PaymentDetailsDialog } from "./payment-details-dialog"
@@ -242,6 +242,52 @@ export function PaymentList() {
     })
   }
 
+  // Sorting state
+  type SortDirection = "asc" | "desc" | null
+  const [sortKey, setSortKey] = useState<ColumnKey | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  
+  const setSort = (key: ColumnKey, direction: "asc" | "desc") => {
+    // Toggle off if clicking the same direction again
+    if (sortKey === key && sortDirection === direction) {
+      setSortKey(null)
+      setSortDirection(null)
+    } else {
+      setSortKey(key)
+      setSortDirection(direction)
+    }
+  }
+  
+  const applySort = (list: Payment[]) => {
+    if (!sortKey || !sortDirection) return list
+    const col = columnDefByKey(sortKey)
+  
+    const sorted = [...list].sort((a, b) => {
+      const av = col.accessor(a)
+      const bv = col.accessor(b)
+  
+      switch (col.type) {
+        case "string": {
+          const sa = String(av ?? "")
+          const sb = String(bv ?? "")
+          return sa.localeCompare(sb)
+        }
+        case "number": {
+          const na = Number(av ?? 0)
+          const nb = Number(bv ?? 0)
+          return na - nb
+        }
+        case "date": {
+          const da = av instanceof Date ? av : new Date(0)
+          const db = bv instanceof Date ? bv : new Date(0)
+          return da.getTime() - db.getTime()
+        }
+      }
+    })
+  
+    return sortDirection === "asc" ? sorted : sorted.reverse()
+  }
+
   const filteredPayments = useMemo(() => {
     let list = [...payments]
     list = applyGlobalSearch(list)
@@ -249,22 +295,28 @@ export function PaymentList() {
     return list
   }, [payments, searchTerm, filters])
 
-  // Derived pagination values
-  const totalItems = filteredPayments.length
+  // Apply sorting before pagination
+  const sortedPayments = useMemo(
+    () => applySort(filteredPayments),
+    [filteredPayments, sortKey, sortDirection]
+  )
+
+  // Derived pagination values based on sorted list
+  const totalItems = sortedPayments.length
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   const paginatedPayments = useMemo(() => {
     const startIndex = (page - 1) * pageSize
     const endIndex = startIndex + pageSize
-    return filteredPayments.slice(startIndex, endIndex)
-  }, [filteredPayments, page, pageSize])
+    return sortedPayments.slice(startIndex, endIndex)
+  }, [sortedPayments, page, pageSize])
 
   const showingStart = totalItems === 0 ? 0 : (page - 1) * pageSize + 1
   const showingEnd = Math.min(page * pageSize, totalItems)
 
-  // Reset page when filters/search change
+  // Reset page on filter/search/sort change
   useEffect(() => {
     setPage(1)
-  }, [filters, searchTerm])
+  }, [filters, searchTerm, sortKey, sortDirection])
 
   // Clamp page when total pages change
   useEffect(() => {
@@ -499,13 +551,188 @@ export function PaymentList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tenant</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead className="hidden sm:table-cell">Balance</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="hidden sm:table-cell">Method</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>Tenant</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "tenant" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("tenant", "asc")}
+                        aria-label="Sort Tenant ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "tenant" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("tenant", "desc")}
+                        aria-label="Sort Tenant descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>Property</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "property" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("property", "asc")}
+                        aria-label="Sort Property ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "property" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("property", "desc")}
+                        aria-label="Sort Property descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>Amount</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "amount" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("amount", "asc")}
+                        aria-label="Sort Amount ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "amount" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("amount", "desc")}
+                        aria-label="Sort Amount descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
+                <TableHead className="hidden sm:table-cell">
+                  <div className="flex items-center gap-2">
+                    <span>Balance</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "balance_after" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("balance_after", "asc")}
+                        aria-label="Sort Balance ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "balance_after" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("balance_after", "desc")}
+                        aria-label="Sort Balance descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>Date</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "paid_date" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("paid_date", "asc")}
+                        aria-label="Sort Date ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "paid_date" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("paid_date", "desc")}
+                        aria-label="Sort Date descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
+                <TableHead className="hidden sm:table-cell">
+                  <div className="flex items-center gap-2">
+                    <span>Method</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "payment_method" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("payment_method", "asc")}
+                        aria-label="Sort Method ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "payment_method" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("payment_method", "desc")}
+                        aria-label="Sort Method descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>Status</span>
+                    <div className="flex items-center gap-1 ml-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "payment_status" && sortDirection === "asc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("payment_status", "asc")}
+                        aria-label="Sort Status ascending"
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-4 w-4 p-0 hover:bg-transparent ${sortKey === "payment_status" && sortDirection === "desc" ? "text-primary" : "text-muted-foreground"}`}
+                        onClick={() => setSort("payment_status", "desc")}
+                        aria-label="Sort Status descending"
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </TableHead>
+
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>

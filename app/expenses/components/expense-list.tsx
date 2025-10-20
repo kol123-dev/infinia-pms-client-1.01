@@ -18,38 +18,82 @@ type Props = {
   deleteExpense: (id: string) => Promise<void>
   updateExpense: (id: string, data: Partial<Expense>) => Promise<void>
   occupiedCounts: Record<string, number>
-  monthlySummaries: Record<string, { monthly_revenue: number; net_profit: number; taxable_income: number }>
+  monthlySummaries: Record<string, { monthly_revenue: number; net_profit: number; taxable_income: number; tax_total: number }>
   propertyNames: Record<string, string>
 }
 
-export function ExpenseList({ expenses, loading, fetchExpenses, createExpense, deleteExpense, updateExpense, occupiedCounts, monthlySummaries, propertyNames }: Props) {
+export function ExpenseList({
+  expenses,
+  loading,
+  fetchExpenses,
+  createExpense,
+  deleteExpense,
+  updateExpense,
+  occupiedCounts,
+  monthlySummaries,
+  propertyNames,
+}: Props) {
   const [editing, setEditing] = useState<Expense | null>(null)
 
   const computeDisplayAmount = (e: Expense) => {
+    // Prefer backend-computed monthly_amount when available
+    const apiAmount = (e as any).monthly_amount
+    if (typeof apiAmount === "number" && Number.isFinite(apiAmount)) {
+      return apiAmount
+    }
+
     const safeNumber = (v: any) => {
       const num = typeof v === "string" ? parseFloat(v) : Number(v)
       return isNaN(num) ? 0 : num
     }
+    const pid = String(e.property || "")
+
+    // Use each row's configuration for KRA_TAX instead of aggregated tax_total
+    if (String(e.expense_type || "").toUpperCase() === "KRA_TAX") {
+      if (!e.is_recurring) return safeNumber(e.amount ?? 0)
+
+      const freq = String(e.recurrence_frequency || "MONTHLY").toUpperCase()
+      const fm = freq === "WEEKLY" ? (52 / 12) : 1
+      const calcType = String(e.calculation_type || "").toUpperCase()
+
+      if (calcType === "FIXED") {
+        return safeNumber(e.calculation_value ?? e.amount) * fm
+      }
+      if (calcType === "PER_TENANT") {
+        const activeTenants = occupiedCounts[pid] || 0
+        return safeNumber(e.calculation_value ?? 0) * activeTenants * fm
+      }
+      if (calcType === "PERCENTAGE") {
+        const rate = safeNumber(e.calculation_value ?? 0) / 100
+        const base = String(e.percentage_base || "TOTAL_REVENUE").toUpperCase()
+        const s = monthlySummaries[pid] || { monthly_revenue: 0, taxable_income: 0 }
+        const baseAmount = base === "TAXABLE_INCOME" ? s.taxable_income : s.monthly_revenue
+        return safeNumber(baseAmount) * rate * fm
+      }
+      const raw = e.calculation_value ?? e.amount ?? 0
+      return safeNumber(raw)
+    }
+
+    // Non-tax expenses
     if (!e.is_recurring) return safeNumber(e.amount ?? 0)
 
     const freq = String(e.recurrence_frequency || "MONTHLY").toUpperCase()
     const freqMultiplier = freq === "WEEKLY" ? (52 / 12) : 1
     const calcType = String(e.calculation_type || "").toUpperCase()
 
+    if (!e.is_recurring) return safeNumber(e.amount ?? 0)
     if (calcType === "FIXED") {
       return safeNumber(e.calculation_value ?? 0) * freqMultiplier
     }
     if (calcType === "PER_TENANT") {
-      const pid = String(e.property || "")
       const activeTenants = occupiedCounts[pid] || 0
       const perTenant = safeNumber(e.calculation_value ?? 0)
       return perTenant * activeTenants * freqMultiplier
     }
     if (calcType === "PERCENTAGE") {
       const percentage = safeNumber(e.calculation_value ?? 0) / 100
-      const pid = String(e.property || "")
       const base = String(e.percentage_base || "TOTAL_REVENUE").toUpperCase()
-      const summary = monthlySummaries[pid] || { monthly_revenue: 0, net_profit: 0, taxable_income: 0 }
+      const summary = monthlySummaries[pid] || { monthly_revenue: 0, taxable_income: 0 }
       const baseAmount = base === "TAXABLE_INCOME" ? summary.taxable_income : summary.monthly_revenue
       return safeNumber(baseAmount) * percentage * freqMultiplier
     }

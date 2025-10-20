@@ -14,6 +14,7 @@ export type Expense = {
   property?: string
   recurrence_frequency?: string
   percentage_base?: string
+  monthly_amount?: number
 }
 
 export function useExpenses() {

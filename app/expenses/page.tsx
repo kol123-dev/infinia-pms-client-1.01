@@ -15,7 +15,7 @@ export default function ExpensesPage() {
 
   // Derived stats per property for recurring calculations
   const [occupiedCounts, setOccupiedCounts] = useState<Record<string, number>>({})
-  const [monthlySummaries, setMonthlySummaries] = useState<Record<string, { monthly_revenue: number, net_profit: number, taxable_income: number }>>({})
+  const [monthlySummaries, setMonthlySummaries] = useState<Record<string, { monthly_revenue: number, net_profit: number, taxable_income: number, tax_total: number }>>({})
   const [propertyNames, setPropertyNames] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function ExpensesPage() {
 
       try {
         const counts: Record<string, number> = {}
-        const summaries: Record<string, { monthly_revenue: number, net_profit: number, taxable_income: number }> = {}
+        const summaries: Record<string, { monthly_revenue: number, net_profit: number, taxable_income: number, tax_total: number }> = {}
         const names: Record<string, string> = {}
 
         // Fetch occupied units count per property
@@ -48,9 +48,10 @@ export default function ExpensesPage() {
               monthly_revenue: Number(s.monthly_revenue || 0),
               net_profit: Number(s.net_profit || 0),
               taxable_income: Number(s.taxable_income || 0),
+              tax_total: Number(s.tax_total || 0),
             }
           } catch {
-            summaries[pid] = { monthly_revenue: 0, net_profit: 0, taxable_income: 0 }
+            summaries[pid] = { monthly_revenue: 0, net_profit: 0, taxable_income: 0, tax_total: 0 }
           }
         }
 
@@ -75,6 +76,10 @@ export default function ExpensesPage() {
   }, [expenses])
 
   const totalExpenses = expenses.reduce((sum, e) => {
+    const fromApi = (e as any).monthly_amount
+    if (typeof fromApi === "number" && Number.isFinite(fromApi)) {
+      return sum + fromApi
+    }
     // Non-recurring just uses amount
     const safeNumber = (v: any) => {
       const num = typeof v === "string" ? parseFloat(v) : Number(v)
@@ -102,7 +107,7 @@ export default function ExpensesPage() {
       const percentage = safeNumber(e.calculation_value ?? 0) / 100
       const pid = String(e.property || "")
       const base = String(e.percentage_base || "TOTAL_REVENUE").toUpperCase()
-      const summary = monthlySummaries[pid] || { monthly_revenue: 0, net_profit: 0, taxable_income: 0 }
+      const summary = monthlySummaries[pid] || { monthly_revenue: 0, net_profit: 0, taxable_income: 0, tax_total: 0 }
       const baseAmount = base === "TAXABLE_INCOME" ? summary.taxable_income : summary.monthly_revenue
       return sum + (safeNumber(baseAmount) * percentage * freqMultiplier)
     }

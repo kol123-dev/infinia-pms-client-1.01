@@ -12,20 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useExpenses, Expense } from "@/hooks/useExpenses"
 import api from "@/lib/axios"
 
-const expenseTypes = [
-  { value: "INFINIA_SYNC_FEE", label: "Infinia Sync Fee" },
-  { value: "CARETAKER_SALARY", label: "Caretaker Salary" },
-  { value: "GARBAGE_COLLECTION", label: "Garbage Collection" },
-  { value: "KRA_TAX", label: "KRA Tax" },
-  { value: "OTHER", label: "Other" }
-]
-
-const calculationTypes = [
-  { value: "FIXED", label: "Fixed Amount" },
-  { value: "PER_TENANT", label: "Per Active Tenant" },
-  { value: "PERCENTAGE", label: "Percentage" }
-]
-
+// Restore missing local types/constants
 interface Property {
   id: number
   name: string
@@ -36,6 +23,19 @@ interface AddExpenseDialogProps {
   createExpenseOverride?: (data: Partial<Expense>) => Promise<void>
 }
 
+// Backend-supported expense types only
+const expenseTypes = [
+  { value: "INFINIA_SYNC_FEE", label: "Infinia Sync Fee" },
+  { value: "KRA_TAX", label: "KRA Tax" },
+  { value: "OTHER", label: "Other" }
+]
+
+const calculationTypes = [
+  { value: "FIXED", label: "Fixed Amount" },
+  { value: "PER_TENANT", label: "Per Active Tenant" },
+  { value: "PERCENTAGE", label: "Percentage" }
+]
+
 export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -45,7 +45,7 @@ export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpense
 
   const [formData, setFormData] = useState<Partial<Expense>>({
     name: "",
-    expense_type: "",
+    expense_type: "OTHER", // default to valid backend type
     amount: 0,
     date: new Date().toISOString().split("T")[0],
     description: "",
@@ -82,11 +82,18 @@ export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpense
     e.preventDefault()
     setLoading(true)
 
+    // Guard: ensure valid expense_type
+    const allowed = new Set(expenseTypes.map(t => t.value))
+    const payload = {
+      ...formData,
+      expense_type: allowed.has(formData.expense_type as string) ? formData.expense_type : "OTHER",
+    }
+
     try {
       if (createExpenseOverride) {
-        await createExpenseOverride(formData)
+        await createExpenseOverride(payload)
       } else {
-        await createExpense(formData)
+        await createExpense(payload)
       }
       toast({
         title: "Success",

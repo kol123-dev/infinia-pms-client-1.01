@@ -37,9 +37,20 @@ export function EditExpenseDialog({ expense, onSubmit, updateExpense, onOpenChan
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
+  const expenseTypes = [
+    { value: "INFINIA_SYNC_FEE", label: "Infinia Sync Fee" },
+    { value: "KRA_TAX", label: "KRA Tax" },
+    { value: "OTHER", label: "Other" }
+  ]
+
+  const allowedExpenseValues = expenseTypes.map((t) => t.value)
+  const initialExpenseType = allowedExpenseValues.includes(expense.expense_type)
+    ? expense.expense_type
+    : "OTHER"
+
   const [formData, setFormData] = useState<Partial<Expense>>({
     name: expense.name,
-    expense_type: expense.expense_type,
+    expense_type: initialExpenseType,
     amount: expense.amount,
     date: expense.date.split("T")[0],
     description: expense.description,

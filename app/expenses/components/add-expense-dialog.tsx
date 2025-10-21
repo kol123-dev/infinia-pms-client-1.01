@@ -117,7 +117,7 @@ export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpense
       <DialogTrigger asChild>
         <Button>Add Expense</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[95vw] sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>

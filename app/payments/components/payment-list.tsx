@@ -88,10 +88,97 @@ export function PaymentList() {
     { key: "unit", label: "Unit", type: "string", accessor: (p) => p.unit?.unit_number ?? "" },
     { key: "amount", label: "Amount", type: "number", accessor: (p) => Number(p.amount ?? 0) },
     { key: "balance_after", label: "Balance", type: "number", accessor: (p) => Number(p.balance_after ?? 0) },
-    { key: "paid_date", label: "Date", type: "date", accessor: (p) => (p.paid_date ? new Date(p.paid_date) : undefined) },
+    // Use best available transaction timestamp for sorting: Bank -> Mpesa -> paid_date
+    { key: "paid_date", label: "Date", type: "date", accessor: (p) => {
+        const src = p.bank_details?.transfer_date || p.mpesa_details?.transaction_date || p.paid_date
+        return src ? new Date(src) : undefined
+      }
+    },
     { key: "payment_method", label: "Method", type: "string", accessor: (p) => p.payment_method ?? "" },
     { key: "payment_status", label: "Status", type: "string", accessor: (p) => p.payment_status ?? "" },
   ]
+
+  // Format helpers
+  const formatHumanEAT = (date?: Date): string => {
+    if (!date) return "—"
+    const fmt = new Intl.DateTimeFormat(undefined, {
+      timeZone: "Africa/Nairobi",
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+    return `${fmt.format(date)} EAT`
+  }
+
+  const relativeLabel = (date?: Date): string => {
+    if (!date) return ""
+    const now = new Date()
+    const msPerDay = 24 * 60 * 60 * 1000
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / msPerDay)
+    if (diffDays === 0) return "Today"
+    if (diffDays === 1) return "Yesterday"
+    return ""
+  }
+
+  const getPrimaryDateSource = (p: Payment): { date?: Date; raw?: string } => {
+    // Prefer IPN transactionDate for tooltip if present (Bank), otherwise the DB datetime
+    const ipnRaw = p.bank_details?.ipn_response?.transactionDate as string | undefined
+    const srcString = p.bank_details?.transfer_date || p.mpesa_details?.transaction_date || p.paid_date
+    return { date: srcString ? new Date(srcString) : undefined, raw: ipnRaw || srcString }
+  }
+
+  const displayDateText = (p: Payment): string => {
+    const { date } = getPrimaryDateSource(p)
+    const base = formatHumanEAT(date)
+    const rel = relativeLabel(date)
+    return rel ? `${rel} • ${base}` : base
+  }
+
+  const displayDateTitle = (p: Payment): string => {
+    const { raw, date } = getPrimaryDateSource(p)
+    return raw || (date ? date.toISOString() : "")
+  }
+
+  // Format helper: convert any ISO date string to EAT (YYYY-MM-DDTHH:mm:ss+03:00)
+  const toEATString = (iso?: string): string => {
+    if (!iso) return "N/A"
+    const utcMs = new Date(iso).getTime()
+    if (Number.isNaN(utcMs)) return iso // if not ISO, return raw
+    const eatMs = utcMs + 3 * 60 * 60 * 1000
+    const d = new Date(eatMs)
+    const y = d.getUTCFullYear()
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0")
+    const day = String(d.getUTCDate()).padStart(2, "0")
+    const hh = String(d.getUTCHours()).padStart(2, "0")
+    const mm = String(d.getUTCMinutes()).padStart(2, "0")
+    const ss = String(d.getUTCSeconds()).padStart(2, "0")
+    return `${y}-${m}-${day}T${hh}:${mm}:${ss}+03:00`
+  }
+
+  // Choose display date based on payload preference
+  const displayDate = (p: Payment): string => {
+    // 1) Bank IPN payload exact string if present (e.g., "2025-10-22T15:27:33Z")
+    const bankIpnDate = p.bank_details?.ipn_response?.transactionDate
+    if (typeof bankIpnDate === "string" && bankIpnDate) return bankIpnDate
+
+    // 2) Bank transfer_date -> show EAT
+    const bankTransfer = p.bank_details?.transfer_date
+    if (bankTransfer) return toEATString(bankTransfer)
+
+    // 3) Mpesa payload "TransTime" if available (e.g., "20250923205511")
+    const mpesaTransTime = p.mpesa_details && (p as any)?.mpesa_details?.ipn_response?.TransTime
+    if (typeof mpesaTransTime === "string" && mpesaTransTime) return mpesaTransTime
+
+    // 4) Mpesa transaction_date -> show EAT
+    const mpesaDate = p.mpesa_details?.transaction_date
+    if (mpesaDate) return toEATString(mpesaDate)
+
+    // 5) Fallback to paid_date -> EAT
+    return toEATString(p.paid_date)
+  }
 
   type StringOperator = "contains" | "equals" | "startsWith" | "endsWith"
   type NumberOperator = "equals" | "greaterThan" | "lessThan" | "between"
@@ -144,7 +231,9 @@ export function PaymentList() {
           pageNum += 1
         }
 
-        setPayments(all)
+        // Deduplicate by DB primary key
+        const uniqueById = Array.from(new Map(all.map(p => [p.id, p])).values())
+        setPayments(uniqueById)
       } catch (error) {
         console.error('Error fetching payments:', error)
         setError('Failed to load payments. Please try again later.')
@@ -805,7 +894,7 @@ export function PaymentList() {
             <TableBody>
               {paginatedPayments && paginatedPayments.length > 0 ? (
                 paginatedPayments.map((payment) => (
-                  <TableRow key={payment.payment_id ?? `${payment.id}-${payment.paid_date}-${payment.tenant?.user?.email ?? ''}`}>
+                  <TableRow key={`${payment.id}`}>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold">{payment.tenant?.user?.full_name || 'N/A'}</span>
@@ -820,7 +909,12 @@ export function PaymentList() {
                     </TableCell>
                     <TableCell className="font-bold">{payment.amount || 0}</TableCell>
                     <TableCell className="hidden sm:table-cell">{payment.balance_after || 0}</TableCell>
-                    <TableCell>{payment.paid_date || 'N/A'}</TableCell>
+                    {/* Human-friendly date with raw payload in tooltip */}
+                    <TableCell>
+                      <span title={displayDateTitle(payment)}>
+                        {displayDateText(payment)}
+                      </span>
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline">{payment.payment_method || 'N/A'}</Badge>
                     </TableCell>

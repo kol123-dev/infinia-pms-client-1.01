@@ -114,10 +114,13 @@ export function MpesaTransactionList() {
   const getActionButton = (transaction: MpesaTransaction) => {
     const { status, id } = transaction
     const isDeleting = deleting === id
-  
+
+    // Allow manual match for any non-final status
+    const canMatch = ["UNMATCHED", "PENDING_REVIEW", "PENDING", "ERROR"].includes((status || "").toUpperCase())
+
     return (
       <div className="flex items-center gap-2">
-        {status.toUpperCase() === "UNMATCHED" && (
+        {canMatch && (
           <Button
             variant="outline"
             size="sm"

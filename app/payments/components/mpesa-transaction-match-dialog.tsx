@@ -22,19 +22,26 @@ export function MpesaTransactionMatchDialog({
   onSuccess,
 }: MpesaTransactionMatchDialogProps) {
   const [tenants, setTenants] = useState<any[]>([])
-  const [selectedTenant, setSelectedTenant] = useState<string>('')
+  const [selectedTenant, setSelectedTenant] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
   // Fetch tenants when dialog opens
   const fetchTenants = useCallback(async () => {
     try {
-      const response = await axios.get('/tenants/');  // Now axios is recognized
-      setTenants(response.data);
+      const response = await api.get("/tenants/", { params: { page: 1, page_size: 50 } })
+      const payload = response?.data
+      const list = Array.isArray(payload?.results)
+        ? payload.results
+        : Array.isArray(payload)
+        ? payload
+        : []
+      setTenants(list)
     } catch (error) {
-      console.error('Error fetching tenants:', error);
+      console.error("Error fetching tenants:", error)
+      setTenants([])
     }
-  }, []);  // Empty deps if no dependencies inside
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -89,9 +96,9 @@ export function MpesaTransactionMatchDialog({
             </Label>
             <div className="col-span-3">
               <Combobox
-                items={tenants.map((tenant) => ({
-                  label: `${tenant.user?.full_name || ''} - ${tenant.current_unit?.unit_number || ''} (${tenant.current_unit?.property?.name || ''})`,
-                  value: tenant.id,
+                items={(Array.isArray(tenants) ? tenants : []).map((tenant) => ({
+                  label: `${tenant.user?.full_name || ""} - ${tenant.current_unit?.unit_number || ""} (${tenant.current_unit?.property?.name || ""})`,
+                  value: String(tenant.id),
                 }))}
                 value={selectedTenant}
                 onChange={setSelectedTenant}
@@ -105,7 +112,7 @@ export function MpesaTransactionMatchDialog({
             Cancel
           </Button>
           <Button onClick={handleMatch} disabled={isLoading}>
-            {isLoading ? 'Matching...' : 'Match Transaction'}
+            {isLoading ? "Matching..." : "Match Transaction"}
           </Button>
         </DialogFooter>
       </DialogContent>

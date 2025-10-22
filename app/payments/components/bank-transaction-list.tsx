@@ -1,10 +1,14 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { formatCurrency } from "@/lib/utils"
 import api from "@/lib/axios"
+import { Button } from "@/components/ui/button"
+import { Link2 } from "lucide-react"
+import { BankTransactionMatchDialog } from "./bank-transaction-match-dialog"
 
 export function BankTransactionList() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -21,6 +25,8 @@ export function BankTransactionList() {
   }>>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
+  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchBankTransfers = async () => {
@@ -52,6 +58,11 @@ export function BankTransactionList() {
     )
   })
 
+  const openMatch = (id: string) => {
+    setSelectedTransaction(id)
+    setIsMatchDialogOpen(true)
+  }
+
   return (
     <div className="space-y-4">
       <Input
@@ -64,36 +75,70 @@ export function BankTransactionList() {
       {loading && <div className="text-muted-foreground text-sm">Loading...</div>}
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Reference</TableHead>
+          <TableRow className="bg-muted/50">
+            <TableHead>Reference #</TableHead>
             <TableHead>Bank</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Date</TableHead>
-            <TableHead>Tenant</TableHead>
-            <TableHead>Unit</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Verification</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filtered.map((t) => (
             <TableRow key={t.id}>
-              <TableCell>{t.reference_number}</TableCell>
-              <TableCell>{t.bank_name}</TableCell>
-              <TableCell>{formatCurrency(Number(t.amount || 0))}</TableCell>
-              <TableCell>{new Date(t.transfer_date).toLocaleDateString()}</TableCell>
-              <TableCell>{t.tenant_name || "-"}</TableCell>
-              <TableCell>{t.unit_number || "-"}</TableCell>
+              <TableCell className="font-medium">{t.reference_number || "N/A"}</TableCell>
+              <TableCell>{t.bank_name || "N/A"}</TableCell>
+              <TableCell className="font-medium">{formatCurrency(t.amount || 0)}</TableCell>
+              <TableCell>{t.transfer_date ? new Date(t.transfer_date).toLocaleString() : "N/A"}</TableCell>
               <TableCell>
-                <Badge
-                  variant={t.verification_status?.toLowerCase() === "matched" ? "default" : "secondary"}
-                >
-                  {t.verification_status || t.status || "pending"}
+                <Badge variant="outline">{t.status || "N/A"}</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant={(t.verification_status || "").toUpperCase() === "MATCHED" ? "default" : "secondary"}>
+                  {t.verification_status || "PENDING"}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {(t.verification_status || "").toUpperCase() === "PENDING" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 text-blue-500 border-blue-500 hover:bg-blue-50 hover:text-blue-600"
+                    onClick={() => openMatch(t.id)}
+                  >
+                    <Link2 className="w-4 h-4" />
+                    Match
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {selectedTransaction !== null && (
+        <BankTransactionMatchDialog
+          isOpen={isMatchDialogOpen}
+          onClose={() => setIsMatchDialogOpen(false)}
+          transactionId={selectedTransaction!}
+          onSuccess={() => {
+            setIsMatchDialogOpen(false);
+            setSelectedTransaction(null);
+            // re-fetch list; prefix with void to avoid ASI call-on-void error
+            void (async () => {
+              setLoading(true)
+              try {
+                const { data } = await api.get("/payments/bank/", { params: { page: 1, page_size: 10 } })
+                setTransactions(Array.isArray(data?.results) ? data.results : [])
+              } finally {
+                setLoading(false)
+              }
+            })()
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Link2 } from "lucide-react"
 import { BankTransactionMatchDialog } from "./bank-transaction-match-dialog"
 
-export function BankTransactionList() {
+export default function BankTransactionList() {
   const [searchTerm, setSearchTerm] = useState("")
   const [transactions, setTransactions] = useState<Array<{
     id: string
@@ -28,39 +28,50 @@ export function BankTransactionList() {
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null)
   const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false)
 
-  useEffect(() => {
-    const fetchBankTransfers = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const { data } = await api.get("/payments/bank/", {
-          params: { page: 1, page_size: 10 },
-        })
-        const items = Array.isArray(data?.results) ? data.results : []
-        setTransactions(items)
-      } catch (e: any) {
-        setError(e?.message ?? "Failed to load bank transfers")
-      } finally {
-        setLoading(false)
-      }
+  const fetchBankTransfers = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data } = await api.get("/payments/bank/", {
+        params: { page: 1, page_size: 10 },
+      })
+      const items = Array.isArray(data?.results) ? data.results : []
+      setTransactions(items)
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load bank transfers")
+    } finally {
+      setLoading(false)
     }
-    fetchBankTransfers()
   }, [])
 
-  const filtered = transactions.filter((t) => {
+  useEffect(() => {
+    fetchBankTransfers()
+  }, [fetchBankTransfers])
+
+  // Use a typed, memoized filtered list so TS can resolve types
+  const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase()
-    if (!q) return true
-    return (
+    if (!q) return transactions
+    return transactions.filter((t: typeof transactions[number]) =>
       (t.reference_number || "").toLowerCase().includes(q) ||
       (t.bank_name || "").toLowerCase().includes(q) ||
       (t.tenant_name || "").toLowerCase().includes(q) ||
       (t.unit_number || "").toLowerCase().includes(q)
     )
-  })
+  }, [transactions, searchTerm])
 
   const openMatch = (id: string) => {
     setSelectedTransaction(id)
     setIsMatchDialogOpen(true)
+  }
+
+  const handleUnmatch = async (id: string) => {
+    try {
+      await api.post(`/payments/bank/${id}/unmatch/`)
+      await fetchBankTransfers()
+    } catch (e) {
+      console.error('Failed to unmatch bank transaction', e)
+    }
   }
 
   return (
@@ -110,6 +121,16 @@ export function BankTransactionList() {
                   >
                     <Link2 className="w-4 h-4" />
                     Match
+                  </Button>
+                )}
+                {(t.verification_status || "").toUpperCase() === "MATCHED" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 text-amber-600 border-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                    onClick={() => handleUnmatch(t.id)}
+                  >
+                    Unmatch
                   </Button>
                 )}
               </TableCell>

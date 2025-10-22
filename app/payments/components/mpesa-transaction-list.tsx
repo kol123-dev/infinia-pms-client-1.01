@@ -111,13 +111,22 @@ export function MpesaTransactionList() {
     }
   }
 
+  const handleUnmatch = async (id: number) => {
+    try {
+      await api.post(`/payments/mobilepay/${id}/unmatch/`)
+      await refetch()
+    } catch (e) {
+      console.error('Failed to unmatch mpesa transaction', e)
+    }
+  }
+
   const getActionButton = (transaction: MpesaTransaction) => {
     const { status, id } = transaction
     const isDeleting = deleting === id
 
     // Allow manual match for any non-final status
     const canMatch = ["UNMATCHED", "PENDING_REVIEW", "PENDING", "ERROR"].includes((status || "").toUpperCase())
-
+    const canUnmatch = ["COMPLETED", "MATCHED"].includes((status || "").toUpperCase())
     return (
       <div className="flex items-center gap-2">
         {canMatch && (
@@ -129,6 +138,16 @@ export function MpesaTransactionList() {
           >
             <Link2 className="w-4 h-4" />
             Match
+          </Button>
+        )}
+        {canUnmatch && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 text-amber-600 border-amber-600 hover:bg-amber-50 hover:text-amber-700"
+            onClick={() => handleUnmatch(id)}
+          >
+            Unmatch
           </Button>
         )}
         <Button

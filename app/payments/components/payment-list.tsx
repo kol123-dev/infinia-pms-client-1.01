@@ -60,6 +60,7 @@ export function PaymentList() {
   const [pageSize, setPageSize] = useState<number>(50)
   const pageSizeOptions = [10, 25, 50, 100, 200]
   const [page, setPage] = useState<number>(1)
+  const [hydrating, setHydrating] = useState(false)
 
   // Column/filter configuration
   type ColumnType = "string" | "number" | "date"
@@ -208,40 +209,55 @@ export function PaymentList() {
   const [filterValueTo, setFilterValueTo] = useState<string>("")
 
   useEffect(() => {
-    const fetchPayments = async () => {
+    let cancelled = false
+
+    const PAGE_SIZE_API = 50 // matches DRF max_page_size for snappy first response
+    const fetchFirstPageAndHydrate = async () => {
       try {
         setLoading(true)
         setError(null)
 
-        // Fetch all pages so we have the full dataset for client-side pagination
-        const PAGE_SIZE_API = 200
-        const all: Payment[] = []
-        let pageNum = 1
-        let hasNext = true
+        // 1) Fetch first page for immediate UI render
+        const resp = await api.get('/payments/payments/', {
+          params: { page: 1, page_size: PAGE_SIZE_API }
+        })
+        const data = resp.data
+        const firstPage = Array.isArray(data?.results) ? data.results : []
+        setPayments(firstPage)
+        setLoading(false)
 
-        while (hasNext) {
-          const resp = await api.get('/payments/payments/', {
-            params: { page: pageNum, page_size: PAGE_SIZE_API }
+        // 2) Background hydrate subsequent pages
+        let nextUrl: string | null = data?.next || null
+        setHydrating(Boolean(nextUrl))
+
+        while (nextUrl && !cancelled) {
+          // Use absolute nextUrl; axios will ignore baseURL and use this full URL
+          const nextResp = await api.get(nextUrl)
+          const nextData = nextResp.data
+          const nextResults = Array.isArray(nextData?.results) ? nextData.results : []
+
+          setPayments(prev => {
+            const merged = [...prev, ...nextResults]
+            // Deduplicate by primary key
+            return Array.from(new Map(merged.map(p => [p.id, p])).values())
           })
-          const data = resp.data
-          if (data && Array.isArray(data.results)) {
-            all.push(...data.results)
-          }
-          hasNext = Boolean(data?.next)
-          pageNum += 1
-        }
 
-        // Deduplicate by DB primary key
-        const uniqueById = Array.from(new Map(all.map(p => [p.id, p])).values())
-        setPayments(uniqueById)
+          nextUrl = nextData?.next || null
+          setHydrating(Boolean(nextUrl))
+        }
       } catch (error) {
         console.error('Error fetching payments:', error)
         setError('Failed to load payments. Please try again later.')
-      } finally {
         setLoading(false)
+        setHydrating(false)
       }
     }
-    fetchPayments()
+
+    fetchFirstPageAndHydrate()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const addFilter = () => {
@@ -459,29 +475,36 @@ export function PaymentList() {
   }, [totalPages, page])
 
   const handleDelete = async () => {
-    // This should ideally re-trigger the main fetch effect
-    const fetchPayments = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await api.get('/payments/payments/')
-        if (response.data && Array.isArray(response.data.results)) {
-          setPayments(response.data.results)
-        } else {
-          setPayments([])
-        }
-      } catch (error) {
-        console.error('Error fetching payments:', error)
-        setError('Failed to load payments. Please try again later.')
-      } finally {
-        setLoading(false)
-      }
+    // Re-fetch first page quickly; background hydration resumes via effect
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await api.get('/payments/payments/', { params: { page: 1, page_size: 50 } })
+      const data = response.data
+      const firstPage = Array.isArray(data?.results) ? data.results : []
+      setPayments(firstPage)
+    } catch (error) {
+      console.error('Error fetching payments:', error)
+      setError('Failed to load payments. Please try again later.')
+    } finally {
+      setLoading(false)
+      // We let the initial effect's hydration handle subsequent pages.
     }
-    fetchPayments()
   }
 
   const handleEdit = (payment: Payment) => {
     console.log('Edit payment:', payment)
+  }
+
+  const handleUnmatchCash = async (payment: Payment) => {
+    const cashId = payment.cash_details?.id
+    if (!cashId) return
+    try {
+      await api.post(`/payments/cash/${cashId}/unmatch/`)
+      await handleDelete() // Re-fetch payments
+    } catch (e) {
+      console.error('Failed to unmatch cash payment', e)
+    }
   }
 
   if (loading) {
@@ -965,6 +988,17 @@ export function PaymentList() {
                             </Button>
                           </ReceiptDialog>
                         )}
+                        {payment.payment_method === "CASH" && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            title="Unmatch cash payment"
+                            className="h-8 w-8 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 text-amber-600 border-amber-300"
+                            onClick={() => handleUnmatchCash(payment)}
+                          >
+                            U
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1004,6 +1038,7 @@ export function PaymentList() {
             </Select>
             <span className="text-sm text-muted-foreground">
               Showing {showingStart}-{showingEnd} of {totalItems}
+              {hydrating && " (loading more...)"}
             </span>
           </div>
           <div className="flex items-center gap-2">

@@ -84,49 +84,45 @@ export function PaymentDetailsDialog({ payment, children, onDelete, onEdit }: Pa
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="font-medium mb-2">Tenant Information</h4>
-                <p className="text-sm">{payment.tenant.user.full_name}</p>
-                <p className="text-sm text-muted-foreground">{payment.tenant.user.email}</p>
-                <p className="text-sm text-muted-foreground">{payment.tenant.user.phone}</p>
+                <p className="text-sm">{payment?.tenant?.user?.full_name || 'N/A'}</p>
+                <p className="text-sm text-muted-foreground">{payment?.tenant?.user?.email || 'N/A'}</p>
+                <p className="text-sm text-muted-foreground">{payment?.tenant?.user?.phone || 'N/A'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Property Information</h4>
-                <p className="text-sm">{payment.property.name}</p>
-                <p className="text-sm text-muted-foreground">Unit {payment.unit.unit_number}</p>
+                <p className="text-sm">{payment?.property?.name || 'N/A'}</p>
+                <p className="text-sm text-muted-foreground">
+                  Unit {payment?.unit?.unit_number || payment?.tenant?.current_unit?.unit_number || 'N/A'}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="font-medium mb-2">Payment Information</h4>
-                <p className="text-sm">Amount: ${payment.amount}</p>
-                <p className="text-sm">Balance After: ${payment.balance_after}</p>
-                <p className="text-sm">Date: {payment.paid_date}</p>
+                <p className="text-sm">Amount: ${payment?.amount ?? 0}</p>
+                <p className="text-sm">Balance After: ${payment?.balance_after ?? 0}</p>
+                <p className="text-sm">Date: {payment?.paid_date || 'N/A'}</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Payment Details</h4>
-                <p className="text-sm">Method: {payment.payment_method}</p>
-                <p className="text-sm">Type: {payment.payment_type}</p>
-                <p className="text-sm">Status: {payment.payment_status}</p>
+                <p className="text-sm">Method: {payment?.payment_method || 'N/A'}</p>
+                <p className="text-sm">Type: {payment?.payment_type || 'N/A'}</p>
+                <p className="text-sm">Status: {payment?.payment_status || 'N/A'}</p>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-2">
             <Button
-              variant="outline"
-              onClick={() => onEdit()}
-              className="bg-blue-50 hover:bg-blue-100 hover:text-blue-600 text-blue-500 border-blue-200"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
+              variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
-              className="bg-red-50 hover:bg-red-100 hover:text-red-600 text-red-500 border-red-200"
+              disabled={isDeleting}
             >
-              <Trash className="h-4 w-4 mr-2" />
-              Delete
+              Delete Payment
+            </Button>
+            <Button variant="outline" onClick={onEdit}>
+              Edit Payment
             </Button>
           </div>
         </DialogContent>

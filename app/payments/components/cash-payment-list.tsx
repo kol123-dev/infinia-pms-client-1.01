@@ -1,39 +1,79 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { formatCurrency } from "@/lib/utils"
+import api from "@/lib/axios"
+
+interface CashPayment {
+  id: number
+  receipt_number: string
+  amount: number
+  notes?: string | null
+  tenant_name?: string | null
+  property_name?: string | null
+  unit_number?: string | null
+  paid_date?: string | null
+  payment_status?: string | null
+  payment_id?: string | null
+  received_by?: { full_name?: string | null } | null
+}
 
 export function CashPaymentList() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [payments, setPayments] = useState<CashPayment[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const payments = [
-    {
-      id: "1",
-      receiptNumber: "CASH123456",
-      amount: 10000,
-      date: "2024-01-15",
-      status: "completed",
-      tenant: "John Doe",
-      property: "Sunset Apartments",
-      unit: "A101",
-      receivedBy: "Jane Smith"
-    },
-    {
-      id: "2",
-      receiptNumber: "CASH123457",
-      amount: 15000,
-      date: "2024-01-16",
-      status: "completed",
-      tenant: "Sarah Wilson",
-      property: "Downtown Complex",
-      unit: "B202",
-      receivedBy: "Mike Johnson"
+  useEffect(() => {
+    const fetchCashPayments = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const resp = await api.get('/payments/cash/', {
+          params: { page: 1, page_size: 10 }
+        })
+        const data = resp.data
+        const results: CashPayment[] = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : [])
+        setPayments(results)
+      } catch (err) {
+        console.error('Error fetching cash payments:', err)
+        setError('Failed to load cash payments. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
     }
-    // Add more sample data
-  ]
+    fetchCashPayments()
+  }, [])
+
+  const filtered = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase()
+    if (!q) return payments
+    return payments.filter(p => {
+      const fields = [
+        p.receipt_number,
+        p.tenant_name,
+        p.property_name,
+        p.unit_number,
+        p.payment_id
+      ]
+      return fields.some(f => (f || '').toString().toLowerCase().includes(q))
+    })
+  }, [payments, searchTerm])
+
+  if (loading) {
+    return (
+      <div className="py-6 text-muted-foreground">Loading cash payments...</div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="py-6 text-destructive">{error}</div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -56,24 +96,24 @@ export function CashPaymentList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {payments.map((payment) => (
+          {filtered.map((payment) => (
             <TableRow key={payment.id}>
-              <TableCell className="font-medium">{payment.receiptNumber}</TableCell>
-              <TableCell>{payment.tenant}</TableCell>
+              <TableCell className="font-bold">{payment.receipt_number || 'N/A'}</TableCell>
+              <TableCell>{payment.tenant_name || 'N/A'}</TableCell>
               <TableCell>
                 <div className="flex flex-col">
-                  <span className="font-medium">{payment.property}</span>
-                  <span className="text-sm text-green-600">Unit {payment.unit}</span>
+                  <span className="font-bold">{payment.property_name || 'N/A'}</span>
+                  <span className="text-sm text-green-600">Unit {payment.unit_number || 'N/A'}</span>
                 </div>
               </TableCell>
-              <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
-              <TableCell>{payment.date}</TableCell>
+              <TableCell className="font-bold">{formatCurrency(payment.amount || 0)}</TableCell>
+              <TableCell>{payment.paid_date ? new Date(payment.paid_date).toLocaleDateString() : 'N/A'}</TableCell>
               <TableCell>
-                <Badge variant="default" className="bg-green-500 hover:bg-green-600">
-                  {payment.status}
+                <Badge variant={(payment.payment_status || '').toLowerCase() === 'paid' ? 'default' : 'secondary'}>
+                  {payment.payment_status || 'N/A'}
                 </Badge>
               </TableCell>
-              <TableCell>{payment.receivedBy}</TableCell>
+              <TableCell>{payment.received_by?.full_name || 'N/A'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -3,6 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, Legend } from "recharts"
+import { useEffect, useState } from "react"
+import axios from "@/lib/axios"
 
 const revenueData = [
   { month: "Jan", revenue: 42000, expenses: 28000 },
@@ -38,6 +40,77 @@ const chartConfig = {
 }
 
 export function DashboardCharts() {
+  // Fetch data from backend, aggregate last 6 months revenue vs expenses, show in KES
+  const [chartData, setChartData] = useState<{ month: string; revenue: number; expenses: number }[]>([])
+
+  useEffect(() => {
+    const fetchRevenueExpenses = async () => {
+      try {
+        // 1) Fetch payments (assumes auth via axios interceptor)
+        let payments: any[] = []
+        let nextUrl: string | null = `/payments/payments/?page_size=500`
+
+        // Pull up to 3 pages to cover recent months without heavy load
+        let pageCount = 0
+        while (nextUrl && pageCount < 3) {
+          const res = await axios.get(nextUrl)
+          const data: any = res.data
+          const results = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : []
+          payments = payments.concat(results)
+          nextUrl = data?.next || null
+          pageCount += 1
+        }
+
+        // 2) Fetch expenses
+        const expRes = await axios.get('/properties/expenses/')
+        const expData: any = expRes.data
+        const expenses = Array.isArray(expData) ? expData : (Array.isArray(expData?.results) ? expData.results : [])
+
+        // 3) Build last 6 months buckets
+        const now = new Date()
+        const months: { key: string; month: string; revenue: number; expenses: number }[] = []
+        const monthKeys: string[] = []
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          const label = d.toLocaleString('en-KE', { month: 'short' })
+          months.push({ key, month: label, revenue: 0, expenses: 0 })
+          monthKeys.push(key)
+        }
+        const bucketByKey = new Map(months.map(m => [m.key, m]))
+
+        // 4) Aggregate payments: status 'PAID' with a paid_date into revenue
+        for (const p of payments) {
+          const status = p?.payment_status || p?.status
+          const paidDateStr = p?.paid_date
+          const amount = Number(p?.amount || 0)
+          if (!paidDateStr || String(status).toUpperCase() !== 'PAID') continue
+          const d = new Date(paidDateStr)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          const bucket = bucketByKey.get(key)
+          if (bucket) bucket.revenue += amount
+        }
+
+        // 5) Aggregate expenses by date
+        for (const e of expenses) {
+          const dateStr = e?.date
+          const amount = Number(e?.amount || e?.monthly_amount || 0)
+          if (!dateStr || !amount) continue
+          const d = new Date(dateStr)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          const bucket = bucketByKey.get(key)
+          if (bucket) bucket.expenses += amount
+        }
+
+        setChartData(months.map(m => ({ month: m.month, revenue: m.revenue, expenses: m.expenses })))
+      } catch (err) {
+        console.error('Error loading revenue vs expenses chart:', err)
+        setChartData([])
+      }
+    }
+
+    fetchRevenueExpenses()
+  }, [])
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card className="card-enhanced w-full">
@@ -51,7 +124,7 @@ export function DashboardCharts() {
             className="aspect-auto w-full h-[340px] md:h-[380px] lg:h-[420px]"
           >
             <BarChart
-              data={revenueData}
+              data={chartData.length ? chartData : revenueData}
               margin={{
                 top: 10,
                 right: 10,
@@ -71,13 +144,13 @@ export function DashboardCharts() {
                 tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
                 tickLine={{ stroke: "hsl(var(--border))" }}
-                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                width={40}
+                tickFormatter={(value) => `KES ${(value / 1000).toFixed(0)}k`}
+                width={60}
               />
               <ChartTooltip
                 content={<ChartTooltipContent />}
                 formatter={(value: number, name: string) => [
-                  `$${value.toLocaleString()}`,
+                  `KES ${value.toLocaleString('en-KE')}`,
                   name === "revenue" ? "Revenue" : "Expenses",
                 ]}
               />

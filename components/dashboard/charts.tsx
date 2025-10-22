@@ -43,6 +43,9 @@ export function DashboardCharts() {
   // Fetch data from backend, aggregate last 6 months revenue vs expenses, show in KES
   const [chartData, setChartData] = useState<{ month: string; revenue: number; expenses: number }[]>([])
 
+  // New: occupancy trend derived from unit lease periods
+  const [occupancyTrend, setOccupancyTrend] = useState<{ month: string; rate: number }[]>([])
+
   useEffect(() => {
     const fetchRevenueExpenses = async () => {
       try {
@@ -111,6 +114,72 @@ export function DashboardCharts() {
 
     fetchRevenueExpenses()
   }, [])
+
+  // New: compute 6-month occupancy from leases
+  useEffect(() => {
+    const fetchOccupancyTrend = async () => {
+      try {
+        let units: any[] = []
+        let nextUrl: string | null = '/units/?page_size=500'
+        let pageCount = 0
+
+        // Pull multiple pages if needed (capped for performance)
+        while (nextUrl && pageCount < 5) {
+          const res = await axios.get(nextUrl)
+          const data: any = res.data
+          const results = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : []
+          units = units.concat(results)
+          nextUrl = data?.next || null
+          pageCount += 1
+        }
+
+        const totalUnits = units.length
+
+        // Build last 6 months buckets
+        const now = new Date()
+        const months: { key: string; month: string; occupied: number }[] = []
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          const label = d.toLocaleString('en-KE', { month: 'short' })
+          months.push({ key, month: label, occupied: 0 })
+        }
+
+        // For each unit, count occupancy for each month based on lease dates
+        for (const u of units) {
+          const startStr = u?.lease_start_date || u?.leaseStartDate
+          const endStr = u?.lease_end_date || u?.leaseEndDate
+          const start = startStr ? new Date(startStr) : null
+          const end = endStr ? new Date(endStr) : null
+
+          // If we have lease data, determine occupancy for each month bucket
+          if (start) {
+            for (const m of months) {
+              const [year, mm] = m.key.split('-')
+              const startOfMonth = new Date(Number(year), Number(mm) - 1, 1)
+              const endOfMonth = new Date(Number(year), Number(mm), 0, 23, 59, 59, 999)
+
+              const occupiedDuringMonth = start <= endOfMonth && (!end || end >= startOfMonth)
+              if (occupiedDuringMonth) m.occupied += 1
+            }
+          }
+        }
+
+        const trend = months.map(m => ({
+          month: m.month,
+          rate: totalUnits > 0 ? Math.round((m.occupied / totalUnits) * 100) : 0,
+        }))
+
+        setOccupancyTrend(trend)
+      } catch (err) {
+        console.error('Error loading occupancy trend chart:', err)
+        setOccupancyTrend([])
+      }
+    }
+
+    fetchOccupancyTrend()
+  }, [])
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card className="card-enhanced w-full">
@@ -177,7 +246,7 @@ export function DashboardCharts() {
             className="aspect-auto w-full h-[340px] md:h-[380px] lg:h-[420px]"
           >
             <LineChart
-              data={occupancyData}
+              data={occupancyTrend.length ? occupancyTrend : occupancyData}
               margin={{
                 top: 10,
                 right: 10,

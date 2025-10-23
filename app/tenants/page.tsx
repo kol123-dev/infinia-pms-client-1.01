@@ -18,6 +18,7 @@ import api from '@/lib/axios'
 import { columns } from "./components/columns"
 import { DataTable } from "./components/data-table"
 import { formatCurrency } from '@/lib/utils'
+import { TenantImportDialog } from './components/tenant-import-dialog'
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
@@ -30,6 +31,7 @@ export default function TenantsPage() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | undefined>()
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
   const [totalTenantsCount, setTotalTenantsCount] = useState(0)
+  const [isImportOpen, setIsImportOpen] = useState(false)
 
   useEffect(() => {
     const fetchTenants = async () => {
@@ -88,26 +90,18 @@ export default function TenantsPage() {
 
   return (
     <MainLayout>
-      {/* Header and actions */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
-        <h1 className="text-lg font-semibold md:text-2xl">Tenants</h1>
-        <div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex">
-          <Button
-            variant="outline"
-            className="h-10 px-3 text-xs md:h-9 md:px-4 md:text-sm"
-            onClick={() => setIsGroupDialogOpen(true)}
-          >
-            <Users className="h-4 w-4" />
-            <span className="hidden xs:inline ml-2">Create Groups</span>
-            <span className="xs:hidden ml-2">Group</span>
+      {/* Header row with actions */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">Tenants</h1>
+          <p className="text-sm text-muted-foreground">{totalTenantsCount} total tenants</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            Import XLSX
           </Button>
-          <Button
-            className="h-10 px-3 text-xs md:h-9 md:px-4 md:text-sm"
-            onClick={() => { setIsEditing(false); setIsFormOpen(true) }}
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden xs:inline ml-2">Add Tenant</span>
-            <span className="xs:hidden ml-2">Add</span>
+          <Button onClick={() => { setIsEditing(false); setIsFormOpen(true) }}>
+            Add Tenant
           </Button>
         </div>
       </div>
@@ -349,6 +343,21 @@ export default function TenantsPage() {
           }}
         />
       )}
+      {/* Import dialog */}
+      <TenantImportDialog
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={async () => {
+          try {
+            const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
+            setTenants(response.data.results)
+            setTotalPages(Math.ceil(response.data.count / pageSize))
+            setTotalTenantsCount(Number(response.data.count) || 0)
+          } catch (error) {
+            toast({ variant: "destructive", description: "Failed to refresh tenants after import" })
+          }
+        }}
+      />
     </MainLayout>
   )
 }

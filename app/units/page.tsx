@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"  // Add useCallback here
+import { useState, useEffect, useCallback } from "react"
 import api from "@/lib/axios"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -15,8 +15,6 @@ import { BulkUnitForm } from "./components/bulk-unit-form"
 import { DataTable } from "./components/data-table"
 import { columns } from "./components/columns"
 import { ColumnDef } from "@tanstack/react-table"
-
-// Add these imports after existing imports
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { UnitImportDialog } from "./components/unit-import-dialog"
 
 export default function Units() {
   const [units, setUnits] = useState<Unit[]>([])
@@ -64,8 +63,11 @@ export default function Units() {
     }
   }, [toast])
 
-  const [pageSize, setPageSize] = useState(10); // New state for page size
-  const [totalCount, setTotalCount] = useState(0); // New state for total units count
+  const [pageSize, setPageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
+
+  // Import dialog state
+  const [isImportOpen, setIsImportOpen] = useState(false)
 
   const fetchUnits = useCallback(async () => {
     try {
@@ -139,6 +141,14 @@ export default function Units() {
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Multiple Units
+              </Button>
+              <Button 
+                onClick={() => setIsImportOpen(true)} 
+                variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none text-sm"
+              >
+                Import XLSX
               </Button>
               <Button 
                 onClick={() => setIsFormOpen(true)}
@@ -239,6 +249,18 @@ export default function Units() {
             setIsBulkFormOpen(false);
             fetchUnits();
             fetchStats();
+          }}
+        />
+      )}
+
+      {isImportOpen && (
+        <UnitImportDialog
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          onSuccess={() => {
+            setIsImportOpen(false)
+            fetchUnits()
+            fetchStats()
           }}
         />
       )}

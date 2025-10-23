@@ -66,12 +66,33 @@ export default function Units() {
   const [pageSize, setPageSize] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
 
+  // New: search term state
+  const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+
+  // Debounce search to avoid excessive requests
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim())
+      // Reset to first page on new search
+      setCurrentPage(0)
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchTerm])
+
   // Import dialog state
   const [isImportOpen, setIsImportOpen] = useState(false)
 
   const fetchUnits = useCallback(async () => {
     try {
-      const response = await api.get(`/units/?page=${currentPage + 1}&page_size=${pageSize}`);
+      const params = new URLSearchParams({
+        page: String(currentPage + 1),
+        page_size: String(pageSize),
+      })
+      if (debouncedSearchTerm) {
+        params.set("search", debouncedSearchTerm)
+      }
+      const response = await api.get(`/units/?${params.toString()}`);
       setUnits(response.data.results);
       setTotalCount(response.data.count);
       setTotalPages(Math.ceil(response.data.count / pageSize));
@@ -85,7 +106,7 @@ export default function Units() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, toast]);
+  }, [currentPage, pageSize, toast, debouncedSearchTerm]);
 
   useEffect(() => {
     fetchUnits();
@@ -217,14 +238,17 @@ export default function Units() {
                   data={units}
                   pageIndex={currentPage}
                   pageCount={totalPages}
-                  pageSize={pageSize} // Pass current pageSize
-                  totalCount={totalCount} // New prop for total count
+                  pageSize={pageSize}
+                  totalCount={totalCount}
                   onPageChange={(newPage) => setCurrentPage(newPage)}
                   onPageSizeChange={(newSize) => {
                     setPageSize(newSize);
-                    setCurrentPage(0); // Reset to first page on size change
-                  }} // New prop for handling size change
+                    setCurrentPage(0);
+                  }}
                   onRowClick={(row) => handleUnitClick(row.original)}
+                  // New: wire robust search
+                  searchValue={searchTerm}
+                  onSearchChange={(term) => setSearchTerm(term)}
                 />
               </div>
             </div>

@@ -77,6 +77,9 @@ interface DataTableProps<TData, TValue> {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void; // New prop for page size change
   onRowClick?: (row: Row<TData>) => void;
+  // New optional props for robust server-side search
+  searchValue?: string;
+  onSearchChange?: (term: string) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -89,11 +92,21 @@ export function DataTable<TData, TValue>({
   onPageChange,
   onPageSizeChange,
   onRowClick,
+  // New props
+  searchValue,
+  onSearchChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+
+  // Keep table’s local filtering in sync with the external search value
+  React.useEffect(() => {
+    if (typeof searchValue === "string" && searchValue !== globalFilter) {
+      setGlobalFilter(searchValue);
+    }
+  }, [searchValue]);    
 
   const table = useReactTable({
     data,
@@ -131,8 +144,12 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center gap-2">
           <Input
             placeholder="Filter units..."
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(event.target.value)}
+            value={typeof searchValue === "string" ? searchValue : globalFilter ?? ""}
+            onChange={(event) => {
+              const next = event.target.value;
+              setGlobalFilter(next);
+              onSearchChange?.(next);
+            }}
             className="max-w-sm"
           />
           <DropdownMenu>

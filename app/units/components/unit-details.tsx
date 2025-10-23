@@ -21,7 +21,9 @@ interface UnitDetailsProps {
 export function UnitDetails({ unit, isOpen, onClose, onEdit, onDelete }: UnitDetailsProps) {  // Updated props
   // Sort tenant history by end_date descending (most recent first)
   const sortedHistory = [...(unit.tenant_history || [])].sort((a, b) => {
-    return new Date(b.end_date || '').getTime() - new Date(a.end_date || '').getTime()
+    const aTime = a.end_date ? new Date(a.end_date).getTime() : -Infinity
+    const bTime = b.end_date ? new Date(b.end_date).getTime() : -Infinity
+    return bTime - aTime
   })
 
   return (

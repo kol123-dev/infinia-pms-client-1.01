@@ -33,6 +33,9 @@ export default function TenantsPage() {
   const [totalTenantsCount, setTotalTenantsCount] = useState(0)
   const [isImportOpen, setIsImportOpen] = useState(false)
 
+  // New: stats state from backend
+  const [stats, setStats] = useState<{ active_tenants: { count: number } }>({ active_tenants: { count: 0 } })
+
   useEffect(() => {
     const fetchTenants = async () => {
       try {
@@ -48,6 +51,19 @@ export default function TenantsPage() {
     fetchTenants()
   }, [pageIndex, pageSize])
 
+  // New: fetch stats once and on demand
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/tenants/stats/')
+        setStats(response.data)
+      } catch (error) {
+        console.error('Error fetching tenant stats:', error)
+      }
+    }
+    fetchStats()
+  }, [])
+
   const handleAddTenant = async (data: any) => {
     try {
       await api.post('/tenants/', data)
@@ -58,6 +74,8 @@ export default function TenantsPage() {
     } catch (error) {
       console.error('Error creating tenant:', error)
       toast({ variant: "destructive", description: "Failed to create tenant" })
+      // Refresh stats after add
+      await api.get('/tenants/stats/').then(r => setStats(r.data))
     }
   }
 
@@ -68,13 +86,16 @@ export default function TenantsPage() {
       setIsFormOpen(false)
       const response = await api.get('/tenants/')
       setTenants(response.data.results)
+      // Refresh stats after edit
+      await api.get('/tenants/stats/').then(r => setStats(r.data))
     } catch (error) {
       console.error('Error updating tenant:', error)
       toast({ variant: "destructive", description: "Failed to update tenant" })
     }
   }
 
-  // Calculate summary statistics
+  // Remove local active count use; rely on backend stats below
+  // const totalActiveUnits = tenants.filter(tenant => tenant.status === 'ACTIVE').length
   const totalActiveUnits = tenants.filter(tenant => tenant.status === 'ACTIVE').length
   
   // Update the calculation to handle potential null/undefined values and ensure number conversion
@@ -117,7 +138,7 @@ export default function TenantsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-2 pt-0">
-              <div className="text-lg font-bold text-foreground">{totalActiveUnits}</div>
+              <div className="text-lg font-bold text-foreground">{stats.active_tenants?.count ?? 0}</div>
               <div className="flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-green-600" />
                 <p className="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-green-600">Active tenants</p>
@@ -185,7 +206,7 @@ export default function TenantsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-foreground">{totalActiveUnits}</div>
+            <div className="text-2xl font-bold text-foreground">{stats.active_tenants?.count ?? 0}</div>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-green-600" />
               <p className="text-xs text-green-600">Active tenants</p>
@@ -271,9 +292,10 @@ export default function TenantsPage() {
                   try {
                     await api.delete(`/tenants/${tenant.id}/`)
                     toast({ description: "Tenant deleted successfully" })
-                    // Refresh tenants list
                     const response = await api.get('/tenants/')
                     setTenants(response.data.results)
+                    // Refresh stats after delete
+                    await api.get('/tenants/stats/').then(r => setStats(r.data))
                   } catch (error) {
                     toast({ variant: "destructive", description: "Failed to delete tenant" })
                   }
@@ -282,19 +304,18 @@ export default function TenantsPage() {
               onMoveOut: async (tenant: Tenant) => {
                 if (confirm(`Are you sure you want to move out ${tenant.user?.full_name}?`)) {
                   try {
-                    // Update tenant status and move_out_date
                     await api.patch(`/tenants/${tenant.id}/`, {
-                      status: 'PAST',  // Change from tenant_status to status
+                      status: 'PAST',
                       move_out_date: new Date().toISOString().split('T')[0]
                     })
-                    // Free the unit (assuming an endpoint or patch unit)
                     if (tenant.current_unit?.id) {
                       await api.patch(`/units/${tenant.current_unit.id}/`, { unit_status: 'VACANT', current_tenant: null })
                     }
                     toast({ description: "Tenant moved out successfully" })
-                    // Refresh tenants list
                     const response = await api.get('/tenants/')
                     setTenants(response.data.results)
+                    // Refresh stats after move-out
+                    await api.get('/tenants/stats/').then(r => setStats(r.data))
                   } catch (error) {
                     toast({ variant: "destructive", description: "Failed to move out tenant" })
                   }
@@ -305,44 +326,6 @@ export default function TenantsPage() {
         </CardContent>
       </Card>
 
-      {isFormOpen && !isEditing && (
-        <TenantOnboardingFlow 
-          onClose={() => setIsFormOpen(false)} 
-        />
-      )}
-
-      {isFormOpen && isEditing && selectedTenant && (
-        <TenantEditDialog
-          tenant={selectedTenant}
-          isOpen={true}
-          onClose={() => {
-            setIsFormOpen(false);
-            setIsEditing(false);
-            setSelectedTenant(undefined);
-          }}
-          onUpdate={async (updatedTenant: Tenant) => {
-            const response = await api.get('/tenants/');
-            setTenants(response.data.results);
-          }}
-        />
-      )}
-
-      {selectedTenant && (
-        <TenantDetails
-          tenant={selectedTenant}
-          isOpen={isDetailsOpen}
-          onClose={() => {
-            setIsDetailsOpen(false)
-            setSelectedTenant(undefined)
-          }}
-          onEdit={(tenant: Tenant) => {
-            setSelectedTenant(tenant)
-            setIsEditing(true)
-            setIsDetailsOpen(false)
-            setIsFormOpen(true)
-          }}
-        />
-      )}
       {/* Import dialog */}
       <TenantImportDialog
         isOpen={isImportOpen}
@@ -353,6 +336,8 @@ export default function TenantsPage() {
             setTenants(response.data.results)
             setTotalPages(Math.ceil(response.data.count / pageSize))
             setTotalTenantsCount(Number(response.data.count) || 0)
+            // Refresh stats after import
+            await api.get('/tenants/stats/').then(r => setStats(r.data))
           } catch (error) {
             toast({ variant: "destructive", description: "Failed to refresh tenants after import" })
           }

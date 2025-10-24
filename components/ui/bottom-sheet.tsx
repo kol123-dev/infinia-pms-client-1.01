@@ -20,15 +20,24 @@ export function BottomSheet({ children, isOpen, onClose, title, className }: Bot
     setMounted(true)
   }, [])
 
+  // Limit scroll locking to mobile; restore cleanly when closed
   useEffect(() => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+    if (!isMobile) return
+
+    const html = document.documentElement
+
     if (isOpen) {
+      html.style.overflow = "hidden"
       document.body.style.overflow = "hidden"
     } else {
-      document.body.style.overflow = "unset"
+      html.style.overflow = ""
+      document.body.style.overflow = ""
     }
 
     return () => {
-      document.body.style.overflow = "unset"
+      html.style.overflow = ""
+      document.body.style.overflow = ""
     }
   }, [isOpen])
 
@@ -36,14 +45,19 @@ export function BottomSheet({ children, isOpen, onClose, title, className }: Bot
 
   return (
     <>
-      {/* Backdrop */}
-      {isOpen && <div className="fixed inset-0 z-40 bg-black/50 animate-fade-in" onClick={onClose} />}
+      {/* Backdrop (mobile-only) */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 animate-fade-in md:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet (mobile-only, non-interactive when closed) */}
       <div
         className={cn(
-          "bottom-sheet max-h-[80vh] overflow-y-auto",
-          isOpen ? "translate-y-0" : "translate-y-full",
+          "bottom-sheet max-h-[80vh] overflow-y-auto md:hidden",
+          isOpen ? "translate-y-0 pointer-events-auto" : "translate-y-full pointer-events-none",
           className,
         )}
       >

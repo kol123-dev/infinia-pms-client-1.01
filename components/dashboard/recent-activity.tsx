@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useState } from "react"
 import axios from "@/lib/axios"
+import Link from "next/link"
 
 const activities = [
   {
@@ -47,9 +48,11 @@ const activities = [
 export function RecentActivity() {
     const [activities, setActivities] = useState<Array<{
       id: string | number
+      payment_pk?: number
       type: "payment"
       description: string
       amount: string
+      balance_after?: string
       time: string
       status: "completed"
       entity: string
@@ -66,16 +69,16 @@ export function RecentActivity() {
           const fmtAmount = (n: number) =>
             new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(n)
 
-          const timeAgo = (dateStr?: string | null) => {
-            if (!dateStr) return ''
-            const d = new Date(dateStr)
+          const timeAgo = (iso: string | undefined) => {
+            if (!iso) return 'Unknown time'
+            const d = new Date(iso)
             const diffMs = Date.now() - d.getTime()
-            const mins = Math.floor(diffMs / 60000)
-            if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
-            const hours = Math.floor(mins / 60)
-            if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
-            const days = Math.floor(hours / 24)
-            return `${days} day${days === 1 ? '' : 's'} ago`
+            const diffMin = Math.floor(diffMs / 60000)
+            if (diffMin < 60) return `${diffMin} min ago`
+            const diffHr = Math.floor(diffMin / 60)
+            if (diffHr < 24) return `${diffHr} hrs ago`
+            const diffDay = Math.floor(diffHr / 24)
+            return `${diffDay} days ago`
           }
 
           const mapped = results
@@ -86,13 +89,16 @@ export function RecentActivity() {
                 p?.mpesa_details?.first_name || p?.cash_details?.tenant_name || p?.bank_details?.tenant_name || null
               const description = `Payment received from ${tenantName || payerFallback || 'Unknown'}`
               const amountStr = fmtAmount(Number(p?.amount || 0))
+              const balanceStr = fmtAmount(Number(p?.balance_after || 0))
               const propertyName = p?.property?.name || 'Unknown Property'
               const unitNumber = p?.unit?.unit_number || p?.account_reference || null
               return {
                 id: p?.payment_id || p?.id,
+                payment_pk: p?.id, // numeric PK for routing
                 type: "payment" as const,
                 description,
                 amount: amountStr,
+                balance_after: balanceStr,
                 time: timeAgo(p?.paid_date),
                 status: "completed" as const,
                 entity: propertyName,
@@ -130,25 +136,40 @@ export function RecentActivity() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">{activity.description}</p>
-                    {activity.amount && <p className="text-sm text-green-600 font-medium">{activity.amount}</p>}
-                    {/* Property name badge */}
-                    <div className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <p className="text-xs text-muted-foreground">{activity.time}</p>
-                        <Badge variant="default" className="text-xs h-5">completed</Badge>
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[120px]"
-                        >
-                          {activity.entity}
-                        </Badge>
+                    {/* 1) Clickable message to payment details */}
+                    <Link
+                      href={`/payments/${activity.payment_pk}`}
+                      className="text-sm font-medium leading-tight hover:underline"
+                    >
+                      {activity.description}
+                    </Link>
+
+                    {/* 2) Amount + New balance, one line */}
+                    {activity.amount && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-green-600 font-medium">{activity.amount}</span>
+                        {activity.balance_after && (
+                          <span className="text-sm font-medium text-red-600">
+                            balance: {activity.balance_after}
+                          </span>
+                        )}
                       </div>
-                      {/* Unit number directly below the property name */}
+                    )}
+
+                    {/* 3) Meta row with property + unit on the same line */}
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                      <Badge variant="default" className="text-xs h-5">completed</Badge>
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[140px]"
+                      >
+                        {activity.entity}
+                      </Badge>
                       {activity.unit_number && (
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                          Unit {activity.unit_number}
-                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          • Unit {activity.unit_number}
+                        </span>
                       )}
                     </div>
                   </div>

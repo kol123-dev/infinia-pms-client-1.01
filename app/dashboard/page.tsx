@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
-import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"  // Added MessageSquare
+import { BottomSheet } from "@/components/ui/bottom-sheet"
+import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"
 import { DashboardCharts } from "@/components/dashboard/charts"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
@@ -15,8 +16,8 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import axios from '@/lib/axios';
 import { formatCurrency } from "@/lib/utils"
-import { useToast } from '@/hooks/use-toast';  // Import for toast notifications
-import { Tenant } from '../tenants/types';  // Import for Tenant type
+import { useToast } from '@/hooks/use-toast';
+import { Tenant } from '../tenants/types';
 import Link from 'next/link';
 
 const quickActions = [
@@ -35,6 +36,7 @@ const quickActions = [
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isFabSheetOpen, setFabSheetOpen] = useState(false)
 
   // States for dynamic stats and loading
   const [stats, setStats] = useState([
@@ -298,9 +300,33 @@ export default function Dashboard() {
         */}
 
         {/* Floating Action Button - Mobile Only */}
-        <FloatingActionButton className="md:hidden">
+        <FloatingActionButton className="md:hidden" onClick={() => setFabSheetOpen(true)}>
           <Plus className="h-6 w-6" />
         </FloatingActionButton>
+
+        {/* Quick Actions Bottom Sheet (opens when FAB is tapped) */}
+        <BottomSheet
+          isOpen={isFabSheetOpen}
+          onClose={() => setFabSheetOpen(false)}
+          title="Quick Actions"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            {quickActions.map((action) => (
+              <Button
+                key={action.label}
+                variant={action.variant}
+                className="w-full justify-start gap-2"
+                onClick={() => {
+                  setFabSheetOpen(false)
+                  router.push(action.href)
+                }}
+              >
+                <action.icon className="h-4 w-4" />
+                <span>{action.label}</span>
+              </Button>
+            ))}
+          </div>
+        </BottomSheet>
       </div>
     </MainLayout>
   )

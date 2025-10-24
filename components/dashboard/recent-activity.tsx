@@ -128,7 +128,7 @@ export function RecentActivity() {
               {activities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="md:grid md:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-x-4 md:gap-x-6 lg:gap-x-8 p-3 rounded-lg hover:bg-accent/50 transition-colors border-b last:border-b-0"
+                  className="md:grid md:grid-cols-[auto_minmax(0,1fr)_minmax(240px,auto)_auto_auto] items-center gap-x-4 md:gap-x-6 lg:gap-x-8 p-3 rounded-lg hover:bg-accent/50 transition-colors border-b last:border-b-0"
                 >
                   {/* Avatar */}
                   <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
@@ -145,12 +145,14 @@ export function RecentActivity() {
                     {activity.description}
                   </Link>
 
-                  {/* Amount + balance (tight, non-wrapping) */}
+                  {/* Amount + balance (aligned, non-wrapping) */}
                   {activity.amount && (
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <span className="text-sm text-green-600 font-medium">{activity.amount}</span>
+                    <div className="md:col-span-1 flex items-center md:justify-end gap-3 whitespace-nowrap tabular-nums">
+                      <span className="text-sm font-semibold text-green-600 md:text-right">
+                        {activity.amount}
+                      </span>
                       {activity.balance_after && (
-                        <span className="text-sm font-medium text-red-600">
+                        <span className="text-sm font-semibold text-red-600 md:text-right">
                           balance: {activity.balance_after}
                         </span>
                       )}

@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"  // Added MessageSquare
 import { DashboardCharts } from "@/components/dashboard/charts"
-// import { RecentActivity } from "@/components/dashboard/recent-activity"
+import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -240,6 +240,11 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Recent Activity - placed after Quick Actions, before Charts */}
+        <div className="min-h-[300px]">
+          <RecentActivity />
+        </div>
 
         {/* Charts and Activity - Stacked on Mobile */}
         <div className="space-y-4 lg:space-y-0 lg:grid lg:gap-4 xl:gap-6 lg:grid-cols-2 xl:grid-cols-3">

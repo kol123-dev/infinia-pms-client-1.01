@@ -1,3 +1,4 @@
+// Top-level imports in sidebar.tsx
 "use client"
 
 import { useState } from "react"
@@ -157,10 +158,8 @@ function SidebarContent() {
         </div>
       </div>
 
-      {/* Entity Selector - Mobile - Fixed */}
-      <div className="p-4 border-b md:hidden flex-shrink-0">
-        <EntitySelector />
-      </div>
+      {/* Removed: Entity Selector - Mobile - Fixed */}
+      {/* Previously rendered `<EntitySelector />` here; now fully removed to hide "InfiniaSync Property 12" */}
 
       {/* Navigation Content - Scrollable only if needed */}
       <div className="flex-1 overflow-y-auto px-4">
@@ -235,11 +234,6 @@ function SidebarContent() {
       {/* Footer - Fixed at bottom */}
       <div className="border-t p-4 flex-shrink-0">
         <div className="flex flex-col gap-4">
-          {/* Commented out temporarily to hide Current Context */}
-          {/* <div className="entity-badge">
-            <span className="text-xs">Current Context</span>
-            <span className="badge-count">3</span>
-          </div> */}
           <Button 
             variant="ghost" 
             className="w-full justify-start gap-3 text-muted-foreground hover:text-accent-foreground"

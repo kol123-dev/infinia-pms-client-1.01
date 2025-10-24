@@ -146,7 +146,7 @@ export function RecordPaymentDialog({ children }: RecordPaymentDialogProps) {
                     key={tenant.id} 
                     value={tenant.id.toString()}
                   >
-                    {tenant.user.full_name} - Unit {tenant.current_unit.unit_number}
+                    {tenant?.user?.full_name || "Unknown"} - Unit {tenant?.current_unit?.unit_number ?? "N/A"}
                   </SelectItem>
                 ))}
               </SelectContent>

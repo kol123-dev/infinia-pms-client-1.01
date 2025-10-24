@@ -128,50 +128,71 @@ export function RecentActivity() {
               {activities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-start space-x-3 p-3 rounded-lg hover:bg-accent/50 transition-colors"
+                  className="md:grid md:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-x-4 md:gap-x-6 lg:gap-x-8 p-3 rounded-lg hover:bg-accent/50 transition-colors border-b last:border-b-0"
                 >
+                  {/* Avatar */}
                   <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                     <AvatarFallback className="bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 text-xs">
                       {"💰"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 space-y-1 min-w-0">
-                    {/* 1) Clickable message to payment details */}
-                    <Link
-                      href={`/payments/${activity.payment_pk}`}
-                      className="text-sm font-medium leading-tight hover:underline"
-                    >
-                      {activity.description}
-                    </Link>
 
-                    {/* 2) Amount + New balance, one line */}
-                    {activity.amount && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-green-600 font-medium">{activity.amount}</span>
-                        {activity.balance_after && (
-                          <span className="text-sm font-medium text-red-600">
-                            balance: {activity.balance_after}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                  {/* Description (clickable) */}
+                  <Link
+                    href={`/payments/${activity.payment_pk}`}
+                    className="text-sm font-medium leading-tight hover:underline truncate"
+                  >
+                    {activity.description}
+                  </Link>
 
-                    {/* 3) Meta row with property + unit on the same line */}
-                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
-                      <Badge variant="default" className="text-xs h-5">completed</Badge>
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[140px]"
-                      >
-                        {activity.entity}
-                      </Badge>
-                      {activity.unit_number && (
-                        <span className="text-xs text-muted-foreground">
-                          • Unit {activity.unit_number}
+                  {/* Amount + balance (tight, non-wrapping) */}
+                  {activity.amount && (
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <span className="text-sm text-green-600 font-medium">{activity.amount}</span>
+                      {activity.balance_after && (
+                        <span className="text-sm font-medium text-red-600">
+                          balance: {activity.balance_after}
                         </span>
                       )}
                     </div>
+                  )}
+
+                  {/* Property + unit (desktop) */}
+                  <div className="hidden md:flex items-center gap-3 whitespace-nowrap">
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[200px]"
+                    >
+                      {activity.entity}
+                    </Badge>
+                    {activity.unit_number && (
+                      <span className="text-xs text-muted-foreground">
+                        • Unit {activity.unit_number}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Time + status (desktop, non-wrapping) */}
+                  <div className="hidden md:flex items-center justify-end gap-3 whitespace-nowrap">
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    <Badge variant="default" className="text-xs h-5">completed</Badge>
+                  </div>
+
+                  {/* Mobile meta row (unchanged) */}
+                  <div className="flex items-center gap-1 sm:gap-2 md:hidden mt-1">
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    <Badge variant="default" className="text-xs h-5">completed</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[140px]"
+                    >
+                      {activity.entity}
+                    </Badge>
+                    {activity.unit_number && (
+                      <span className="text-xs text-muted-foreground">
+                        • Unit {activity.unit_number}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

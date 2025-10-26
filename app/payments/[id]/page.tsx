@@ -39,7 +39,7 @@ export default function PaymentDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Payment Details</CardTitle>
-          <CardDescription>View payment information and manage records</CardDescription>
+          <CardDescription>View payments information and manage records</CardDescription>
         </CardHeader>
         <CardContent>
           {loading && <p className="text-muted-foreground">Loading...</p>}

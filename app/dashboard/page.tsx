@@ -130,8 +130,8 @@ export default function Dashboard() {
             </p>
           </div>
           <Badge variant="outline" className="entity-badge w-fit self-start md:self-center">
-            <span className="text-xs sm:text-sm">InfiniaSync Property</span>
-            {/* removed hardcoded badge count to avoid "InfiniaSync Property12" */}
+            <span className="text-xs sm:text-sm">InfiniaSync Properties</span>
+            
           </Badge>
         </div>
 

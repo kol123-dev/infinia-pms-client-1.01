@@ -35,7 +35,7 @@ export default function SMS() {
   const { data: smsMessages } = useQuery<{ count: number, results: SmsMessage[] }>({ 
     queryKey: ["sms-messages"],
     queryFn: async () => {
-      const response = await axios.get("/communications/messages/")  // Add trailing slash back
+      const response = await axios.get("/communications/messages/?ordering=-sent_at&page_size=50")
       return response.data
     }
   })
@@ -83,25 +83,38 @@ export default function SMS() {
     }
   }
   
-  const handleSendMessage = async (message: string, recipients: string[], groups: string[]) => {
+  const handleSendMessage = async (message: string, recipients: string[], groups: string[], propertyId?: string) => {
     try {
-      // Separate manual numbers from tenant IDs
       const tenantIds = recipients.filter((r) => /^\d+$/.test(r)).map((r) => Number(r))
       const manualNumbers = recipients.filter((r) => !/^\d+$/.test(r))
-
-      // Prefer landlord from selected group when available
+  
       const groupLandlordId =
         (tenantGroups?.results || [])
           .find((g) => groups.length && String(g.id) === String(groups[0]))?.landlord?.id
-
-      await axios.post("/communications/messages/bulk/", {
+  
+      const response = await axios.post("/communications/messages/bulk/", {
         body: message,
         recipient_groups: groups,
         individual_recipient: manualNumbers,
         individual_recipient_ids: tenantIds,
-        landlord: groupLandlordId || user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id
+        landlord: groupLandlordId || user?.landlord_profile?.id || user?.agent_profile?.managed_landlords[0]?.id,
+        property: propertyId ? Number(propertyId) : undefined  // New: property scope
       })
-      queryClient.invalidateQueries({ queryKey: ["sms-messages"] })
+  
+      const createdMessage = response.data as SmsMessage
+  
+      queryClient.setQueryData<{ count: number, results: SmsMessage[] }>(["sms-messages"], (prev) => {
+        if (!prev) {
+          return { count: 1, results: [createdMessage] }
+        }
+        const exists = prev.results.some((m) => m.id === createdMessage.id)
+        const results = exists
+          ? prev.results.map((m) => (m.id === createdMessage.id ? createdMessage : m))
+          : [createdMessage, ...prev.results]
+        return { count: exists ? prev.count : prev.count + 1, results }
+      })
+  
+      await queryClient.invalidateQueries({ queryKey: ["sms-messages"] })
     } catch (error) {
       console.error('Failed to send message:', error)
     }
@@ -150,10 +163,14 @@ export default function SMS() {
   // Add search state for message history
   const [searchTerm, setSearchTerm] = useState("")
 
-  // Filter messages based on search
-  const filteredMessages = smsMessages?.results.filter((msg: SmsMessage) => 
-    msg.body.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  // Filter messages based on search and show newest first
+  const filteredMessages = (smsMessages?.results || [])
+    .filter((msg: SmsMessage) =>
+      msg.body.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a: SmsMessage, b: SmsMessage) =>
+      new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+    )
 
   return (
     <MainLayout>

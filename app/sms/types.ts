@@ -34,6 +34,9 @@ export interface Tenant {
     };
     phone: string;
     balance_due: string;
+    current_unit?: {
+      property?: Property
+    }
 }
 
 export interface Property {

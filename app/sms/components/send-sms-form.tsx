@@ -10,13 +10,11 @@ import { SmsTemplate, Tenant, TenantGroup } from "../types"
 import { SelectedGroupMembers } from "./selected-group-members"
 import { Users, User, Phone } from 'lucide-react'
 
-type RecipientType = 'group' | 'individual' | 'manual'
-
 interface SendSmsFormProps {
   templates?: { count: number; results: SmsTemplate[] }
   tenants?: { count: number; results: Tenant[] }
   tenantGroups?: { count: number; results: TenantGroup[] }
-  onSend: (message: string, recipients: string[], groups: string[]) => void
+  onSend: (message: string, recipients: string[], groups: string[], propertyId?: string) => void
 }
 
 export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSmsFormProps) {
@@ -28,6 +26,7 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
   const [selectedUser, setSelectedUser] = useState<string>('')
   const [manualNumbers, setManualNumbers] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<Tenant[]>([])
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
 
   // Group tenantGroups by property for overdue rent
   const propertyGroups = tenantGroups?.results.reduce((acc, group) => {
@@ -48,12 +47,30 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
     }
   }
 
+  // Build property options from tenants' current_unit.property (no new fetch)
+  const propertyOptions = Array.from(
+    new Map(
+      (tenants?.results || [])
+        .map(t => {
+          const p = t.current_unit?.property
+          return p ? [String(p.id), p.name || `Property #${p.id}`] : null
+        })
+        .filter(Boolean) as [string, string][]
+    )
+  ).map(([id, name]) => ({ id, name }))
+
+  // Add filteredUsers for individual search
+  const filteredUsers: Tenant[] = (tenants?.results || []).filter((t: Tenant) => {
+    const q = searchQuery.toLowerCase()
+    const name = t.user?.full_name?.toLowerCase() || ""
+    const phone = (t.user?.phone || t.phone || "").toLowerCase()
+    return name.includes(q) || phone.includes(q)
+  })
+
   const handleSend = () => {
     if (!newMessage.trim()) return
-
     let recipients: string[] = []
     let groups: string[] = []
-
     switch (recipientType) {
       case 'group':
         if (selectedGroup) groups = [selectedGroup]
@@ -65,45 +82,40 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
         recipients = manualNumbers.split(',').map(num => num.trim()).filter(Boolean)
         break
     }
-
-    onSend(newMessage, recipients, groups)
+    onSend(newMessage, recipients, groups, selectedPropertyId || undefined)
     setNewMessage("")
     setSelectedGroup('')
     setSelectedUser('')
     setManualNumbers('')
+    setSelectedPropertyId('')
   }
-
-  const filteredUsers = searchQuery
-    ? tenants?.results.filter(tenant =>
-        tenant.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tenant.phone?.includes(searchQuery)
-      )
-    : []
 
   const handleGroupSelect = (groupId: string) => {
     setSelectedGroup(groupId)
-    
-    // Handle default groups
+    const tenantsList = tenants?.results || []
+    const scopedTenants = selectedPropertyId
+      ? tenantsList.filter(t => String(t.current_unit?.property?.id) === selectedPropertyId)
+      : tenantsList
+
     switch (groupId) {
       case 'all-tenants':
-        setSelectedMembers(tenants?.results || [])
+        setSelectedMembers(scopedTenants)
         break
       case 'overdue-rent':
-        // Filter tenants with positive balance_due
-        const overdueTenantsData = tenants?.results.filter(tenant => 
-          parseFloat(tenant.balance_due) > 0
-        ) || []
+        const overdueTenantsData = scopedTenants.filter(tenant => parseFloat(tenant.balance_due) > 0)
         setSelectedMembers(overdueTenantsData)
         break
       case 'all-landlords':
-        // You'll need to fetch landlords data or handle this case appropriately
         setSelectedMembers([])
         break
       default:
-        // Handle custom tenant groups
-        const selectedGroup = tenantGroups?.results.find(g => g.id.toString() === groupId)
-        if (selectedGroup?.tenants && selectedGroup.tenants.length > 0) {
-          setSelectedMembers(selectedGroup.tenants)
+        const selectedGroupObj = tenantGroups?.results.find(g => g.id.toString() === groupId)
+        if (selectedGroupObj?.tenants && selectedGroupObj.tenants.length > 0) {
+          const grpMembers = selectedGroupObj.tenants
+          const filtered = selectedPropertyId
+            ? grpMembers.filter(t => String(t.current_unit?.property?.id) === selectedPropertyId)
+            : grpMembers
+          setSelectedMembers(filtered)
         } else {
           setSelectedMembers([])
         }
@@ -158,7 +170,7 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
         </RadioGroup>
 
         {recipientType === 'group' && (
-          <div className="mt-2">
+          <div className="mt-2 space-y-3">
             <Select value={selectedGroup} onValueChange={handleGroupSelect}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a group" />
@@ -174,6 +186,19 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Optional Property filter */}
+            <Select value={selectedPropertyId} onValueChange={(val) => setSelectedPropertyId(val)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by property (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {propertyOptions.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {selectedMembers.length > 0 && (
               <SelectedGroupMembers
                 members={selectedMembers}
@@ -193,13 +218,13 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
             />
             {searchQuery && (
               <div className="max-h-40 overflow-y-auto border rounded-md p-2">
-                {filteredUsers?.map((user) => (
+                {filteredUsers?.map((user: Tenant) => (
                   <div
                     key={user.id}
                     className={`p-2 cursor-pointer hover:bg-gray-100 rounded ${selectedUser === user.id.toString() ? 'bg-gray-100' : ''}`}
                     onClick={() => setSelectedUser(user.id.toString())}
                   >
-                    {user.user?.full_name} - {user.phone}
+                    {user.user?.full_name} - {user.phone || user.user?.phone}
                   </div>
                 ))}
               </div>
@@ -236,3 +261,5 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
     </div>
   )
 }
+
+type RecipientType = 'group' | 'individual' | 'manual'

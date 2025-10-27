@@ -16,6 +16,11 @@ export function MessageHistory({ messages, onMessageSelect }: MessageHistoryProp
       columns={columns}
       data={messages?.results || []}
       onRowClick={(message) => onMessageSelect(message.original)}
+      getRowClassName={(row) => {
+        const m = row.original as SmsMessage
+        const isPartial = m.status === 'sent' && !!m.error_message
+        return isPartial ? "bg-amber-900/20" : ""  // subtle highlight for partial sends
+      }}
     />
   )
 }

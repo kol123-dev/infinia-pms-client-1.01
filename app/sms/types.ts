@@ -75,6 +75,8 @@ export interface SmsMessage {
   sent_at: string
   status: SmsStatus
   recipients: Recipient[]
+  manual_recipients?: string[]
+  error_message?: string
 }
 
 export interface SmsTemplate {

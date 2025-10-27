@@ -28,6 +28,16 @@ export const columns: ColumnDef<SmsMessage>[] = [
         </Button>
       )
     },
+    cell: ({ row }) => {
+      const msg = row.original as SmsMessage
+      const tenantRecipients = (msg.recipients || [])
+        .map(r => r.user?.full_name || r.user?.phone)
+        .filter(Boolean)
+      const manual = msg.manual_recipients || []
+      const displayList = tenantRecipients.length ? tenantRecipients : manual
+      const display = displayList.length > 0 ? displayList.join(", ") : "—"
+      return display
+    },
   },
   {
     accessorKey: "body",
@@ -42,7 +52,7 @@ export const columns: ColumnDef<SmsMessage>[] = [
     },
   },
   {
-    accessorKey: "created_at",
+    accessorKey: "sent_at",
     header: ({ column }) => {
       return (
         <Button
@@ -53,6 +63,10 @@ export const columns: ColumnDef<SmsMessage>[] = [
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
+    },
+    cell: ({ row }) => {
+      const msg = row.original as SmsMessage
+      return msg.sent_at ? new Date(msg.sent_at).toLocaleString() : "—"
     },
   },
 ]

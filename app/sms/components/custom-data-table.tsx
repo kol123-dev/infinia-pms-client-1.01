@@ -5,12 +5,14 @@ interface CustomDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onRowClick?: (row: Row<TData>) => void
+  getRowClassName?: (row: Row<TData>) => string
 }
 
 export function CustomDataTable<TData, TValue>({
   columns,
   data,
-  onRowClick
+  onRowClick,
+  getRowClassName
 }: CustomDataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -44,7 +46,7 @@ export function CustomDataTable<TData, TValue>({
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
                 onClick={() => onRowClick?.(row)}
-                className="cursor-pointer hover:bg-muted/50"
+                className={`cursor-pointer hover:bg-muted/50 ${getRowClassName?.(row) || ""}`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="px-2 py-1 text-xs md:px-4 md:py-2 md:text-sm">

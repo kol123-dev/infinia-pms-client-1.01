@@ -56,15 +56,27 @@ export function MessageDetailsModal({ message, onClose, onDelete }: MessageDetai
           <div>
             <h4 className="font-medium mb-1">Message</h4>
             <p className="text-sm">{message.body}</p>
+            {message.error_message && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Note: {message.error_message}
+              </p>
+            )}
           </div>
 
           <div>
-            <h4 className="font-medium mb-1">Recipients ({message.recipients.length})</h4>
+            <h4 className="font-medium mb-1">
+              Recipients ({(message.recipients?.length || 0) + (message.manual_recipients?.length || 0)})
+            </h4>
             <div className="space-y-2">
-              {message.recipients.map((recipient: Recipient) => (
+              {message.recipients?.map((recipient: Recipient) => (
                 <div key={recipient.id} className="text-sm flex items-center space-x-2">
                   <span>{recipient.user.full_name}</span>
                   <span className="text-muted-foreground">({recipient.user.phone})</span>
+                </div>
+              ))}
+              {(message.manual_recipients || []).map((number, idx) => (
+                <div key={`manual-${idx}`} className="text-sm flex items-center space-x-2">
+                  <span className="text-muted-foreground">{number}</span>
                 </div>
               ))}
             </div>

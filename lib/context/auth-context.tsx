@@ -4,6 +4,7 @@ import { signIn, signOut, useSession } from 'next-auth/react'
 import { createContext, useContext, useState } from "react"
 import { useUser } from "./user-context"
 import { useAuthSession } from "@/hooks/use-auth-session"
+import api from "@/lib/axios"
 
 interface AuthContextType {
   loading: boolean
@@ -63,11 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // Tell backend to clear session cookie
+      await api.post('auth/logout/', {})
       await signOut({ redirect: false })
       clearUser()
       setError(null)
     } catch (err) {
       console.error('Logout error:', err)
+      // Ensure client signout even if backend fails
+      await signOut({ redirect: false })
+      clearUser()
       throw new Error('Failed to logout')
     }
   }

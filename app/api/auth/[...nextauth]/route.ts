@@ -33,9 +33,10 @@ async function authenticateWithBackend(idToken: string) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
-    });
-    
+      },
+      withCredentials: true, // ensure session cookie is set on successful login
+    })
+
     // Ensure token is properly formatted - remove any whitespace
     const trimmedToken = idToken.trim();
     console.log(`Sending token to backend (length: ${trimmedToken.length})`);

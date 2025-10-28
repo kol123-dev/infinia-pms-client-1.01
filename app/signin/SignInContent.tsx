@@ -36,6 +36,19 @@ export default function SignInContent() {
       if (result?.error) {
         setError(result.error)
       } else {
+        // Call backend login from the browser to set Django session cookie
+        const session = await fetch('/api/auth/session').then(res => res.json())
+        const firebaseToken = session?.firebaseToken
+        if (firebaseToken) {
+            // Use your axios client (sends cookies via withCredentials)
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+            await fetch(`${apiBase.replace(/`/g, '')}/auth/firebase-login/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ id_token: firebaseToken.trim() }),
+            })
+        }
         router.push(callbackUrl)
       }
     } catch (error: unknown) {

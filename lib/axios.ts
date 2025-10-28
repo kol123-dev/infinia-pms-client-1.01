@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type AxiosRequestHeaders } from 'axios'
 
 // Log the environment for debugging
 console.log('NODE_ENV:', process.env.NODE_ENV)
@@ -38,76 +38,46 @@ const api = axios.create({
   },
 })
 
-// Add this at the top of the file, after imports
-const SESSION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
-let cachedSession: { token: string; timestamp: number } | null = null;
+// Always send cookies for session-based auth
+api.defaults.withCredentials = true
 
-// Update the request interceptor
+// Request interceptor: ensure cookies + CSRF; DO NOT add Authorization
 api.interceptors.request.use(
-  async (config) => {
-    // Skip interceptor for session and login endpoints to prevent loops
-    if (
-      config.url === 'auth/firebase-login/' ||
-      config.url?.includes('/api/auth/session')
-    ) {
-      return config;
-    }
-    
-    if (typeof window !== 'undefined') {
-      try {
-        // Check if we have a valid cached session first
-        const now = Date.now();
-        if (cachedSession && (now - cachedSession.timestamp) < SESSION_CACHE_DURATION) {
-          config.headers['Authorization'] = `Bearer ${cachedSession.token}`;
-          return config;
+  (config) => {
+    config.withCredentials = true
+
+    // Attach CSRF for unsafe methods
+    const method = (config.method || 'get').toLowerCase()
+    if (typeof window !== 'undefined' && ['post', 'put', 'patch', 'delete'].includes(method)) {
+      const csrf = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1]
+
+      if (csrf) {
+        // Do not replace headers object; set safely
+        const headers = config.headers || {}
+
+        // If AxiosHeaders instance, use set(); otherwise assign directly
+        if (typeof (headers as any).set === 'function') {
+          (headers as any).set('X-CSRFToken', csrf)
+        } else {
+          (headers as AxiosRequestHeaders)['X-CSRFToken'] = csrf as any
         }
-        
-        // Get a fresh session only if cache is invalid
-        const session = await fetch('/api/auth/session').then(res => res.json());
-        const firebaseToken = session?.firebaseToken;
-        
-        if (!firebaseToken) {
-          // Clear cached session
-          cachedSession = null;
-          localStorage.removeItem('token');
-          
-          if (!window.location.pathname.includes('/signin')) {
-            window.location.href = '/signin';
-          }
-          return Promise.reject('No authentication token found');
-        }
-        
-        // Update cache and localStorage
-        const trimmedToken = firebaseToken.trim();
-        cachedSession = {
-          token: trimmedToken,
-          timestamp: now
-        };
-        localStorage.setItem('token', trimmedToken);
-        
-        config.headers['Authorization'] = `Bearer ${trimmedToken}`;
-        return config;
-      } catch (error) {
-        console.error('Error getting auth token:', error);
-        // Clear cached session on error
-        cachedSession = null;
-        localStorage.removeItem('token');
-        
-        if (!window.location.pathname.includes('/signin')) {
-          window.location.href = '/signin';
-        }
-        return Promise.reject(error);
+
+        config.headers = headers
       }
     }
-    return config;
+
+    return config
   },
   (error) => {
-    console.error('Request interceptor error:', error);
-    return Promise.reject(error);
+    console.error('Request interceptor error:', error)
+    return Promise.reject(error)
   }
-);
+)
 
-// Update the response interceptor - remove the duplicate one and combine the logic
+// Response interceptor
 api.interceptors.response.use(
   (response) => {
     // Only log for non-auth endpoints to reduce noise
@@ -122,31 +92,19 @@ api.interceptors.response.use(
       console.error(`Status: ${err.response.status}, URL: ${err.config?.url}`)
       console.error('Response data:', err.response.data)
 
-      // Handle token expiration
-      if (
-        err.response.status === 403 &&
-        err.response.data?.detail?.includes('Token expired')
-      ) {
-        // Clear all stored tokens and cache
-        localStorage.removeItem('token')
-        localStorage.removeItem('lastAuthMeCall')
-        cachedSession = null;
-
-        // Only redirect if we're not already on the signin page and in a browser context
+      if (err.response.status === 401 || err.response.status === 403) {
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/signin')) {
           window.location.href = '/signin'
         }
       }
     }
 
-    // Handle network errors
     if (err.message === 'Network Error') {
       console.error('Network error - please check your connection')
     }
 
     return Promise.reject(err)
   }
-);
+)
 
-// Remove the duplicate response interceptor
 export default api

@@ -37,6 +37,10 @@ export interface Schedule {
   due_day: number;
   due_time: string;
   send_sms: boolean;
+  active?: boolean;
+  next_run?: string;
+  propertyNames?: string[];
+  expectedInvoiceCount?: number;
 }
 
 export interface ScheduleFormData {

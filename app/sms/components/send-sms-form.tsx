@@ -23,7 +23,8 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
   const [recipientType, setRecipientType] = useState<RecipientType>('group')
   const [selectedGroup, setSelectedGroup] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedUser, setSelectedUser] = useState<string>('')
+  const [selectedUser, setSelectedUser] = useState<string>('')  // kept for backward compatibility
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])  // NEW: multi-select support
   const [manualNumbers, setManualNumbers] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<Tenant[]>([])
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
@@ -76,7 +77,8 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
         if (selectedGroup) groups = [selectedGroup]
         break
       case 'individual':
-        if (selectedUser) recipients = [selectedUser]
+        // Prefer multi-selection; if none, fallback to single selection
+        recipients = selectedUsers.length > 0 ? selectedUsers : (selectedUser ? [selectedUser] : [])
         break
       case 'manual':
         recipients = manualNumbers.split(',').map(num => num.trim()).filter(Boolean)
@@ -85,7 +87,8 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
     onSend(newMessage, recipients, groups, selectedPropertyId || undefined)
     setNewMessage("")
     setSelectedGroup('')
-    setSelectedUser('')
+    setSelectedUser('')               // reset single-select
+    setSelectedUsers([])              // reset multi-select
     setManualNumbers('')
     setSelectedPropertyId('')
   }
@@ -216,17 +219,64 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+
+            {/* Selected chips */}
+            {selectedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {(tenants?.results || [])
+                  .filter(t => selectedUsers.includes(t.id.toString()))
+                  .map(t => (
+                    <span
+                      key={`chip-${t.id}`}
+                      className="inline-flex items-center gap-2 px-2 py-1 rounded bg-accent text-accent-foreground text-xs"
+                    >
+                      {t.user?.full_name || t.phone || t.user?.phone}
+                      <button
+                        className="rounded-sm hover:bg-muted px-1"
+                        onClick={() =>
+                          setSelectedUsers(prev => prev.filter(id => id !== t.id.toString()))
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
+
             {searchQuery && (
               <div className="max-h-40 overflow-y-auto border rounded-md p-2">
-                {filteredUsers?.map((user: Tenant) => (
-                  <div
-                    key={user.id}
-                    className={`p-2 cursor-pointer hover:bg-gray-100 rounded ${selectedUser === user.id.toString() ? 'bg-gray-100' : ''}`}
-                    onClick={() => setSelectedUser(user.id.toString())}
-                  >
-                    {user.user?.full_name} - {user.phone || user.user?.phone}
-                  </div>
-                ))}
+                {filteredUsers?.map((user: Tenant) => {
+                  const id = user.id.toString()
+                  const isSelected = selectedUsers.includes(id) || selectedUser === id
+                  return (
+                    <div
+                      key={user.id}
+                      aria-selected={isSelected}
+                      tabIndex={0}
+                      className={`p-2 cursor-pointer rounded transition-colors focus:outline-none focus:ring-2 focus:ring-ring
+                        ${isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'}
+                      `}
+                      onClick={() => {
+                        // Toggle in multi-select; also set single-select for legacy flow
+                        setSelectedUser(id)
+                        setSelectedUsers(prev =>
+                          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                        )
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setSelectedUser(id)
+                          setSelectedUsers(prev =>
+                            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                          )
+                        }
+                      }}
+                    >
+                      {user.user?.full_name} - {user.phone || user.user?.phone}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

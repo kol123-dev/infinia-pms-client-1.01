@@ -5,10 +5,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Input } from "@/components/ui/input"
-import { Send } from 'lucide-react'
+import { Send, Users, User, Phone, Loader2 } from 'lucide-react'
 import { SmsTemplate, Tenant, TenantGroup } from "../types"
 import { SelectedGroupMembers } from "./selected-group-members"
-import { Users, User, Phone } from 'lucide-react'
+import { useToast } from "@/hooks/use-toast"
+
 
 interface SendSmsFormProps {
   templates?: { count: number; results: SmsTemplate[] }
@@ -28,7 +29,8 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
   const [manualNumbers, setManualNumbers] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<Tenant[]>([])
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
-
+  const [isSending, setIsSending] = useState(false)
+  const { toast } = useToast()
   // Group tenantGroups by property for overdue rent
   const propertyGroups = tenantGroups?.results.reduce((acc, group) => {
     if (group.property) {
@@ -68,29 +70,69 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
     return name.includes(q) || phone.includes(q)
   })
 
-  const handleSend = () => {
-    if (!newMessage.trim()) return
+  const handleSend = async () => {
+    if (!newMessage.trim()) {
+      toast({
+        title: "Message required",
+        description: "Please type a message before sending.",
+        variant: "destructive",
+      })
+      return
+    }
+
     let recipients: string[] = []
     let groups: string[] = []
+
     switch (recipientType) {
       case 'group':
         if (selectedGroup) groups = [selectedGroup]
         break
       case 'individual':
-        // Prefer multi-selection; if none, fallback to single selection
         recipients = selectedUsers.length > 0 ? selectedUsers : (selectedUser ? [selectedUser] : [])
         break
       case 'manual':
         recipients = manualNumbers.split(',').map(num => num.trim()).filter(Boolean)
         break
     }
-    onSend(newMessage, recipients, groups, selectedPropertyId || undefined)
-    setNewMessage("")
-    setSelectedGroup('')
-    setSelectedUser('')               // reset single-select
-    setSelectedUsers([])              // reset multi-select
-    setManualNumbers('')
-    setSelectedPropertyId('')
+
+    if (groups.length === 0 && recipients.length === 0) {
+      toast({
+        title: "No recipients",
+        description: "Please select a group, individuals, or enter numbers.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSending(true)
+    const pending = toast({
+      title: "Sending message…",
+      description: "Your message is being queued for delivery.",
+      duration: 3000,
+    })
+
+    try {
+      await Promise.resolve(onSend(newMessage, recipients, groups, selectedPropertyId || undefined))
+      toast({
+        title: "Message queued",
+        description: "We’ll deliver to the selected recipients.",
+      })
+
+      setNewMessage("")
+      setSelectedGroup('')
+      setSelectedUser('')
+      setSelectedUsers([])
+      setManualNumbers('')
+      setSelectedPropertyId('')
+    } catch (err: any) {
+      toast({
+        title: "Failed to send",
+        description: err?.message || "Please try again or check connectivity.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSending(false)
+    }
   }
 
   const handleGroupSelect = (groupId: string) => {
@@ -303,9 +345,18 @@ export function SendSmsForm({ templates, tenants, tenantGroups, onSend }: SendSm
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={handleSend} className="w-full sm:w-auto px-6">
-          <Send className="w-4 h-4 mr-2" />
-          Send Message
+        <Button
+          onClick={handleSend}
+          disabled={isSending}
+          aria-busy={isSending}
+          className="w-full sm:w-auto px-6"
+        >
+          {isSending ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4 mr-2" />
+          )}
+          {isSending ? "Sending…" : "Send Message"}
         </Button>
       </div>
     </div>

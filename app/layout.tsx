@@ -49,8 +49,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <UserProvider>
               <AuthProvider>
                 <EntityProvider>
-                  {children}
-                  <Toaster />
+                  <>
+                    {children}
+                    <Toaster />
+                  </>
                 </EntityProvider>
               </AuthProvider>
             </UserProvider>

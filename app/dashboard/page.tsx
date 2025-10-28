@@ -1,3 +1,4 @@
+// Top-level imports in Dashboard page
 'use client';
 
 import { MainLayout } from "@/components/layout/main-layout"
@@ -7,8 +8,6 @@ import { Progress } from "@/components/ui/progress"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { BottomSheet } from "@/components/ui/bottom-sheet"
 import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"
-import { DashboardCharts } from "@/components/dashboard/charts"
-import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { Badge } from "@/components/ui/badge"
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -32,6 +31,24 @@ const quickActions = [
   },
   { label: "View Reports", shortLabel: "Reports", icon: Eye, href: "/reports", variant: "outline" as const },
 ]
+
+// Replace static imports of heavy components with dynamic imports
+import dynamic from 'next/dynamic'
+const DashboardCharts = dynamic(
+  () => import('@/components/dashboard/charts').then(m => m.DashboardCharts),
+  {
+    ssr: false,
+    loading: () => <div className="h-[340px] md:h-[380px] lg:h-[420px] rounded-lg bg-muted animate-pulse" />
+  }
+)
+
+const RecentActivity = dynamic(
+  () => import('@/components/dashboard/recent-activity').then(m => m.RecentActivity),
+  {
+    ssr: false,
+    loading: () => <div className="h-[300px] rounded-lg bg-muted animate-pulse" />
+  }
+)
 
 export default function Dashboard() {
   const { data: session, status } = useSession();

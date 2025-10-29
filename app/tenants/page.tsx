@@ -343,6 +343,24 @@ export default function TenantsPage() {
           }
         }}
       />
+      {/* Tenant details dialog */}
+      {selectedTenant && (
+        <TenantDetails
+          tenant={selectedTenant}
+          isOpen={isDetailsOpen}
+          onClose={() => setIsDetailsOpen(false)}
+          onEdit={async (updatedTenant) => {
+            setSelectedTenant(updatedTenant)
+            try {
+              const response = await api.get('/tenants/')
+              setTenants(response.data.results)
+              await api.get('/tenants/stats/').then(r => setStats(r.data))
+            } catch {
+              // Non-blocking refresh failure
+            }
+          }}
+        />
+      )}
     </MainLayout>
   )
 }

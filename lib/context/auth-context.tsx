@@ -67,12 +67,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Tell backend to clear session cookie
       await api.post('auth/logout/', {})
       await signOut({ redirect: false })
+      // Broadcast cross-tab logout
+      try {
+        localStorage.setItem('logout', String(Date.now()))
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('auth')
+          bc.postMessage({ type: 'logout' })
+          bc.close()
+        }
+      } catch {}
       clearUser()
       setError(null)
     } catch (err) {
       console.error('Logout error:', err)
       // Ensure client signout even if backend fails
       await signOut({ redirect: false })
+      try {
+        localStorage.setItem('logout', String(Date.now()))
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('auth')
+          bc.postMessage({ type: 'logout' })
+          bc.close()
+        }
+      } catch {}
       clearUser()
       throw new Error('Failed to logout')
     }

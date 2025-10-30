@@ -55,35 +55,36 @@ export default function Properties() {
     }
   }
 
-  const handlePropertyUpdate = async () => {
+  // Centralized fetch to reuse for initial load and post-create refresh
+  const fetchProperties = async () => {
     try {
       const response = await api.get('/properties/')
-      const data = response.data as PropertiesResponse
-      setProperties(data.results)
-      toast({
-        title: "Success",
-        description: "Property updated successfully",
-      })
-    } catch (error) {
-      console.error("Error fetching properties:", error)
+      const data = response.data
+      const results = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : [])
+      setProperties(results)
+    } catch (err) {
+      setError('Failed to fetch properties')
+      console.error('Error fetching properties:', err)
     }
   }
 
+  const handlePropertyUpdate = async () => {
+    await fetchProperties()
+    toast({
+      title: "Success",
+      description: "Property saved successfully",
+    })
+  }
+
   useEffect(() => {
-    const fetchProperties = async () => {
+    const initialLoad = async () => {
       try {
-        const response = await api.get('/properties/')
-        const data = response.data as PropertiesResponse
-        setProperties(data.results)
-      } catch (err) {
-        setError('Failed to fetch properties')
-        console.error('Error fetching properties:', err)
+        await fetchProperties()
       } finally {
         setLoading(false)
       }
     }
-
-    fetchProperties()
+    initialLoad()
   }, [])
 
   if (loading) return <div>Loading...</div>

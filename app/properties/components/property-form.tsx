@@ -108,7 +108,12 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const finalData = {
+      // Decide if we should include mpesa_config at all
+      const mpesa = formData.mpesa_config;
+      const trimmedShortcode = (mpesa.shortcode || '').trim();
+      const includeMpesa = trimmedShortcode.length > 0;
+
+      const finalData: any = {
         name: formData.name,
         property_type: formData.property_type,
         building_type: formData.building_type,
@@ -121,17 +126,18 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
         occupied_units: Number(formData.units.occupied) || 0,
         vacant_units: Number(formData.units.vacant) || 0,
         under_maintenance_units: Number(formData.units.underMaintenance) || 0,
-        mpesa_config: {
-          shortcode: formData.mpesa_config.shortcode,
-          consumer_key: formData.mpesa_config.consumer_key,
-          consumer_secret: formData.mpesa_config.consumer_secret,
-          passkey: formData.mpesa_config.passkey,
-          is_active: formData.mpesa_config.is_active
-        }
       };
-  
-      console.log('Request payload:', finalData);
-  
+
+      if (includeMpesa) {
+        finalData.mpesa_config = {
+          shortcode: trimmedShortcode,
+          consumer_key: (mpesa.consumer_key || '').trim(),
+          consumer_secret: (mpesa.consumer_secret || '').trim(),
+          passkey: (mpesa.passkey || '').trim(),
+          is_active: mpesa.is_active,
+        };
+      }
+
       let response;
       if (property) {
         response = await api.put(`/properties/${property.id}/`, finalData);
@@ -140,7 +146,8 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
       }
       console.log('Response:', response.data);
       
-      onSuccess();
+      // Await parent refresh to ensure immediate UI update and toast
+      await onSuccess();
       onClose();
     } catch (error: any) {
       console.error('Error saving property:', error.response?.data || error);

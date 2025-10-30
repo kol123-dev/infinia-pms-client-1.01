@@ -465,7 +465,10 @@ export default function LandlordsPage() {
       </MainLayout>
       
       {showOnboarding && (
-        <LandlordOnboardingFlow onClose={() => setShowOnboarding(false)} />
+        <LandlordOnboardingFlow
+            onClose={() => setShowOnboarding(false)}
+            onRefresh={() => fetchLandlords()}
+        />
       )}
     </>
   )

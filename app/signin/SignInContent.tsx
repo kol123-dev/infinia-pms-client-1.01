@@ -7,10 +7,11 @@ import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Checkbox } from '@/components/ui/checkbox' // Add this import if not present
-import { Label } from '@/components/ui/label' // Add if needed for checkbox
-import Image from 'next/image' // Add this import to fix Image component errors
-import { Eye, EyeOff } from 'lucide-react' // Add for password toggle icons (install lucide-react if needed)
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
+import api from '@/lib/axios' // ✅ Add this import to fix TS2304
 
 export default function SignInContent() {
   const router = useRouter()
@@ -20,8 +21,8 @@ export default function SignInContent() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false) // New state for checkbox
-  const [showPassword, setShowPassword] = useState(false) // New state for password visibility
+  const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,18 +37,11 @@ export default function SignInContent() {
       if (result?.error) {
         setError(result.error)
       } else {
-        // Call backend login from the browser to set Django session cookie
+        // Use axios client to set Django session cookie on the SAME base URL
         const session = await fetch('/api/auth/session').then(res => res.json())
         const firebaseToken = session?.firebaseToken
         if (firebaseToken) {
-            // Use your axios client (sends cookies via withCredentials)
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
-            await fetch(`${apiBase.replace(/`/g, '')}/auth/firebase-login/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ id_token: firebaseToken.trim() }),
-            })
+          await api.post('/auth/firebase-login/', { id_token: firebaseToken.trim() }) // ✅ uses axios client
         }
         router.push(callbackUrl)
       }

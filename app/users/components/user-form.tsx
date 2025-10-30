@@ -1,3 +1,4 @@
+// module imports
 import { useEffect, useState, ReactElement } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +10,7 @@ import { toast } from "@/components/ui/use-toast"
 import { X } from 'lucide-react'
 import { Property } from "@/app/properties/types" // Reuse from properties
 import { Unit } from "@/app/tenants/types" // Reuse Unit type from tenants
+import { PhoneField } from "@/components/ui/phone-field"
 
 // Base interfaces
 interface UserFormProps {
@@ -128,8 +130,13 @@ export function UserCreationForm({ isOpen, onClose, onSuccess, role, setRole }: 
             </div>
           </div>
           <div className={inputGroupStyles}>
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+            <PhoneField
+              value={formData.phone}
+              onChange={(val: string) => setFormData({ ...formData, phone: val })}
+              defaultDial="+254"
+              label="Phone"
+              inputId="phone"
+            />
           </div>
           <Button type="submit" disabled={isLoading}>{isLoading ? 'Creating...' : 'Create User'}</Button>
         </form>

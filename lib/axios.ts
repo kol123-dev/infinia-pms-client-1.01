@@ -24,10 +24,18 @@ if (typeof window !== 'undefined') {
 
 // Simplified API URL configuration
 const getApiBaseUrl = () => {
-  // Remove any backticks that might be in the environment variable
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://property.infiniasync.com/api/v1'
-  console.log('Using API URL from environment or default:', apiUrl)
-  return apiUrl.replace(/`/g, '')
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  if (envUrl && envUrl.trim()) {
+    console.log('Using API URL from environment:', envUrl)
+    return envUrl.replace(/`/g, '')
+  }
+  // Fallbacks by environment/host
+  const isProd = process.env.NODE_ENV === 'production'
+  const fallback = isProd
+    ? 'https://property.infiniasync.com/api/v1'
+    : 'http://127.0.0.1:8000/api/v1'
+  console.log('Using API URL fallback:', fallback)
+  return fallback
 }
 
 const api = axios.create({

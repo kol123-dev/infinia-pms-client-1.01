@@ -1,3 +1,4 @@
+// module imports
 import { useState, ReactElement } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import api from "@/lib/axios";
 import { useUser } from "@/lib/context/user-context";
 import { useToast } from "@/hooks/use-toast";
+import { PhoneField } from "@/components/ui/phone-field";
 
 interface UserFormProps {
   isOpen: boolean;
@@ -118,11 +120,12 @@ function UserCreationForm({ isOpen, onClose, onSuccess }: UserFormProps): ReactE
               />
             </div>
             <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
+              <PhoneField
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(val: string) => setFormData({ ...formData, phone: val })}
+                defaultDial="+254"
+                label="Phone"
+                inputId="phone"
               />
             </div>
           </div>
@@ -279,7 +282,7 @@ function PropertyAssignmentForm({ isOpen, onClose, landlordData }: { isOpen: boo
   );
 }
 
-export function LandlordOnboardingFlow({ onClose }: { onClose: () => void }): ReactElement {
+export function LandlordOnboardingFlow({ onClose, onRefresh }: { onClose: () => void; onRefresh?: () => void }): ReactElement {
   const [step, setStep] = useState(1);
   const [userData, setUserData] = useState<any>(null);
   const [landlordData, setLandlordData] = useState<any>(null);
@@ -303,11 +306,15 @@ export function LandlordOnboardingFlow({ onClose }: { onClose: () => void }): Re
     }
     setUserData(data);
     setStep(2);
+    // Trigger landlord table refresh immediately after successful creation toast
+    onRefresh?.();
   };
 
   const handleLandlordCreated = (data: any) => {
     setLandlordData(data);
     setStep(3);
+    // Also refresh after landlord profile update in case table displays business fields
+    onRefresh?.();
   };
 
   return (

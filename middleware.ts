@@ -42,8 +42,6 @@ export async function middleware(request: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET 
     });
 
-    // Redirect to signin if no token is present
-    // Use a fixed production base URL
     const isProduction = process.env.NODE_ENV === 'production';
     const baseUrl = isProduction 
       ? 'https://property.infiniasync.com' 
@@ -51,13 +49,16 @@ export async function middleware(request: NextRequest) {
     
     if (!token) {
       const signInUrl = new URL('/signin', baseUrl);
-      // Sanitize the callbackUrl to use public domain
-      let callbackUrl = request.url
-        .replace(/0\.0\.0\.0/g, 'property.infiniasync.com')
-        .replace(/127\.0\.0\.1/g, 'property.infiniasync.com')
-        .replace(/localhost/g, 'property.infiniasync.com')
-        .replace(':3000', '');  // NEW: Explicitly remove internal port
-      signInUrl.searchParams.set('callbackUrl', callbackUrl);
+      // Sanitize callbackUrl to match current environment base
+      let callbackUrl = request.url;
+      // Only rewrite to the chosen base host, not hard-coded production
+      const targetHost = new URL(baseUrl).host;
+      const parsed = new URL(callbackUrl);
+      parsed.host = targetHost;
+      parsed.protocol = new URL(baseUrl).protocol;
+      // Remove dev port if switching to prod; keep dev port in dev
+      if (isProduction) parsed.port = '';
+      signInUrl.searchParams.set('callbackUrl', parsed.toString());
       return NextResponse.redirect(signInUrl);
     }
 

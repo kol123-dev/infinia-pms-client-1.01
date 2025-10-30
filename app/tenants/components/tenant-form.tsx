@@ -1,3 +1,4 @@
+// module imports
 import { useEffect, useState, ReactElement } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,7 @@ import { Property } from "@/app/properties/types"
 import { toast } from "@/components/ui/use-toast"
 import { X } from 'lucide-react'
 import { Checkbox } from "@/components/ui/checkbox"  // Add this import if not already present
+import { PhoneField } from "@/components/ui/phone-field"
 
 // Base interfaces for all forms
 interface UserFormProps {
@@ -149,15 +151,14 @@ export function UserCreationForm({ isOpen, onClose, onSuccess }: UserFormProps):
           </div>
           <div className={inputGroupStyles}>
             <Label htmlFor="phone" className={labelStyles}>Phone number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+1 (555) 000-0000"
+            <PhoneField
               value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              className={inputStyles}
-              disabled={isLoading}
+              onChange={(val: string) => setFormData(prev => ({ ...prev, phone: val }))}
+              defaultDial="+254"
+              label="Phone number"
+              inputId="phone"
               required
+              disabled={isLoading}
             />
           </div>
           <Button 

@@ -47,16 +47,16 @@ export function MainLayout({ children }: MainLayoutProps) {
           {/* Content area */}
           <div className="flex flex-col flex-1">
             {/* Header skeleton */}
-            <div className="h-14 border-b border-border px-4 lg:px-6 flex items-center gap-3">
-              <Skeleton className="h-8 w-52" />
-              <div className="ml-auto flex items-center gap-2">
-                <Skeleton className="h-9 w-56" />
+            <div className="border-b border-border px-4 lg:px-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <Skeleton className="h-8 w-40 sm:w-52 max-w-full" />
+              <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">
+                <Skeleton className="h-9 w-full sm:w-56 max-w-full" />
                 <Skeleton className="h-9 w-9 rounded-full" />
               </div>
             </div>
 
             {/* Page skeleton */}
-            <main className="flex flex-1 flex-col gap-4 p-4 min-h-[calc(100vh-60px)] lg:gap-6 lg:p-6">
+            <main className="flex flex-1 w-full max-w-[100vw] overflow-x-hidden flex-col gap-4 p-4 min-h-[calc(100vh-60px)] lg:gap-6 lg:p-6">
               {pathname.startsWith("/dashboard") ? (
                 <DashboardSkeleton />
               ) : (
@@ -68,7 +68,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                       <Skeleton className="h-9 w-28" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4 sm:gap-4">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
                     {Array.from({ length: 4 }).map((_, i) => (
                       <div key={i} className="space-y-2">
                         <Skeleton className="h-24 w-full" />
@@ -99,7 +99,9 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar />
       <div className="flex flex-col md:ml-64">
         <Header />
-        <main className="flex flex-1 flex-col gap-4 p-4 min-h-[calc(100vh-60px)] lg:gap-6 lg:p-6">{children}</main>
+        <main className="flex flex-1 w-full max-w-[100vw] overflow-x-hidden flex-col gap-4 p-4 min-h-[calc(100vh-60px)] lg:gap-6 lg:p-6">
+          {children}
+        </main>
       </div>
     </div>
   )

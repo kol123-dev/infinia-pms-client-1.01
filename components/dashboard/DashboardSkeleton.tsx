@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-[100vw] space-y-6">
       {/* Header row */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <Skeleton className="h-8 w-48" />
@@ -16,7 +16,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="shadow-sm">
             <CardHeader className="pb-1">

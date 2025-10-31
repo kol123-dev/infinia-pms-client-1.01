@@ -18,40 +18,41 @@ import { RecordPaymentDialog } from "./components/record-payment-dialog"
 export default function PaymentsPage() {
   return (
     <MainLayout>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <h1 className="text-2xl font-bold">Payments Management</h1>
-        <div className="w-full sm:w-auto grid grid-cols-2 gap-2 sm:flex sm:space-x-2">
-          <CreateInvoiceDialog>
-            <Button className="w-full sm:w-auto">
-              <span className="sm:hidden">Invoice</span>
-              <span className="hidden sm:inline">Create Invoice</span>
-            </Button>
-          </CreateInvoiceDialog>
-          <RecordPaymentDialog>
-            <Button variant="secondary" className="w-full sm:w-auto">
-              <span className="sm:hidden">Payment</span>
-              <span className="hidden sm:inline">Record Payment</span>
-            </Button>
-          </RecordPaymentDialog>
-        </div>
-      </div>
-
-      <PaymentStats />
-
-      <Tabs defaultValue="overview" className="space-y-4">
-        <div className="sticky top-0 z-10 bg-background overflow-x-auto scrollbar-hide">
-          <TabsList className="flex space-x-2 min-w-max flex-nowrap">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
-            <TabsTrigger value="bank">Bank Transfers</TabsTrigger>
-            <TabsTrigger value="cash">Cash</TabsTrigger>
-            <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          </TabsList>
+      <div className="overflow-x-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+          <h1 className="text-2xl font-bold">Payments Management</h1>
+          <div className="w-full sm:w-auto grid grid-cols-2 gap-2 sm:flex sm:space-x-2">
+            <CreateInvoiceDialog>
+              <Button className="w-full sm:w-auto">
+                <span className="sm:hidden">Invoice</span>
+                <span className="hidden sm:inline">Create Invoice</span>
+              </Button>
+            </CreateInvoiceDialog>
+            <RecordPaymentDialog>
+              <Button variant="secondary" className="w-full sm:w-auto">
+                <span className="sm:hidden">Payment</span>
+                <span className="hidden sm:inline">Record Payment</span>
+              </Button>
+            </RecordPaymentDialog>
+          </div>
         </div>
 
-        <TabsContent value="overview" className="space-y-4">
-          <PaymentList />
-        </TabsContent>
+        <PaymentStats />
+
+        <Tabs defaultValue="overview" className="space-y-4">
+          <div className="sticky top-0 z-10 bg-background overflow-x-auto scrollbar-hide">
+            <TabsList className="flex space-x-2 min-w-max flex-nowrap">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
+              <TabsTrigger value="bank">Bank Transfers</TabsTrigger>
+              <TabsTrigger value="cash">Cash</TabsTrigger>
+              <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="overview" className="space-y-4">
+            <PaymentList />
+          </TabsContent>
 
         <TabsContent value="mpesa">
           <Card>
@@ -101,6 +102,7 @@ export default function PaymentsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
     </MainLayout>
   )
 }

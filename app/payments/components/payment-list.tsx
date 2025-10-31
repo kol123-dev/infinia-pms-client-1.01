@@ -552,46 +552,49 @@ export function PaymentList() {
   return (
     <Card>
       <CardHeader className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <CardTitle>Recent Payments</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setShowFilters((s) => !s)} className="h-9">
-                <Filter className="mr-2 h-4 w-4" />
-                Filters
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportPaymentsToPDF(exportRows)}
-                className="h-9"
-                disabled={loading || sortedPayments.length === 0}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                PDF
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportPaymentsToXLSX(exportRows)}
-                className="h-9"
-                disabled={loading || sortedPayments.length === 0}
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                XLSX
-              </Button>
-              {filters.length > 0 && (
-                <Button variant="ghost" onClick={clearFilters} className="h-9">
-                  Clear All
+            {/* Scrollable toolbar on mobile */}
+            <div className="overflow-x-auto scrollbar-hide max-w-full">
+              <div className="flex items-center gap-2 min-w-max flex-nowrap pr-2">
+                <Button variant="outline" onClick={() => setShowFilters((s) => !s)} className="h-9">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filters
                 </Button>
-              )}
+                <Button
+                  variant="outline"
+                  onClick={() => exportPaymentsToPDF(exportRows)}
+                  className="h-9"
+                  disabled={loading || sortedPayments.length === 0}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => exportPaymentsToXLSX(exportRows)}
+                  className="h-9"
+                  disabled={loading || sortedPayments.length === 0}
+                >
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  XLSX
+                </Button>
+                {filters.length > 0 && (
+                  <Button variant="ghost" onClick={clearFilters} className="h-9">
+                    Clear All
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="w-full sm:w-auto">
             <Input
               placeholder="Search payments..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+              className="w-full sm:max-w-sm"
             />
           </div>
         </div>

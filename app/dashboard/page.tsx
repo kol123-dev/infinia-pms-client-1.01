@@ -18,6 +18,7 @@ import { formatCurrency } from "@/lib/utils"
 import { useToast } from '@/hooks/use-toast';
 import { Tenant } from '../tenants/types';
 import Link from 'next/link';
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
 
 const quickActions = [
   { label: "Add Tenant", shortLabel: "Tenant", icon: Plus, href: "/tenants", variant: "default" as const },
@@ -124,11 +125,21 @@ export default function Dashboard() {
     }
   }, [session, toast]);
 
-  if (status === 'loading' || loading) {
+  // Let MainLayout handle auth loading (shows route-aware skeleton)
+  if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <MainLayout>
+        <DashboardSkeleton />
+      </MainLayout>
+    );
+  }
+
+  // Show dashboard skeleton during data fetches instead of a spinner
+  if (loading) {
+    return (
+      <MainLayout>
+        <DashboardSkeleton />
+      </MainLayout>
     );
   }
 

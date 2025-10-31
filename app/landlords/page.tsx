@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
+import { LandlordsSkeleton } from "@/components/landlords/LandlordsSkeleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +16,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast"
 import { LandlordOnboardingFlow } from "./components/landlord-onboarding-flow"
 
-// Add this import at the top with other imports
 import { formatCurrency } from "@/lib/utils"
 
 interface Landlord {
@@ -116,7 +116,11 @@ export default function LandlordsPage() {
     fetchLandlords()
   }, [fetchLandlords])
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return (
+    <MainLayout>
+      <LandlordsSkeleton />
+    </MainLayout>
+  )
   if (error) return <div>Error: {error}</div>
 
   const handleAddLandlord = async (data: any) => {

@@ -24,8 +24,9 @@ import { Property, PropertiesResponse } from "./types"
 
 // Remove the existing interfaces since we're importing them
 import Image from "next/image"
+import { PropertiesSkeleton } from "@/components/properties/PropertiesSkeleton"
 
-export default function Properties() {
+export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +88,11 @@ export default function Properties() {
     initialLoad()
   }, [])
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return (
+    <MainLayout>
+      <PropertiesSkeleton />
+    </MainLayout>
+  )
   if (error) return <div>Error: {error}</div>
 
   // Fix the filter function arrow syntax

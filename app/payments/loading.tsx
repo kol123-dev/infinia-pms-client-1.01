@@ -1,3 +1,10 @@
+import { MainLayout } from "@/components/layout/main-layout"
+import { PaymentsSkeleton } from "@/components/payments/PaymentsSkeleton"
+
 export default function Loading() {
-  return null
+  return (
+    <MainLayout>
+      <PaymentsSkeleton />
+    </MainLayout>
+  )
 }

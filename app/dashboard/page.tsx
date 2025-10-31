@@ -19,6 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Tenant } from '../tenants/types';
 import Link from 'next/link';
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
+// Add Suspense and the new stats component
+import { Suspense } from "react";
+import DashboardStats from "@/components/dashboard/DashboardStats";
 
 const quickActions = [
   { label: "Add Tenant", shortLabel: "Tenant", icon: Plus, href: "/tenants", variant: "default" as const },
@@ -56,7 +59,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [isFabSheetOpen, setFabSheetOpen] = useState(false)
 
-  // States for dynamic stats and loading
+  // Remove page-level stats/loading states and fetching; the stats component handles its own data
   const [stats, setStats] = useState([
     { title: "Total Properties", value: "0", change: "Loading...", changeType: "positive", icon: Building, color: "text-brand-600" },
     { title: "Active Tenants", value: "0", change: "Loading...", changeType: "positive", icon: Users, color: "text-emerald-600" },
@@ -143,9 +146,11 @@ export default function Dashboard() {
     );
   }
 
+  // Keep only the unauthenticated guard
   if (!session) {
     return null;
   }
+
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6">
@@ -162,113 +167,45 @@ export default function Dashboard() {
           </Badge>
         </div>
 
-        {/* Stats Grid - Mobile Optimized */}
-        <div className="md:hidden">
-          <div className="grid grid-cols-2 gap-2">
-            {stats.map((stat) => (
-              <Card key={stat.title} className="card-enhanced w-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-2">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <div className={`p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20`}>
-                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  {/* Value: skeleton when loading, value when loaded */}
-                  {loading ? (
-                    <div className="h-5 w-12 rounded bg-muted animate-pulse" />
-                  ) : (
-                    <div className="text-lg font-bold text-foreground">
-                      {stat.value}
+        {/* Stats - Suspense boundary with local fallback */}
+        <Suspense
+          fallback={
+            <>
+              <div className="md:hidden">
+                <div className="grid grid-cols-2 gap-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="card-enhanced w-full rounded-lg border bg-card">
+                      <div className="flex items-center justify-between p-2">
+                        <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                        <div className="h-4 w-4 rounded bg-muted animate-pulse" />
+                      </div>
+                      <div className="p-2 pt-0">
+                        <div className="h-5 w-12 rounded bg-muted animate-pulse" />
+                        <div className="h-3 w-24 mt-1 rounded bg-muted animate-pulse" />
+                      </div>
                     </div>
-                  )}
-                  {/* Change: skeleton when loading, text when loaded */}
-                  <div className="flex items-center gap-1 mt-1">
-                    {loading ? (
-                      <div className="h-3 w-24 rounded bg-muted animate-pulse" />
-                    ) : (
-                      <>
-                        <TrendingUp
-                          className={`h-3 w-3 flex-shrink-0 ${
-                            stat.changeType === "positive"
-                              ? "text-green-600"
-                              : stat.changeType === "warning"
-                              ? "text-orange-600"
-                              : "text-red-600"
-                          }`}
-                        />
-                        <p
-                          className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis ${
-                            stat.changeType === "positive"
-                              ? "text-green-600"
-                              : stat.changeType === "warning"
-                              ? "text-orange-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {stat.change}
-                        </p>
-                      </>
-                    )}
+                  ))}
+                </div>
+              </div>
+              <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="card-enhanced rounded-lg border bg-card">
+                    <div className="flex items-center justify-between p-4 pb-2">
+                      <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                      <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+                    </div>
+                    <div className="px-4 pt-0 pb-4">
+                      <div className="h-7 w-20 rounded bg-muted animate-pulse" />
+                      <div className="h-3 w-32 mt-2 rounded bg-muted animate-pulse" />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats Grid - Desktop */}
-        <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.title} className="card-enhanced hover:shadow-theme-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <div className={`p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {/* Value: skeleton when loading, value when loaded */}
-                {loading ? (
-                  <div className="h-6 w-16 rounded bg-muted animate-pulse" />
-                ) : (
-                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                )}
-                {/* Change: skeleton when loading, text when loaded */}
-                <div className="flex items-center gap-1 mt-1">
-                  {loading ? (
-                    <div className="h-3 w-32 rounded bg-muted animate-pulse" />
-                  ) : (
-                    <>
-                      <TrendingUp
-                        className={`h-3 w-3 ${
-                          stat.changeType === "positive"
-                            ? "text-green-600"
-                            : stat.changeType === "warning"
-                            ? "text-orange-600"
-                            : "text-red-600"
-                        }`}
-                      />
-                      <p
-                        className={`text-xs ${
-                          stat.changeType === "positive"
-                            ? "text-green-600"
-                            : stat.changeType === "warning"
-                            ? "text-orange-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {stat.change}
-                      </p>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                ))}
+              </div>
+            </>
+          }
+        >
+          <DashboardStats />
+        </Suspense>
 
         {/* Quick Actions - Mobile (always visible) */}
         <Card className="card-enhanced md:hidden">

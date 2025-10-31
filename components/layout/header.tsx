@@ -442,8 +442,8 @@ export function Header() {
               onClick={() => setIsOpen(true)}
             >
               <Search className="mr-1 h-4 w-4 shrink-0 opacity-50" />
-              Search tenants, units, payments...
-            </Button>
+               Search tenants.. units.. properties.. payments...
+                           </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[400px] p-0" ref={popoverRef}>  
             <Command>

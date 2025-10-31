@@ -29,7 +29,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen w-full">
+      <div className="min-h-[100dvh] w-full">
         {/* Shell skeleton: sidebar + header */}
         <div className="flex">
           {/* Sidebar skeleton (md+) */}
@@ -56,7 +56,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             </div>
 
             {/* Page skeleton */}
-            <main className="flex flex-1 w-full max-w-[100vw] overflow-x-hidden flex-col gap-4 p-4 min-h-[calc(100vh-60px)] lg:gap-6 lg:p-6">
+            <main className="flex flex-1 w-full max-w-[100vw] overflow-x-hidden flex-col gap-4 p-4 min-h-[calc(100dvh-60px)] lg:gap-6 lg:p-6">
               {pathname.startsWith("/dashboard") ? (
                 <DashboardSkeleton />
               ) : (
@@ -95,11 +95,11 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-[100dvh] w-full">
       <Sidebar />
       <div className="flex flex-col md:ml-64">
         <Header />
-        <main className="flex flex-1 w-full max-w-[100vw] overflow-x-hidden flex-col gap-4 p-4 min-h-[calc(100vh-60px)] lg:gap-6 lg:p-6">
+        <main className="flex flex-1 w-full max-w-[100vw] overflow-x-hidden flex-col gap-4 p-4 min-h-[calc(100dvh-60px)] lg:gap-6 lg:p-6">
           {children}
         </main>
       </div>

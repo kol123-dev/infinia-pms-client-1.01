@@ -30,6 +30,10 @@ export const metadata: Metadata = {
       { url: "/icons/icon-512x512.png", sizes: "512x512" },
     ],
     apple: "/icons/icon-180x180.png",
+    themeColor: [
+      { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
+      { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    ],
   },
 }
 

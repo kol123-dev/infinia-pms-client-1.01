@@ -149,7 +149,7 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-6">
-        {/* Header Section */}
+        {/* Header Section (always visible) */}
         <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">Dashboard</h1>
@@ -159,11 +159,8 @@ export default function Dashboard() {
           </div>
           <Badge variant="outline" className="entity-badge w-fit self-start md:self-center">
             <span className="text-xs sm:text-sm">InfiniaSync Properties</span>
-            
           </Badge>
         </div>
-
-       
 
         {/* Stats Grid - Mobile Optimized */}
         <div className="md:hidden">
@@ -179,18 +176,42 @@ export default function Dashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-2 pt-0">
-                  <div className="text-lg font-bold text-foreground">
-                    {stat.value}
-                  </div>
+                  {/* Value: skeleton when loading, value when loaded */}
+                  {loading ? (
+                    <div className="h-5 w-12 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <div className="text-lg font-bold text-foreground">
+                      {stat.value}
+                    </div>
+                  )}
+                  {/* Change: skeleton when loading, text when loaded */}
                   <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp
-                      className={`h-3 w-3 flex-shrink-0 ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
-                    />
-                    <p
-                      className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
-                    >
-                      {stat.change}
-                    </p>
+                    {loading ? (
+                      <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                    ) : (
+                      <>
+                        <TrendingUp
+                          className={`h-3 w-3 flex-shrink-0 ${
+                            stat.changeType === "positive"
+                              ? "text-green-600"
+                              : stat.changeType === "warning"
+                              ? "text-orange-600"
+                              : "text-red-600"
+                          }`}
+                        />
+                        <p
+                          className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis ${
+                            stat.changeType === "positive"
+                              ? "text-green-600"
+                              : stat.changeType === "warning"
+                              ? "text-orange-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {stat.change}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -209,23 +230,47 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                {/* Value: skeleton when loading, value when loaded */}
+                {loading ? (
+                  <div className="h-6 w-16 rounded bg-muted animate-pulse" />
+                ) : (
+                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                )}
+                {/* Change: skeleton when loading, text when loaded */}
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp
-                    className={`h-3 w-3 ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
-                  />
-                  <p
-                    className={`text-xs ${stat.changeType === "positive" ? "text-green-600" : stat.changeType === "warning" ? "text-orange-600" : "text-red-600"}`}
-                  >
-                    {stat.change}
-                  </p>
+                  {loading ? (
+                    <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <>
+                      <TrendingUp
+                        className={`h-3 w-3 ${
+                          stat.changeType === "positive"
+                            ? "text-green-600"
+                            : stat.changeType === "warning"
+                            ? "text-orange-600"
+                            : "text-red-600"
+                        }`}
+                      />
+                      <p
+                        className={`text-xs ${
+                          stat.changeType === "positive"
+                            ? "text-green-600"
+                            : stat.changeType === "warning"
+                            ? "text-orange-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {stat.change}
+                      </p>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Quick Actions - Mobile Optimized */}
+        {/* Quick Actions - Mobile (always visible) */}
         <Card className="card-enhanced md:hidden">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">Quick Actions</CardTitle>
@@ -248,7 +293,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions - Desktop */}
+        {/* Quick Actions - Desktop (always visible) */}
         <Card className="card-enhanced hidden md:block">
           <CardHeader className="pb-6">
             <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
@@ -271,68 +316,24 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity - placed after Quick Actions, before Charts */}
+        {/* Recent Activity: dynamic import provides its own loading skeleton */}
         <div className="min-h-[300px]">
           <RecentActivity />
         </div>
 
-        {/* Charts and Activity - Stacked on Mobile */}
+        {/* Charts: dynamic import provides its own loading skeleton */}
         <div className="space-y-4 lg:space-y-0 lg:grid lg:gap-4 xl:gap-6 lg:grid-cols-2 xl:grid-cols-3">
           <div className="lg:col-span-2 xl:col-span-3 h-full">
             <DashboardCharts />
           </div>
-          {/* Commented out: Recent Activity (to be revisited later) */}
-          {/*
-          <div className="min-h-[300px]">
-            <RecentActivity />
-          </div>
-          */}
         </div>
-
-        {/* Occupancy Overview - Collapsible on Mobile */}
-        {/* Commented out: Occupancy Overview section (to be revisited later) */}
-        {/*
-        <Card className="card-enhanced">
-          <CardHeader className="pb-3 sm:pb-6">
-            <CardTitle className="text-base sm:text-lg font-semibold">Occupancy Overview</CardTitle>
-            <CardDescription className="text-sm">Current occupancy rates across properties</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 sm:space-y-6">
-            {[
-              { name: "Sunset Apartments", entity: "Johnson Holdings", occupied: 24, total: 30, rate: 80 },
-              { name: "Downtown Complex", entity: "Smith Properties", occupied: 18, total: 20, rate: 90 },
-              { name: "Garden View", entity: "Direct Management", occupied: 12, total: 15, rate: 75 },
-            ].map((property) => (
-              <div key={property.name} className="space-y-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <span className="text-sm font-medium">{property.name}</span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {property.entity}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {property.occupied}/{property.total} units
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <div className="text-lg font-semibold text-brand-600">{property.rate}%</div>
-                  </div>
-                </div>
-                <Progress value={property.rate} className="h-2 bg-brand-100 dark:bg-brand-900" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-        */}
 
         {/* Floating Action Button - Mobile Only */}
         <FloatingActionButton className="md:hidden" onClick={() => setFabSheetOpen(true)}>
           <Plus className="h-6 w-6" />
         </FloatingActionButton>
 
-        {/* Quick Actions Bottom Sheet (opens when FAB is tapped) */}
+        {/* Quick Actions Bottom Sheet (always available) */}
         <BottomSheet
           isOpen={isFabSheetOpen}
           onClose={() => setFabSheetOpen(false)}

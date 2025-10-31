@@ -5,6 +5,7 @@ import { getToken } from 'next-auth/jwt'
 // Define public routes that don't require authentication
 const publicRoutes = [
   '/signin',
+  '/tenant/signin', // NEW
   '/signup',
   '/manifest.json',
 ];
@@ -43,23 +44,58 @@ export async function middleware(request: NextRequest) {
     });
 
     const isProduction = process.env.NODE_ENV === 'production';
-    const baseUrl = isProduction 
-      ? 'https://property.infiniasync.com' 
-      : 'http://localhost:3000';
-    
+    const baseUrl = isProduction ? 'https://property.infiniasync.com' : 'http://localhost:3000';
+
     if (!token) {
-      const signInUrl = new URL('/signin', baseUrl);
-      // Sanitize callbackUrl to match current environment base
+      // NEW: choose sign-in based on route
+      const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant');
+      const signInPath = wantsTenantArea ? '/tenant/signin' : '/signin';
+      const signInUrl = new URL(signInPath, baseUrl);
+
+      // Preserve callbackUrl to return after login
       let callbackUrl = request.url;
-      // Only rewrite to the chosen base host, not hard-coded production
       const targetHost = new URL(baseUrl).host;
       const parsed = new URL(callbackUrl);
       parsed.host = targetHost;
       parsed.protocol = new URL(baseUrl).protocol;
-      // Remove dev port if switching to prod; keep dev port in dev
       if (isProduction) parsed.port = '';
       signInUrl.searchParams.set('callbackUrl', parsed.toString());
       return NextResponse.redirect(signInUrl);
+    }
+
+    const role = (token as any)?.role;
+
+    // If signed in already and visiting generic signin, route to proper dashboard
+    if ((path === '/signin' || path === '/tenant/signin') && role) {
+      const dest = role === 'tenant' ? '/dashboard/tenant' : '/dashboard';
+      const url = new URL(dest, baseUrl);
+      return NextResponse.redirect(url);
+    }
+
+    // NEW: tenants hitting the generic admin dashboard should be moved to tenant dashboard
+    if (role === 'tenant' && path === '/dashboard') {
+      const url = new URL('/dashboard/tenant', baseUrl);
+      return NextResponse.redirect(url);
+    }
+
+    // Block tenants from management/agent/landlord pages, but allow their own dashboard
+    if (role === 'tenant') {
+      const blockedPrefixes = [
+        '/tenants',
+        '/users',
+        '/properties',
+        '/landlords',
+        '/units',
+        '/invoice',
+        '/reports',
+        '/expenses',
+        '/sms',
+      ];
+      const isBlocked = blockedPrefixes.some(prefix => path.startsWith(prefix));
+      if (isBlocked) {
+        const url = new URL('/dashboard/tenant', baseUrl);
+        return NextResponse.redirect(url);
+      }
     }
 
     return NextResponse.next();

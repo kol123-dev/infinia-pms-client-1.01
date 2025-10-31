@@ -30,6 +30,8 @@ import {
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { DollarSign } from 'lucide-react' // Add this import
+import { useUser } from "@/lib/context/user-context"  // NEW: import the hook
+import { Bell, Wrench } from "lucide-react"
 
 const navigation = [
   {
@@ -127,132 +129,144 @@ const secondaryNavigation = [
 ]
 
 function SidebarContent() {
-  const pathname = usePathname()
-  const { logout } = useAuth()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const router = useRouter()
+    const pathname = usePathname()
+    const { logout } = useAuth()
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const router = useRouter()
+    const { user } = useUser() // NEW: get current user
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true)
-    try {
-      await logout()
-      router.push('/signin')
-    } catch (error) {
-      console.error('Logout failed:', error)
-    } finally {
-      setIsLoggingOut(false)
+    // NEW: role-aware navigation (removed Balance & Payments)
+    const tenantNavigation = [
+      { name: "Dashboard", href: "/dashboard/tenant", icon: LayoutDashboard, badge: null },
+      { name: "Statements & Bills", href: "/dashboard/tenant/statements", icon: FileText, badge: null },
+      { name: "Maintenance & Repairs", href: "/dashboard/tenant/maintenance", icon: Wrench, badge: null },
+      { name: "Property Information", href: "/dashboard/tenant/property", icon: Building, badge: null },
+      { name: "Notifications & Alerts", href: "/dashboard/tenant/notifications", icon: Bell, badge: null },
+      { name: "Profile & Documents", href: "/dashboard/tenant/profile", icon: User, badge: null },
+    ]
+    const visibleNavigation = user?.role === 'tenant' ? tenantNavigation : navigation
+
+    const handleLogout = async () => {
+      setIsLoggingOut(true)
+      try {
+        await logout()
+        router.push('/signin')
+      } catch (error) {
+        console.error('Logout failed:', error)
+      } finally {
+        setIsLoggingOut(false)
+      }
     }
-  }
 
-  return (
-    <div className="flex h-screen flex-col bg-background border-r shadow-theme-lg overflow-hidden">
-      {/* Logo - Fixed at top */}
-      <div className="flex h-16 items-center border-b px-6 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
-            <Home className="h-4 w-4" />
+    return (
+      <div className="flex h-screen flex-col bg-background border-r shadow-theme-lg overflow-hidden">
+        {/* Logo - Fixed at top */}
+        <div className="flex h-16 items-center border-b px-6 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
+              <Home className="h-4 w-4" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-brand-800 bg-clip-text text-transparent">
+              InfiniaSYNC
+            </span>
           </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-brand-800 bg-clip-text text-transparent">
-            InfiniaSYNC
-          </span>
         </div>
-      </div>
 
-      {/* Removed: Entity Selector - Mobile - Fixed */}
-      {/* Previously rendered `<EntitySelector />` here; now fully removed to hide "InfiniaSync Property 12" */}
+        {/* Removed: Entity Selector - Mobile - Fixed */}
+        {/* Previously rendered `<EntitySelector />` here; now fully removed to hide "InfiniaSync Property 12" */}
 
-      {/* Navigation Content - Scrollable only if needed */}
-      <div className="flex-1 overflow-y-auto px-4">
-        {/* Main Navigation */}
-        <div className="space-y-2 py-4">
-          <div className="px-2 py-2">
-            <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground uppercase">
-              Main Menu
-            </h2>
-            <div className="space-y-1">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent",
-                      isActive
-                        ? "bg-brand-500 text-white shadow-theme hover:bg-brand-600"
-                        : "text-muted-foreground hover:text-accent-foreground",
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
+        {/* Navigation Content - Scrollable only if needed */}
+        <div className="flex-1 overflow-y-auto px-4">
+          {/* Main Navigation */}
+          <div className="space-y-2 py-4">
+            <div className="px-2 py-2">
+              <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground uppercase">
+                Main Menu
+              </h2>
+              <div className="space-y-1">
+                {visibleNavigation.map((item) => { // CHANGED: use visibleNavigation
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent",
+                        isActive
+                          ? "bg-brand-500 text-white shadow-theme hover:bg-brand-600"
+                          : "text-muted-foreground hover:text-accent-foreground",
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </div>
+                      {item.badge && (
+                        <Badge
+                          variant={isActive ? "secondary" : "default"}
+                          className={cn(
+                            "h-5 px-1.5 text-xs",
+                            isActive ? "bg-white/20 text-white" : "bg-brand-500 text-white",
+                          )}
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Secondary Navigation */}
+            <div className="px-2 py-2">
+              <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground uppercase">Account</h2>
+              <div className="space-y-1">
+                {secondaryNavigation.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent",
+                        isActive
+                          ? "bg-brand-500 text-white shadow-theme hover:bg-brand-600"
+                          : "text-muted-foreground hover:text-accent-foreground",
+                      )}
+                    >
                       <item.icon className="h-4 w-4" />
                       {item.name}
-                    </div>
-                    {item.badge && (
-                      <Badge
-                        variant={isActive ? "secondary" : "default"}
-                        className={cn(
-                          "h-5 px-1.5 text-xs",
-                          isActive ? "bg-white/20 text-white" : "bg-brand-500 text-white",
-                        )}
-                      >
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Secondary Navigation */}
-          <div className="px-2 py-2">
-            <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground uppercase">Account</h2>
-            <div className="space-y-1">
-              {secondaryNavigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent",
-                      isActive
-                        ? "bg-brand-500 text-white shadow-theme hover:bg-brand-600"
-                        : "text-muted-foreground hover:text-accent-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.name}
-                  </Link>
-                )
-              })}
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Footer - Fixed at bottom */}
-      <div className="border-t p-4 flex-shrink-0">
-        <div className="flex flex-col gap-4">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-accent-foreground"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4" />
-            )}
-            <span className="text-sm font-medium">
-              {isLoggingOut ? 'Logging out...' : 'Logout'}
-            </span>
-          </Button>
+        {/* Footer - Fixed at bottom */}
+        <div className="border-t p-4 flex-shrink-0">
+          <div className="flex flex-col gap-4">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-accent-foreground"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              <span className="text-sm font-medium">
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </span>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
 }
 
 export function EnhancedSidebar() {
@@ -264,6 +278,16 @@ export function EnhancedSidebar() {
 }
 
 export function Sidebar() {
+  const { user } = useUser() // ensure this import exists in file scope
+
+  // NEW: compute visible navigation based on role
+  const visibleNavigation = (user?.role === 'tenant')
+    ? [
+        { name: "Dashboard", href: "/dashboard/tenant", icon: LayoutDashboard, badge: null },
+        { name: "Profile", href: "/profile", icon: User, badge: null },
+      ]
+    : navigation
+
   return (
     <div className="fixed left-0 top-0 bottom-0 z-30 hidden md:block w-64 bg-background">
       <SidebarContent />

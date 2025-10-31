@@ -36,11 +36,31 @@ export default function TenantsPage() {
   // New: stats state from backend
   const [stats, setStats] = useState<{ active_tenants: { count: number } }>({ active_tenants: { count: 0 } })
 
+  // New: sort helper – newest first
+  const sortByNewest = (items: Tenant[]) =>
+    [...(items || [])].sort((a, b) => {
+      const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0
+      const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0
+      return bTime - aTime
+    })
+
+  // Helper: refresh tenants and stats
+  const refreshTenants = async () => {
+    try {
+      const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
+      setTenants(sortByNewest(response.data.results))
+      setTotalPages(Math.ceil(response.data.count / pageSize))
+      setTotalTenantsCount(Number(response.data.count) || 0)
+      await api.get('/tenants/stats/').then(r => setStats(r.data))
+    } catch (error) {
+      toast({ variant: "destructive", description: "Failed to refresh tenants" })
+    }
+  }
   useEffect(() => {
     const fetchTenants = async () => {
       try {
         const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
-        setTenants(response.data.results)
+        setTenants(sortByNewest(response.data.results))
         setTotalPages(Math.ceil(response.data.count / pageSize))
         setTotalTenantsCount(Number(response.data.count) || 0)
       } catch (error) {
@@ -69,8 +89,7 @@ export default function TenantsPage() {
       await api.post('/tenants/', data)
       toast({ description: "Tenant created successfully" })
       setIsFormOpen(false)
-      const response = await api.get('/tenants/')
-      setTenants(response.data.results)
+      await refreshTenants()
     } catch (error) {
       console.error('Error creating tenant:', error)
       toast({ variant: "destructive", description: "Failed to create tenant" })
@@ -84,8 +103,7 @@ export default function TenantsPage() {
       await api.put(`/tenants/${selectedTenant?.id}/`, data)
       toast({ description: "Tenant updated successfully" })
       setIsFormOpen(false)
-      const response = await api.get('/tenants/')
-      setTenants(response.data.results)
+      await refreshTenants()
       // Refresh stats after edit
       await api.get('/tenants/stats/').then(r => setStats(r.data))
     } catch (error) {
@@ -292,8 +310,7 @@ export default function TenantsPage() {
                   try {
                     await api.delete(`/tenants/${tenant.id}/`)
                     toast({ description: "Tenant deleted successfully" })
-                    const response = await api.get('/tenants/')
-                    setTenants(response.data.results)
+                    await refreshTenants()
                     // Refresh stats after delete
                     await api.get('/tenants/stats/').then(r => setStats(r.data))
                   } catch (error) {
@@ -312,8 +329,7 @@ export default function TenantsPage() {
                       await api.patch(`/units/${tenant.current_unit.id}/`, { unit_status: 'VACANT', current_tenant: null })
                     }
                     toast({ description: "Tenant moved out successfully" })
-                    const response = await api.get('/tenants/')
-                    setTenants(response.data.results)
+                    await refreshTenants()
                     // Refresh stats after move-out
                     await api.get('/tenants/stats/').then(r => setStats(r.data))
                   } catch (error) {
@@ -332,12 +348,7 @@ export default function TenantsPage() {
         onClose={() => setIsImportOpen(false)}
         onImported={async () => {
           try {
-            const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
-            setTenants(response.data.results)
-            setTotalPages(Math.ceil(response.data.count / pageSize))
-            setTotalTenantsCount(Number(response.data.count) || 0)
-            // Refresh stats after import
-            await api.get('/tenants/stats/').then(r => setStats(r.data))
+            await refreshTenants()
           } catch (error) {
             toast({ variant: "destructive", description: "Failed to refresh tenants after import" })
           }
@@ -352,12 +363,40 @@ export default function TenantsPage() {
           onEdit={async (updatedTenant) => {
             setSelectedTenant(updatedTenant)
             try {
-              const response = await api.get('/tenants/')
-              setTenants(response.data.results)
+              await refreshTenants()
               await api.get('/tenants/stats/').then(r => setStats(r.data))
             } catch {
               // Non-blocking refresh failure
             }
+          }}
+          onDelete={async () => {
+            try {
+              await api.delete(`/tenants/${selectedTenant?.id}/`)
+              toast({ description: "Tenant deleted successfully" })
+              await refreshTenants()
+              await api.get('/tenants/stats/').then(r => setStats(r.data))
+              setIsDetailsOpen(false)
+              setSelectedTenant(undefined)
+            } catch (error) {
+              toast({ variant: "destructive", description: "Failed to delete tenant" })
+            }
+          }}
+        />
+      )}
+      {/* Render onboarding flow when Add Tenant is clicked */}
+      {isFormOpen && (
+        <TenantOnboardingFlow
+          onClose={async () => {
+            setIsFormOpen(false)
+            await refreshTenants()
+          }}
+          onTenantCreated={async () => {
+            await refreshTenants()
+            toast({ description: "Tenant created successfully" })
+          }}
+          onUnitAssigned={async () => {
+            await refreshTenants()
+            toast({ description: "Unit assigned successfully" })
           }}
         />
       )}

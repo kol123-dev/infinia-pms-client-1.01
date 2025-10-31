@@ -83,6 +83,15 @@ export default function Units() {
   // Import dialog state
   const [isImportOpen, setIsImportOpen] = useState(false)
 
+  // Default sort: units by newest tenant (created_at desc). Units without tenant last.
+  const sortUnitsByNewestTenant = (list: Unit[]) => {
+    return [...list].sort((a, b) => {
+      const aTime = a.current_tenant?.created_at ? new Date(a.current_tenant.created_at).getTime() : -Infinity
+      const bTime = b.current_tenant?.created_at ? new Date(b.current_tenant.created_at).getTime() : -Infinity
+      return bTime - aTime
+    })
+  }
+
   const fetchUnits = useCallback(async () => {
     try {
       const params = new URLSearchParams({
@@ -92,8 +101,18 @@ export default function Units() {
       if (debouncedSearchTerm) {
         params.set("search", debouncedSearchTerm)
       }
+      // Request newest-first ordering from the API
+      params.set("ordering", "-created_at")
+
       const response = await api.get(`/units/?${params.toString()}`);
-      setUnits(response.data.results);
+      // Enforce newest-first locally as a safe fallback
+      const sorted = [...response.data.results].sort((a: Unit, b: Unit) => {
+        const aTime = new Date(a.created_at).getTime()
+        const bTime = new Date(b.created_at).getTime()
+        return bTime - aTime
+      })
+
+      setUnits(sorted);
       setTotalCount(response.data.count);
       setTotalPages(Math.ceil(response.data.count / pageSize));
     } catch (error) {
@@ -128,10 +147,14 @@ export default function Units() {
     setIsFormOpen(false);
     setIsEditing(false);
     setSelectedUnit(undefined);
+    // Ensure the directory refreshes after the dialog closes (success or cancel)
+    fetchUnits();
+    fetchStats();
   };
 
   const handleSuccess = () => {
     setCurrentPage(0);
+    // Refresh immediately on success
     fetchUnits();
     fetchStats();
     handleCloseForm();
@@ -291,18 +314,16 @@ export default function Units() {
 
       {isDetailsOpen && selectedUnit && (
         <UnitDetails
-          unit={selectedUnit}
-          isOpen={isDetailsOpen}
-          onClose={() => {
-            setIsDetailsOpen(false);
-            setSelectedUnit(undefined);  // Add this: Clear selectedUnit
-            setIsFormOpen(false);        // Add this: Ensure edit form is closed
-            setIsEditing(false);         // Add this: Reset editing state
-          }}  // Updated onClose to reset all states
-          onEdit={() => handleEdit(selectedUnit)}
-          onDelete={() => setIsDeleteOpen(true)}  // New prop to open confirmation
+            unit={selectedUnit}
+            isOpen={isDetailsOpen}
+            onClose={() => {
+                // Only close the details dialog; keep edit state intact
+                setIsDetailsOpen(false);
+            }}
+            onEdit={() => handleEdit(selectedUnit)}
+            onDelete={() => setIsDeleteOpen(true)}
         />
-      )}
+    )}
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>

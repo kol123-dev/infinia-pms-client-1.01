@@ -68,7 +68,8 @@ async function authenticateWithBackend(idToken: string) {
       email: userData.user.email,
       name: `${userData.user.first_name} ${userData.user.last_name}`,
       image: userData.user.profile_image,
-      firebaseToken: cleanToken // Store the clean token
+      firebaseToken: cleanToken, // Store the clean token
+      role: userData.user.role,   // NEW: carry user role from backend
     };
   } catch (error) {
     console.error('Backend authentication failed:', error);
@@ -95,6 +96,7 @@ const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
+        signInSource: { label: "SignIn Source", type: "text" } // NEW: allows us to distinguish tenant page
       },
       async authorize(credentials, req) {
         console.log('Authorize callback triggered');
@@ -116,11 +118,17 @@ const authOptions: NextAuthOptions = {
 
         try {
           // First, sign in with Firebase to get ID token
-          const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+          const userCredential = await signInWithEmailAndPassword(auth, credentials.email!, credentials.password!);
           const idToken = await userCredential.user.getIdToken();
           
           // Now authenticate with backend using the ID token
           const user = await authenticateWithBackend(idToken);
+
+          // NEW: hard-block tenants logging in from generic /signin
+          const source = (credentials as any)?.signInSource;
+          if ((user as any)?.role === 'tenant' && source !== 'tenant') {
+            throw new Error('Tenants must use Tenant Sign In at /tenant/signin');
+          }
           
           if (user) {
             console.log('Authorization successful for user:', user.email);
@@ -130,7 +138,9 @@ const authOptions: NextAuthOptions = {
           return null;
         } catch (error) {
           console.error('Error in authorize:', error);
-          return null;
+          // Return a readable error back to the client
+          const message = error instanceof Error ? error.message : 'Sign in failed';
+          throw new Error(message);
         }
       },
     }),
@@ -193,12 +203,12 @@ const authOptions: NextAuthOptions = {
             const newExpiry = decodedNew.exp * 1000;
             console.log(`Refreshed token expiry: ${new Date(newExpiry).toISOString()}`);
             const userData = await authenticateWithBackend(newIdToken);
-    
             return {
               ...token,
               firebaseToken: userData.firebaseToken,
               id: userData.id,
-              tokenExpiry: newExpiry
+              tokenExpiry: newExpiry,
+              role: (userData as any).role, // NEW: keep role updated
             };
           } catch (error: unknown) {
             attempts++;
@@ -226,6 +236,7 @@ const authOptions: NextAuthOptions = {
       session.firebaseToken = token.firebaseToken;
       if (session.user) {
         session.user.id = token.id;
+        (session.user as any).role = (token as any).role; // NEW: expose role to client
       }
       return session;
     },

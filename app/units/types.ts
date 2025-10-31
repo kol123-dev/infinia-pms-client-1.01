@@ -1,3 +1,4 @@
+// interfaces for Units page models
 export interface UnitFeatures {
   parking_spots: number
   storage_unit: boolean
@@ -24,6 +25,7 @@ export interface Tenant {
   user: User
   lease_start_date: string
   lease_end_date: string
+  created_at?: string
 }
 
 export interface UnitTenantHistory {

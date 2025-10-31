@@ -101,8 +101,10 @@ api.interceptors.response.use(
       console.error('Response data:', err.response.data)
 
       if (err.response.status === 401 || err.response.status === 403) {
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/signin')) {
-          window.location.href = '/signin'
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname || ''
+          const isTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
+          window.location.href = isTenantArea ? '/tenant/signin' : '/signin'
         }
       }
     }

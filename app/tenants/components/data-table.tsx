@@ -1,3 +1,4 @@
+// DataTable component (global filter + auto-clear fix)
 "use client"
 
 import * as React from "react"
@@ -55,25 +56,29 @@ export const globalTenantFilter = <T extends Tenant>(
   columnId: string,
   value: string
 ): boolean => {
-  const searchTerm = value.toLowerCase();
-  const tenant = row.original;
-  
+  const searchTerm = (value || "").toLowerCase().trim()
+  if (!searchTerm) {
+    // Empty search should not filter out any rows
+    return true
+  }
+  const tenant = row.original
+
   // Search in tenant name
-  if (tenant.user?.full_name?.toLowerCase().includes(searchTerm)) return true;
-  
+  if (tenant.user?.full_name?.toLowerCase().includes(searchTerm)) return true
+
   // Search in phone number
-  if (tenant.phone?.toLowerCase().includes(searchTerm)) return true;
-  
+  if (tenant.phone?.toLowerCase().includes(searchTerm)) return true
+
   // Search in property name
-  if (tenant.current_unit?.property?.name?.toLowerCase().includes(searchTerm)) return true;
-  
+  if (tenant.current_unit?.property?.name?.toLowerCase().includes(searchTerm)) return true
+
   // Search in unit number
-  if (tenant.current_unit?.unit_number?.toLowerCase().includes(searchTerm)) return true;
-  
+  if (tenant.current_unit?.unit_number?.toLowerCase().includes(searchTerm)) return true
+
   // Search in tenant status
-  if (tenant.status?.toLowerCase().includes(searchTerm)) return true;
-  
-  return false;
+  if (tenant.status?.toLowerCase().includes(searchTerm)) return true
+
+  return false
 }
 
 interface DataTableProps<TData, TValue> {
@@ -131,8 +136,18 @@ export function DataTable<TData extends Tenant, TValue>({
     manualPagination: true,
   })
 
+  // Auto-clear stale global filter if new data arrives and the filter hides all rows
+  React.useEffect(() => {
+    const hasData = Array.isArray(data) && data.length > 0
+    const isFilteredOut = table.getFilteredRowModel().rows.length === 0
+    if (hasData && isFilteredOut && globalFilter.trim().length > 0) {
+      setGlobalFilter("")
+    }
+  }, [data, globalFilter])
+
   return (
     <div className="space-y-4">
+      {/* Search + View controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Input

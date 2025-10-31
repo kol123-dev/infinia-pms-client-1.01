@@ -521,7 +521,7 @@ export function UnitAssignmentForm({ isOpen, onClose, onSuccess, tenantData }: U
   );
 }
 
-export function TenantOnboardingFlow({ onClose }: { onClose: () => void }): ReactElement {
+export function TenantOnboardingFlow({ onClose, onTenantCreated, onUnitAssigned }: { onClose: () => void; onTenantCreated?: () => Promise<void>; onUnitAssigned?: () => Promise<void> }): ReactElement {
   const [step, setStep] = useState(1);
   const [userData, setUserData] = useState<any>(null);
   const [tenantData, setTenantData] = useState<any>(null);
@@ -549,11 +549,17 @@ export function TenantOnboardingFlow({ onClose }: { onClose: () => void }): Reac
   };
 
   const handleTenantCreated = async (data: any) => {
+    if (onTenantCreated) {
+      await onTenantCreated();
+    }
     setTenantData(data);
     setStep(3);
   };
 
   const handleUnitAssigned = async (data: any) => {
+    if (onUnitAssigned) {
+      await onUnitAssigned();
+    }
     // Close all dialogs and reset state
     handleClose();
   };

@@ -1,3 +1,4 @@
+// DataTable component (defensive global filter + auto-clear on refresh)
 import * as React from "react";
 import {
   ColumnDef,
@@ -13,7 +14,7 @@ import {
   useReactTable,
   FilterFn,
   Row,
-  FilterMeta, // Added this import for FilterMeta
+  FilterMeta,
 } from "@tanstack/react-table";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { rankItem, type RankingInfo } from '@tanstack/match-sorter-utils'
@@ -57,15 +58,18 @@ export const fuzzyFilter: FilterFn<any> = (
   value: string,
   addMeta: (meta: FilterMeta) => void
 ) => {
-  // Rank the item using match-sorter
-  const itemRank = rankItem(row.getValue(columnId), value)
+  // Defensive: if search is empty, don’t filter out rows
+  const term = (value ?? "").toString().trim();
+  if (!term) return true;
 
-  // Store the ranking info for potential sorting use
-  addMeta({ itemRank })
+  // Normalize row value to a string
+  const raw = row.getValue(columnId);
+  const text = typeof raw === "string" ? raw : (raw ?? "").toString();
 
-  // Return if the item should be filtered in/out
-  return itemRank.passed
-}
+  const itemRank = rankItem(text, term);
+  addMeta({ itemRank });
+  return itemRank.passed;
+};
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -133,6 +137,17 @@ export function DataTable<TData, TValue>({
     },
     manualPagination: true,
   });
+
+  // Auto-clear stale search if new data arrives and filter hides all rows
+  React.useEffect(() => {
+    const hasData = Array.isArray(data) && data.length > 0;
+    const filteredZero = table.getFilteredRowModel().rows.length === 0;
+    const currentSearch = (typeof searchValue === "string" ? searchValue : globalFilter).trim();
+    if (hasData && filteredZero && currentSearch.length > 0) {
+      setGlobalFilter("");
+      onSearchChange?.("");
+    }
+  }, [data, table, searchValue, globalFilter]);
 
   // Calculate display range
   const start = pageIndex * pageSize + 1;

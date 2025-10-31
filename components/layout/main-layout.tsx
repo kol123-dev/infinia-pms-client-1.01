@@ -29,7 +29,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   if (status === "loading") {
     return (
-      <div className="min-h-[100dvh] w-full">
+      <div className="min-h-[100dvh] w-full bg-background">
         {/* Shell skeleton: sidebar + header */}
         <div className="flex">
           {/* Sidebar skeleton (md+) */}
@@ -95,7 +95,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full">
+    <div className="min-h-[100dvh] w-full bg-background">
       <Sidebar />
       <div className="flex flex-col md:ml-64">
         <Header />

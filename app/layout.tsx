@@ -30,11 +30,11 @@ export const metadata: Metadata = {
       { url: "/icons/icon-512x512.png", sizes: "512x512" },
     ],
     apple: "/icons/icon-180x180.png",
-    themeColor: [
-      { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
-      { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    ],
   },
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
 }
 
 export const viewport: Viewport = {
@@ -47,7 +47,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${outfit.variable} font-outfit`}>
+      <body className={`${outfit.variable} font-outfit min-h-[100dvh] bg-background`}>
         <Providers>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <UserProvider>

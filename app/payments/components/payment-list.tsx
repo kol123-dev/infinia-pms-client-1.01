@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -82,7 +82,8 @@ export function PaymentList() {
     accessor: (p: Payment) => string | number | Date | undefined
   }
 
-  const columns: ColumnDef[] = [
+  const columns = useMemo<ColumnDef[]>(
+    () => [
     { key: "tenant", label: "Tenant Name", type: "string", accessor: (p) => p.tenant?.user?.full_name ?? "" },
     { key: "tenant_email", label: "Tenant Email", type: "string", accessor: (p) => p.tenant?.user?.email ?? "" },
     { key: "property", label: "Property", type: "string", accessor: (p) => p.property?.name ?? "" },
@@ -97,7 +98,9 @@ export function PaymentList() {
     },
     { key: "payment_method", label: "Method", type: "string", accessor: (p) => p.payment_method ?? "" },
     { key: "payment_status", label: "Status", type: "string", accessor: (p) => p.payment_status ?? "" },
-  ]
+  ],
+    []
+  )
 
   // Format helpers
   const formatHumanEAT = (date?: Date): string => {
@@ -274,9 +277,12 @@ export function PaymentList() {
 
   const removeFilter = (id: string) => setFilters((prev) => prev.filter((f) => f.id !== id))
   const clearFilters = () => setFilters([])
-  const columnDefByKey = (key: ColumnKey) => columns.find((c) => c.key === key)!
+  const columnDefByKey = useCallback(
+    (key: ColumnKey) => columns.find((c) => c.key === key)!,
+    [columns]
+  )
 
-  const matchString = (val: string, op: StringOperator, comp: string) => {
+  const matchString = useCallback((val: string, op: StringOperator, comp: string) => {
     const v = (val ?? "").toLowerCase()
     const c = (comp ?? "").toLowerCase()
     switch (op) {
@@ -285,9 +291,9 @@ export function PaymentList() {
       case "startsWith": return v.startsWith(c)
       case "endsWith": return v.endsWith(c)
     }
-  }
+  }, [])
 
-  const matchNumber = (val: number, op: NumberOperator, comp: string, compTo?: string) => {
+  const matchNumber = useCallback((val: number, op: NumberOperator, comp: string, compTo?: string) => {
     const num = Number(val)
     const c = Number(comp)
     const t = compTo !== undefined ? Number(compTo) : undefined
@@ -297,7 +303,7 @@ export function PaymentList() {
       case "lessThan": return num < c
       case "between": return t !== undefined ? num >= Math.min(c, t) && num <= Math.max(c, t) : false
     }
-  }
+  }, [])
 
   const normalizeDateInput = (input: string) => {
     const d = new Date(input)
@@ -305,7 +311,7 @@ export function PaymentList() {
   }
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 
-  const matchDate = (val: Date | undefined, op: DateOperator, comp: string, compTo?: string) => {
+  const matchDate = useCallback((val: Date | undefined, op: DateOperator, comp: string, compTo?: string) => {
     if (!val) return false
     const v = startOfDay(val)
     const c = normalizeDateInput(comp)
@@ -316,9 +322,9 @@ export function PaymentList() {
       case "after": return v.getTime() > c.getTime()
       case "between": return t ? v.getTime() >= Math.min(c.getTime(), t.getTime()) && v.getTime() <= Math.max(c.getTime(), t.getTime()) : false
     }
-  }
+  }, [])
 
-  const applyFilters = (list: Payment[]) => {
+  const applyFilters = useCallback((list: Payment[]) => {
     if (filters.length === 0) return list
     return list.filter((p) =>
       filters.every((f) => {
@@ -332,9 +338,9 @@ export function PaymentList() {
         }
       })
     )
-  }
+  }, [filters, columnDefByKey, matchString, matchNumber, matchDate])
 
-  const applyGlobalSearch = (list: Payment[]) => {
+  const applyGlobalSearch = useCallback((list: Payment[]) => {
     if (!searchTerm.trim()) return list
     const q = searchTerm.toLowerCase()
     return list.filter((p) => {
@@ -349,7 +355,7 @@ export function PaymentList() {
       ]
       return fields.some((f) => (f ?? "").toString().toLowerCase().includes(q))
     })
-  }
+  }, [searchTerm])
 
   // Sorting state
   type SortDirection = "asc" | "desc" | null
@@ -367,14 +373,14 @@ export function PaymentList() {
     }
   }
   
-  const applySort = (list: Payment[]) => {
+  const applySort = useCallback((list: Payment[]) => {
     if (!sortKey || !sortDirection) return list
     const col = columnDefByKey(sortKey)
-  
+
     const sorted = [...list].sort((a, b) => {
       const av = col.accessor(a)
       const bv = col.accessor(b)
-  
+
       switch (col.type) {
         case "string": {
           const sa = String(av ?? "")
@@ -393,21 +399,21 @@ export function PaymentList() {
         }
       }
     })
-  
+
     return sortDirection === "asc" ? sorted : sorted.reverse()
-  }
+  }, [sortKey, sortDirection, columnDefByKey])
 
   const filteredPayments = useMemo(() => {
     let list = [...payments]
     list = applyGlobalSearch(list)
     list = applyFilters(list)
     return list
-  }, [payments, searchTerm, filters])
+  }, [payments, applyGlobalSearch, applyFilters])
 
   // Apply sorting before pagination
   const sortedPayments = useMemo(
     () => applySort(filteredPayments),
-    [filteredPayments, sortKey, sortDirection]
+    [filteredPayments, applySort]
   )
 
   // Derived pagination values based on sorted list

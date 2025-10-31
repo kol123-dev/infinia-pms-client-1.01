@@ -199,14 +199,21 @@ export default function Reports() {
 
       if (reportType === "financial" || reportType === "occupancy") {
         const propertiesResponse = await api.get('/properties/')
-        setProperties(propertiesResponse.data.results || [])
+        const propsArr: Property[] = propertiesResponse.data.results || []  // type propsArr to avoid implicit any
+        setProperties(propsArr)
+
         const unitsResponse = await api.get('/units/?page_size=500')
         const units = unitsResponse.data.results || []
 
-        // Apply property filter to units for occupancy view/export
+        // Compute selected property name from fresh response instead of state
+        const selectedName =
+          selectedPropertyId === 'all'
+            ? null
+            : propsArr.find(p => String(p.id) === selectedPropertyId)?.name ?? null
+
         const unitsToUse = selectedPropertyId === 'all'
           ? units
-          : units.filter((u: UnitForReport) => selectedPropertyName ? (u.property?.name === selectedPropertyName) : false)
+          : units.filter((u: UnitForReport) => selectedName ? (u.property?.name === selectedName) : false)
 
         setUnitsReport(unitsToUse)
 
@@ -250,7 +257,6 @@ export default function Reports() {
         ])
 
         if (reportType === "financial") {
-          const propsArr = propertiesResponse.data.results || []
           await buildBackendFinancial(propsArr)
         } else {
           setBackendFinancialData([])
@@ -276,7 +282,6 @@ export default function Reports() {
     } finally {
       setLoading(false)
     }
-  // Include selectedPropertyId so occupancy recomputes when filter changes
   }, [reportType, selectedPropertyId, buildBackendFinancial, toast])
 
   // Depend on the stable fetchData
@@ -313,7 +318,6 @@ export default function Reports() {
       computedFinancialData,
       occupancyData,
       expenses,
-      // Use filtered tenants in exports
       tenantsFiltered,
       unitsReport,
       { property: selectedPropertyName }
@@ -326,7 +330,6 @@ export default function Reports() {
       computedFinancialData,
       occupancyData,
       expenses,
-      // Use filtered tenants in exports
       tenantsFiltered,
       unitsReport,
       { property: selectedPropertyName }

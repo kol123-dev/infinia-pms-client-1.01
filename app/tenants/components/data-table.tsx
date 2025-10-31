@@ -143,7 +143,7 @@ export function DataTable<TData extends Tenant, TValue>({
     if (hasData && isFilteredOut && globalFilter.trim().length > 0) {
       setGlobalFilter("")
     }
-  }, [data, globalFilter])
+  }, [data, globalFilter, table])
 
   return (
     <div className="space-y-4">

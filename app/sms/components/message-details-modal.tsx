@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { SmsMessage, SmsStatus, Recipient } from "../types"
+import { useState } from "react"
 
 interface MessageDetailsModalProps {
   message: SmsMessage | null
@@ -28,9 +29,11 @@ const statusColors: StatusMap<string> = {
 }
 
 export function MessageDetailsModal({ message, onClose, onDelete }: MessageDetailsModalProps) {
+  // Ensure hooks are called unconditionally
+  const [showAllRecipients, setShowAllRecipients] = useState<boolean>(false)
+
   if (!message) return null
 
-  const [showAllRecipients, setShowAllRecipients] = useState<boolean>(false)
   const tenantRecipients = (message.recipients || []).map(r => ({
     key: `tenant-${r.id}`,
     name: r.user.full_name,
@@ -141,4 +144,3 @@ export function MessageDetailsModal({ message, onClose, onDelete }: MessageDetai
     </Dialog>
   )
 }
-import { useState } from "react"

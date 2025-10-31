@@ -110,8 +110,9 @@ export function DataTable<TData, TValue>({
     if (typeof searchValue === "string" && searchValue !== globalFilter) {
       setGlobalFilter(searchValue);
     }
-  }, [searchValue]);    
+  }, [searchValue, globalFilter])
 
+  // Create table BEFORE any effect that references it
   const table = useReactTable({
     data,
     columns,
@@ -147,7 +148,7 @@ export function DataTable<TData, TValue>({
       setGlobalFilter("");
       onSearchChange?.("");
     }
-  }, [data, table, searchValue, globalFilter]);
+  }, [data, table, searchValue, globalFilter, onSearchChange])
 
   // Calculate display range
   const start = pageIndex * pageSize + 1;

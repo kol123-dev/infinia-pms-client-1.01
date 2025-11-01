@@ -67,6 +67,8 @@ export default function LandlordsPage() {
   const [previousPage, setPreviousPage] = useState<string | null>(null)
 
   // Add state for potential monthly revenue totals
+  // Add state for potential monthly revenue totals
+  //
   const [potentialTotals, setPotentialTotals] = useState<Record<number, number>>({})
 
   // Helper to fetch potential monthly revenue for each property and sum by landlord

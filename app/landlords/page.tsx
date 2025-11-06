@@ -203,7 +203,7 @@ export default function LandlordsPage() {
           <div className="grid grid-cols-2 gap-2">
             <Card className="card-enhanced w-full">
               <CardHeader className="p-2 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Landlords</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Landlord</CardTitle>
                 <div className="p-1 rounded-lg bg-brand-50 dark:bg-brand-900/20">
                   <Users className="h-4 w-4 text-blue-600" />
                 </div>

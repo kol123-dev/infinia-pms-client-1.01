@@ -1,0 +1,110 @@
+{
+  "tech_stack": [
+    "Next.js 15",
+    "React 19",
+    "TypeScript",
+    "Tailwind CSS",
+    "Axios",
+    "Next Auth",
+    "Firebase Web SDK"
+  ],
+  "features": [
+    {
+      "name": "Dashboard",
+      "description": "Main dashboard UI integrating tenants, properties, units, payments metrics.",
+      "files": [
+        "app/dashboard/*",
+        "components/dashboard/*"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": { "title": "Frontend Dashboard Integration", "version": "1.0.0" },
+        "servers": [{ "url": "http://localhost:8000/api/v1" }],
+        "paths": {
+          "/tenants/": { "get": { "summary": "Fetch tenants for dashboard tables" } },
+          "/properties/": { "get": { "summary": "Fetch properties for dashboard cards" } },
+          "/units/": { "get": { "summary": "Fetch units for lists" } },
+          "/payments/": { "get": { "summary": "Fetch payments for charts" } }
+        }
+      }
+    },
+    {
+      "name": "Tenants UI",
+      "description": "Tenant listing, import, stats and detail views.",
+      "files": [
+        "app/tenants/*",
+        "components/tenants/*",
+        "hooks/useInvoices.ts"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": { "title": "Tenants UI -> API usage", "version": "1.0.0" },
+        "servers": [{ "url": "http://localhost:8000/api/v1/tenants" }],
+        "paths": {
+          "/": { "get": { "summary": "List tenants" }, "post": { "summary": "Create tenant" } },
+          "/stats/": { "get": { "summary": "Tenant stats" } },
+          "/import/": { "post": { "summary": "Bulk import tenants" } }
+        }
+      }
+    },
+    {
+      "name": "Properties & Units UI",
+      "description": "Manage properties and nested units from the frontend.",
+      "files": [
+        "app/properties/*",
+        "components/properties/*",
+        "app/units/*",
+        "components/units/*"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": { "title": "Properties & Units UI -> API usage", "version": "1.0.0" },
+        "servers": [{ "url": "http://localhost:8000/api/v1" }],
+        "paths": {
+          "/properties/": { "get": { "summary": "List properties" }, "post": { "summary": "Create property" } },
+          "/properties/{property_pk}/units/": { "get": { "summary": "List units for property" } },
+          "/units/": { "get": { "summary": "List all units" } }
+        }
+      }
+    },
+    {
+      "name": "Payments & Invoices UI",
+      "description": "Handle payments, receipts and invoice generation and schedules.",
+      "files": [
+        "app/payments/*",
+        "components/payments/*",
+        "app/invoice/*",
+        "hooks/useInvoices.ts"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": { "title": "Payments & Invoices UI -> API usage", "version": "1.0.0" },
+        "servers": [{ "url": "http://localhost:8000/api/v1/payments" }],
+        "paths": {
+          "/payments": { "get": { "summary": "List payments" } },
+          "/receipts": { "get": { "summary": "List receipts" } },
+          "/invoices": { "get": { "summary": "List invoices" } }
+        }
+      }
+    },
+    {
+      "name": "Auth & Profile UI",
+      "description": "Sign in/up flows and current user profile view and edit.",
+      "files": [
+        "app/signin/*",
+        "app/signup/*",
+        "app/profile/*",
+        "lib/axios.ts"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": { "title": "Auth & Profile UI -> API usage", "version": "1.0.0" },
+        "servers": [{ "url": "http://localhost:8000/api/v1" }],
+        "paths": {
+          "/auth/firebase-login/": { "post": { "summary": "Firebase login" } },
+          "/auth/me/": { "get": { "summary": "Fetch current user" }, "put": { "summary": "Update current user" } }
+        }
+      }
+    }
+  ]
+}

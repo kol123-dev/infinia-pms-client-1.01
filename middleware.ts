@@ -98,7 +98,12 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    return NextResponse.next();
+    // Add cache control for protected routes to prevent unauthorized cached access
+    const response = NextResponse.next();
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    return response;
   } catch (error) {
     console.error('Middleware authentication error:', error);
     const signInUrl = new URL('/signin', request.url);

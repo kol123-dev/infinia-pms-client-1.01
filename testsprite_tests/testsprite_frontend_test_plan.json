@@ -1,0 +1,550 @@
+[
+  {
+    "id": "TC001",
+    "title": "Firebase authentication with valid credentials",
+    "description": "Ensure that a user can successfully sign in using valid Firebase credentials and obtain access to the dashboard.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Firebase login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter valid username/email and password."
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the login is successful and the user lands on the main dashboard page."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user receives a valid Firebase auth token."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Firebase authentication with invalid credentials",
+    "description": "Verify user login fails with invalid Firebase credentials and appropriate error messages are shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the Firebase login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid username/email or password."
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login is denied and user remains on login page."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an appropriate error message is displayed indicating invalid credentials."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Access dashboard with valid Firebase token",
+    "description": "Ensure dashboard metrics load correctly when accessed with a valid Firebase token.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login with Firebase and obtain a valid token."
+      },
+      {
+        "type": "action",
+        "description": "Navigate to dashboard page."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API calls to /tenants/, /properties/, /units/, /payments/ succeed."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dashboard shows accurate real-time metrics of tenants, properties, units, and payments."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Access dashboard with invalid or missing Firebase token",
+    "description": "Verify access to dashboard endpoints is denied without a valid Firebase authentication token.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to navigate to dashboard API endpoints without authentication token."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API returns 401 Unauthorized or equivalent error."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI prevents access and prompts for login."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "List all tenants successfully",
+    "description": "Verify that the tenants listing API and UI correctly display the existing tenants.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and navigate to tenants page."
+      },
+      {
+        "type": "action",
+        "description": "Call GET /tenants/ API."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API returns list of tenants with correct data."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI tenant list displays all tenant records correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Create a new tenant",
+    "description": "Confirm that a new tenant can be created successfully via the UI and the database updates accordingly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to create tenant form."
+      },
+      {
+        "type": "action",
+        "description": "Fill in valid tenant details and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response confirms tenant creation."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify new tenant appears in tenant listing."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Bulk import tenants with valid data",
+    "description": "Verify bulk uploading tenants with valid data succeeds and all tenants are correctly added.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to tenant import page."
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid bulk tenant file (CSV/JSON)."
+      },
+      {
+        "type": "action",
+        "description": "Submit the import request."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API returns success and all tenants are added."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify newly imported tenants appear in tenant listing."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Bulk import tenants with invalid data",
+    "description": "Validate that invalid data in bulk tenant import is flagged with proper error messages, and no invalid tenants are created.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to tenant import page."
+      },
+      {
+        "type": "action",
+        "description": "Upload a bulk tenant file containing invalid or malformed data."
+      },
+      {
+        "type": "action",
+        "description": "Submit the import request."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API response includes descriptive validation errors."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no invalid tenants are created in database."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI displays error messages indicating which upload entries failed."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "List all properties and nested units",
+    "description": "Ensure the front-end lists all properties and the nested units per property correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and navigate to properties page."
+      },
+      {
+        "type": "action",
+        "description": "Call GET /properties/ to fetch all properties."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API returns correct list of properties."
+      },
+      {
+        "type": "action",
+        "description": "Select a property and call GET /properties/{property_pk}/units/ to fetch units."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API returns correct units nested under the selected property."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify property and units display correctly in the UI."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Create and update properties and units",
+    "description": "Verify that users can create new properties and units, edit their details, and changes persist correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to new property creation page."
+      },
+      {
+        "type": "action",
+        "description": "Fill in valid property data and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify property is created successfully and listed."
+      },
+      {
+        "type": "action",
+        "description": "Navigate to new unit creation for a property."
+      },
+      {
+        "type": "action",
+        "description": "Fill in valid unit data and submit."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify unit is created successfully under the property."
+      },
+      {
+        "type": "action",
+        "description": "Edit the created property and unit details."
+      },
+      {
+        "type": "action",
+        "description": "Submit updates."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify property and unit updates are saved and reflected in UI."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Payments processing and reconciliation with M-Pesa",
+    "description": "Verify that payments via M-Pesa are processed and reconciled correctly including payment history and receipts.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Initiate a payment using M-Pesa method."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment processing is successful."
+      },
+      {
+        "type": "action",
+        "description": "View payment history via GET /payments."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new payment appears with accurate details."
+      },
+      {
+        "type": "action",
+        "description": "View payment receipt via GET /receipts."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify receipt data corresponds to the payment."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Payment processing error handling for invalid methods",
+    "description": "Validate that incorrect or unsupported payment methods are rejected with clear error responses.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to process a payment with an unsupported payment method."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the system returns an error indicating invalid payment method."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no payment is recorded or processed."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Invoice generation and listing",
+    "description": "Ensure invoices are generated automatically by background tasks and can be retrieved and viewed correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger or wait for background invoice generation."
+      },
+      {
+        "type": "action",
+        "description": "Call GET /invoices to retrieve list of invoices."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoices are listed with correct details."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify invoice data matches payments and tenants correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Send SMS via AfricasTalking API for rent reminders",
+    "description": "Verify SMS rent reminders can be sent successfully using the AfricasTalking service and templates are applied.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Compose a rent reminder SMS message."
+      },
+      {
+        "type": "action",
+        "description": "Send SMS through the system's integration with AfricasTalking API."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API call to AfricasTalking is successful."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify tenant receives the SMS with correct content."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Fail SMS sending due to API error",
+    "description": "Verify system handles SMS API failures gracefully and logs errors appropriately.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate AfricasTalking API outage or invalid credentials."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to send SMS message."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system returns error notification about SMS failure."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error is logged for troubleshooting."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "User profile retrieval and update",
+    "description": "Verify authenticated users can fetch and update their profile successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and call GET /auth/me/ to retrieve profile."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify profile data is returned correctly."
+      },
+      {
+        "type": "action",
+        "description": "Update user profile fields and submit PUT /auth/me/ request."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updates are accepted and reflected in subsequent GET /auth/me/ calls."
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Unauthorized profile access",
+    "description": "Verify profile APIs reject requests without valid Firebase authentication tokens.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Call GET /auth/me/ and PUT /auth/me/ without auth token."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify API responds with 401 Unauthorized."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "User role and permission enforcement",
+    "description": "Confirm that user roles and permissions are properly enforced across the system restricting unauthorized operations.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a user with restricted role."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to perform privileged operations like property deletion or tenant import."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system denies operations with proper error messages."
+      },
+      {
+        "type": "action",
+        "description": "Login as an admin user."
+      },
+      {
+        "type": "action",
+        "description": "Repeat privileged operations."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify privileged operations succeed."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Background tasks execution and error logging",
+    "description": "Verify Celery background tasks for invoice generation, payment reconciliation, and reporting run reliably and log errors on failure.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger background tasks or wait for scheduled run."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify tasks complete successfully and update relevant data."
+      },
+      {
+        "type": "action",
+        "description": "Simulate a failure in background task."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error is logged with sufficient details for troubleshooting."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "UI responsiveness and error display",
+    "description": "Confirm UI correctly renders on various screen sizes and displays error messages clearly for API failures or input validation errors.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access core pages (dashboard, tenants, properties, payments) on desktop and mobile viewport sizes."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI elements are properly aligned and usable."
+      },
+      {
+        "type": "action",
+        "description": "Trigger API errors or submit invalid forms."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error messages are shown clearly and guide the user on how to fix the issue."
+      }
+    ]
+  }
+]

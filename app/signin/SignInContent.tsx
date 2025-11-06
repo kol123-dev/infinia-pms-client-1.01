@@ -168,6 +168,7 @@ export default function SignInContent({ defaultCallback = '/dashboard', signInSo
               src="/auth-background.jpg"
               alt="Authentication background"
               fill
+              sizes="(max-width: 768px) 0px, (max-width: 1024px) 50vw, 50vw"
               className="object-cover"
               priority
             />

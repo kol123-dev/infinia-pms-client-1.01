@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "loginUser": "agentm@rental.com",
+  "loginPassword": "1234567",
+  "executionArgs": {
+    "projectName": "v0_client",
+    "projectPath": "c:\\Users\\conta\\Desktop\\Personal\\Infinia Property Management\\v0_client",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-3QSeXImy7SWax2HatXDUp9Lq21n7rbhKQ3ep2gR41P0ppvh3LqOxrjGsGe7fqHZjKY91__DNqx8bAouTCminbgXZaMixuyzIFxNnzEVWyGJDhCHuQcwrCkHlN9jaUwzgxD8"
+    }
+  },
+  "proxy": "http://88052058-1d16-4529-bd7e-6fbdadc90e42:fFxPzBCFscTyCcN4frXBSq4U2PDmt8Vj@tun.testsprite.com:8080"
+}

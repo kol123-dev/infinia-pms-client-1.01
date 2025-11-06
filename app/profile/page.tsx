@@ -12,10 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Save, Loader2 } from "lucide-react"
 import { useUser } from "@/lib/context/user-context"  // Change this import
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function Profile() {
   const { user, loading, error, updateProfile, updatePhoto } = useUser()  // Use useUser instead of useAuth
   const { toast } = useToast()
+  const router = useRouter()
   const [updating, setUpdating] = useState(false)
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,11 +89,42 @@ export default function Profile() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="h-6 w-40 bg-muted rounded" />
+            <div className="h-6 w-24 bg-muted rounded" />
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2">
+            <div className="h-10 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-8 w-48 bg-muted rounded" />
+            <div className="h-4 w-64 bg-muted rounded" />
+            <div className="grid gap-4 md:grid-cols-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-24 bg-muted rounded" />
+                  <div className="h-10 w-full bg-muted rounded" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-24 bg-muted rounded" />
+              <div className="h-24 w-full bg-muted rounded" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 w-28 bg-muted rounded" />
+              <div className="h-10 w-28 bg-muted rounded" />
+            </div>
+          </div>
         </div>
       </MainLayout>
     )
+  }
+
+  if (!user || error) {
+    return null
   }
 
   return (

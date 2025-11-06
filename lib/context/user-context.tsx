@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import api from "../axios"
+import { usePathname } from "next/navigation"
 
 interface User {
   id: number
@@ -36,70 +37,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+  const pathname = usePathname()
 
   const fetchUser = useCallback(async () => {
-    if (!session?.firebaseToken) {
-      setLoading(false)
+    // Skip on sign-in pages
+    const path = typeof window !== 'undefined' ? window.location.pathname : ''
+    const onSignInPage = path.startsWith('/signin') || path.startsWith('/tenant/signin')
+    if (onSignInPage) {
       setUser(null)
+      setLoading(false)
+      setError(null)
       return
     }
 
-    // Helper function to check if sessionid cookie exists
-    const hasSessionCookie = () => {
-      return document.cookie.split('; ').some(row => row.startsWith('sessionid='))
-    }
-
-    // Retry logic for cookie-based auth timing
-    const fetchWithRetry = async (retries = 3, delay = 500) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          // Check if we have the session cookie before making the request
-          if (!hasSessionCookie() && i < retries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delay))
-            continue
-          }
-
-          const response = await api.get('/auth/me/')
-          setUser(response.data)
-          setError(null)
-          // Store the valid token
-          if (session.firebaseToken) {
-            localStorage.setItem('token', session.firebaseToken)
-          }
-          return
-        } catch (err: any) {
-          // If it's a 403 and we still have retries, wait and try again
-          if (err.response?.status === 403 && i < retries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delay))
-            continue
-          }
-          
-          // Final attempt failed or other error
-          setUser(null)
-          if (err.response?.data?.detail?.includes('Token expired')) {
-            // Clear the expired token
-            localStorage.removeItem('token')
-            window.location.href = '/signin'
-          } else {
-            setError('Failed to fetch user data')
-          }
-          break
-        }
-      }
-    }
-
+    setLoading(true)
     try {
-      await fetchWithRetry()
+      const response = await api.get('/auth/me/')
+      setUser(response.data)
+      setError(null)
+    } catch (err: any) {
+      setUser(null)
+      setError('Failed to fetch user data')
     } finally {
       setLoading(false)
     }
-  }, [session]) // Remove 'user' from dependencies
+  }, [])
 
-  // Fetch user data when session changes - KEEP ONLY THIS useEffect
+  // Fetch user data when session changes or on navigation
   useEffect(() => {
     fetchUser()
-  }, [fetchUser])
+  }, [fetchUser, status, pathname])
 
   const updateProfile = async (data: Partial<User>) => {
     try {
@@ -135,11 +103,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     setError(null)
   }
-
-  // REMOVE THIS DUPLICATE useEffect
-  // useEffect(() => {
-  //   fetchUser()
-  // }, [])
 
   return (
     <UserContext.Provider

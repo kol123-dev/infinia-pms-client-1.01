@@ -59,6 +59,28 @@ async function authenticateWithBackend(idToken: string) {
   } as any
 }
 
+// Add a helper to translate Firebase error codes into friendly messages
+function friendlyAuthMessage(err: unknown): string {
+  const code = (err as any)?.code || ''
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.'
+    case 'auth/user-not-found':
+      return 'No account found for this email.'
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.'
+    case 'auth/invalid-credential':
+      return 'Invalid email or password.'
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a moment and try again.'
+    case 'auth/network-request-failed':
+      return 'Network error. Check your connection and try again.'
+    default:
+      // Keep a safe fallback
+      return 'Sign in failed. Please check your email and password.'
+  }
+}
+
 const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -68,21 +90,29 @@ const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
         signInSource: { label: "SignIn Source", type: "text" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
-        const userCredential = await signInWithEmailAndPassword(auth, credentials.email!, credentials.password!)
-        const idToken = await userCredential.user.getIdToken()
+        try {
+          // First, sign in with Firebase to get ID token
+          const userCredential = await signInWithEmailAndPassword(auth, credentials.email!, credentials.password!)
+          const idToken = await userCredential.user.getIdToken()
+          
+          // Authenticate with backend server-side (okay), but we also need client to set cookies:
+          const user = await authenticateWithBackend(idToken)
 
-        const user = await authenticateWithBackend(idToken)
+          const source = (credentials as any)?.signInSource
+          if ((user as any)?.role === 'tenant' && source !== 'tenant') {
+            throw new Error('Tenants must use Tenant Sign In at /tenant/signin')
+          }
 
-        const source = (credentials as any)?.signInSource
-        if ((user as any)?.role === 'tenant' && source !== 'tenant') {
-          throw new Error('Tenants must use Tenant Sign In at /tenant/signin')
+          return { ...user, firebaseToken: idToken } as any
+        } catch (error) {
+          // Turn Firebase error codes into friendly messages
+          const message = friendlyAuthMessage(error)
+          throw new Error(message)
         }
-
-        return { ...user, firebaseToken: idToken } as any
       },
     }),
     GoogleProvider({
@@ -97,12 +127,14 @@ const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user, account }: { token: JWT; user?: User; account?: Account | null }) {
-      if (account && user) {
+      // Handle Credentials provider too: run when user exists
+      if (user) {
         const accessToken = (user as any)?.accessToken as string | undefined
         const refreshToken = (user as any)?.refreshToken as string | undefined
         const firebaseToken = (user as any)?.firebaseToken as string | undefined
         if (!accessToken) {
-          return { ...token, tokenExpiry: undefined }
+          // Keep firebaseToken even if accessToken is not present
+          return { ...token, firebaseToken, tokenExpiry: undefined } as any
         }
         const decoded = jwtDecode<{ exp: number }>(accessToken)
         const expiryTime = decoded.exp * 1000

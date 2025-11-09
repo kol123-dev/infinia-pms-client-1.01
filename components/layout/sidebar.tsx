@@ -26,6 +26,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  UserCog, // ADD: better icon for users & permissions
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
@@ -46,12 +47,12 @@ const navigation = [
     icon: Users,
     badge: null,
   },
-  // Add this new item for Users management
+  // Update Users label and icon
   {
-    name: "Users",
+    name: "Users & Permissions",
     href: "/users",
-    icon: Users, // Reuse Users icon, or import and use a different one like UserCog if preferred
-    badge: null, // Optional: Add a badge if you want to show counts/notifications
+    icon: UserCog,
+    badge: null,
   },
   {
     name: "Properties",

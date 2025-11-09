@@ -1,445 +1,133 @@
 'use client'
-
-import { useState, useEffect } from 'react'
-import { Plus, Eye, Users, AlertCircle, TrendingUp, Edit, Trash, UserPlus, Home, ChevronDown, SlidersHorizontal } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from '@/components/ui/use-toast'
+import { useState, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import api from '@/lib/axios'
-import { Badge } from '@/components/ui/badge'
-import { UserOnboardingFlow } from './components/user-form' // Import creation flow
-import { UserEditDialog } from './components/user-edit-dialog' // Import edit dialog
-import { ProfileCreationForm, UnitAssignmentForm } from './components/user-form' // For separate profile/unit dialogs
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
-import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-
-// Define User type based on backend serializer
-// Remove the duplicate User interface at the top (around lines 42-55) and use this consolidated version
-// that matches backend fields and makes first/last_name optional
-interface User {
-  id: string
-  email: string
-  full_name: string  // Primary from backend
-  first_name?: string  // Optional, can derive from full_name
-  last_name?: string   // Optional, can derive from full_name
-  phone: string
-  role: 'tenant' | 'landlord' | 'admin'
-  has_profile?: boolean
-  profile?: any
-  current_unit?: any
-}
-
-// Update columns for has_profile (based on profile existence)
-// Update columns to use full_name and handle missing profile/unit
-export const columns: ColumnDef<User>[] = [
-  {
-    accessorKey: 'full_name',
-    header: 'Name',
-    cell: ({ row }) => row.original.full_name || 'Unnamed User' // Use full_name from API; fallback if missing
-  },
-  {
-    accessorKey: 'email',
-    header: 'Email'
-  },
-  {
-    accessorKey: 'phone',
-    header: 'Phone'
-  },
-  {
-    accessorKey: 'role',
-    header: 'Role',
-    cell: ({ row }) => <Badge variant="outline">{row.original.role}</Badge>
-  },
-  
-  {
-    id: 'actions',
-    cell: ({ row, table }) => {
-      const { onView, onDelete, onCreateProfile, onAssignUnit } = table.options.meta as {
-        onView: (user: User) => void;
-        onDelete: (user: User) => void;
-        onCreateProfile: (user: User) => void;
-        onAssignUnit: (user: User) => void;
-      };
-      const u = row.original;
-      return (
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onView(u)}><Eye className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(u)}><Trash className="h-4 w-4" /></Button>
-          {!u.profile && u.role !== 'landlord' && <Button variant="ghost" size="sm" onClick={() => onCreateProfile(u)}><UserPlus className="h-4 w-4" /></Button>}
-          {u.role === 'tenant' && !u.current_unit && <Button variant="ghost" size="sm" onClick={() => onAssignUnit(u)}><Home className="h-4 w-4" /></Button>}
-        </div>
-      );
-    }
-  }
-]
-
-// Adapted DataTable (local to this file to avoid 'user' column issue; filters on 'full_name' instead)
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  pageCount: number
-  pageIndex: number
-  pageSize: number
-  onPageChange: (page: number) => void
-  meta?: any
-}
-
-function DataTable<TData, TValue>({
-  columns,
-  data,
-  pageCount,
-  pageIndex,
-  pageSize,
-  onPageChange,
-  meta,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = useState({})
-
-  const table = useReactTable({
-    data,
-    columns,
-    meta,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    pageCount: pageCount,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-      pagination: {
-        pageIndex,
-        pageSize,
-      },
-    },
-    manualPagination: true,
-  })
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Filter users..."
-            value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("full_name")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                <SlidersHorizontal className="mr-2 h-4 w-4" />
-                View
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pageIndex - 1)}
-            disabled={pageIndex === 0}
-          >
-            Previous
-          </Button>
-          <div className="flex items-center gap-1">
-            <div className="text-sm font-medium">
-              Page {pageIndex + 1} of {pageCount}
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pageIndex + 1)}
-            disabled={pageIndex >= pageCount - 1}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { UsersToolbar } from '@/components/users/UsersToolbar'
+import UsersTable from '@/components/users/UsersTable'
+import { CreateAgentModal } from '@/components/users/CreateAgentModal'
+import { EditUserModal } from '@/components/users/EditUserModal'
+import { useUsersQuery } from '@/hooks/useUsers'
+import { useSession } from 'next-auth/react'
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isCreationOpen, setIsCreationOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isUnitOpen, setIsUnitOpen] = useState(false);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 10; // Adjust as needed
+  const { data: session } = useSession()
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'agent' | 'tenant'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked' | 'pending'>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editUserId, setEditUserId] = useState<number | null>(null)
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await api.get('/auth/users/', {
-          params: { page: pageIndex + 1, page_size: pageSize }
-        });
-        const data = response.data;
-        console.log('Fetched users:', data);  // Debug log
-        const userList = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
-        setUsers(userList.map((user: any) => ({
-          ...user,
-          full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`,
-          first_name: user.full_name?.split(' ')[0] || user.first_name || '',
-          last_name: user.full_name?.split(' ').slice(1).join(' ') || user.last_name || '',
-          has_profile: !!user.profile
-        })));
-        setTotalPages(data.count ? Math.ceil(data.count / pageSize) : 1);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-        toast({ variant: "destructive", description: "Failed to load users" });
-        setUsers([]);
-        setTotalPages(1);
-      }
-    };
-    fetchUsers();
-  }, [pageIndex]);
+  const [tab, setTab] = useState<'staff' | 'tenants'>('tenants')
 
-  const handleDelete = async (user: User) => {
-    if (confirm(`Delete ${user.first_name} ${user.last_name}?`)) {
-      try {
-        await api.delete(`/auth/users/${user.id}/`);
-        toast({ description: "User deleted" });
-        // Refresh list
-        const response = await api.get('/auth/users/', {
-          params: { page: pageIndex + 1, page_size: pageSize }
-        });
-        setUsers(Array.isArray(response.data.results) ? response.data.results : []);
-      } catch (error) {
-        toast({ variant: "destructive", description: "Failed to delete user" });
-      }
-    }
-  };
+  const computedRole = useMemo(() => {
+    if (roleFilter !== 'all') return roleFilter
+    return tab === 'staff' ? 'agent' : 'tenant'
+  }, [roleFilter, tab])
 
-  const handleCreateProfile = (user: User) => {
-    setSelectedUser(user);
-    setIsProfileOpen(true);
-  };
+  const { data, isLoading, isError, refetch } = useUsersQuery({
+    q: search,
+    role: computedRole,
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    page,
+    pageSize,
+  })
 
-  const handleAssignUnit = (user: User) => {
-    setSelectedUser(user);
-    setIsUnitOpen(true);
-  };
+  const openEdit = (id: number) => setEditUserId(id)
+  const closeEdit = () => setEditUserId(null)
 
-  const handleView = (user: User) => {
-    // TODO: Implement details view dialog
-    console.log('View user:', user)
-  }
-
-  // TODO: Implement summary stats similar to tenants page
-  const totalUsers = users.length
-  // Add more stats as needed
+  const sortedUsers = useMemo(() => {
+    const list = data?.results ?? []
+    return [...list].sort((a, b) => {
+      const at = a.created_at ? new Date(a.created_at).getTime() : 0
+      const bt = b.created_at ? new Date(b.created_at).getTime() : 0
+      return bt - at
+    })
+  }, [data])
 
   return (
     <MainLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold md:text-2xl">Users</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsCreationOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-900/20">
-              <Users className="h-4 w-4 text-brand-600" />
-            </div>
+      <div className="space-y-6">
+        <Card className="shadow-theme">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Users</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {isLoading ? 'Loading…' : `${data?.count ?? 0} total`}
+              </span>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-foreground">{totalUsers}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />
-              <p className="text-xs text-green-600">All roles</p>
+          <CardContent className="space-y-4">
+            {/* Sticky controls on mobile: tabs + toolbar */}
+            <div className="sticky top-16 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 border-b md:static md:border-0 md:bg-transparent md:backdrop-blur-0">
+              {/* Staff / Tenants tab */}
+              <div className="flex items-center gap-2 pb-3 md:pb-0">
+                <button
+                  className={`px-3 py-2 rounded text-sm flex-1 md:flex-none ${tab === 'staff' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                  onClick={() => setTab('staff')}
+                  aria-pressed={tab === 'staff'}
+                >
+                  Staff
+                </button>
+                <button
+                  className={`px-3 py-2 rounded text-sm flex-1 md:flex-none ${tab === 'tenants' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                  onClick={() => setTab('tenants')}
+                  aria-pressed={tab === 'tenants'}
+                >
+                  Tenants
+                </button>
+              </div>
+
+              <UsersToolbar
+                search={search}
+                onSearchChange={setSearch}
+                role={roleFilter}
+                onRoleChange={setRoleFilter}
+                status={statusFilter}
+                onStatusChange={setStatusFilter}
+                onCreateAgent={() => setCreateOpen(true)}
+                selectedCount={selectedIds.length}
+                onRefresh={refetch}
+              />
             </div>
+
+            <UsersTable
+              users={sortedUsers}
+              loading={isLoading}
+              error={isError}
+              page={page}
+              pageSize={pageSize}
+              total={data?.count ?? 0}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
+              onEdit={openEdit}
+            />
           </CardContent>
         </Card>
-        {/* Add more summary cards as needed */}
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>View and manage all system users</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={users}
-            pageCount={totalPages}
-            pageIndex={pageIndex}
-            pageSize={pageSize}
-            onPageChange={setPageIndex}
-            meta={{
-              onView: handleView,
-              onEdit: (user: User) => { setSelectedUser(user); setIsEditOpen(true); },
-              onDelete: handleDelete,
-              onCreateProfile: handleCreateProfile,
-              onAssignUnit: handleAssignUnit
-            }}
+        <CreateAgentModal
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreated={() => {
+            setTab('staff')
+            setRoleFilter('agent')
+            setPage(1)
+            refetch()
+          }}
+        />
+
+        {editUserId !== null && (
+          <EditUserModal
+            userId={editUserId}
+            open={editUserId !== null}
+            onOpenChange={(open) => !open && closeEdit()}
           />
-
-          <UserOnboardingFlow isOpen={isCreationOpen} onClose={() => setIsCreationOpen(false)} />
-          {selectedUser && (
-            <>
-              <UserEditDialog user={selectedUser} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} onUpdate={async () => {
-                // Refresh list
-                const response = await api.get('/auth/users/', {
-                  params: { page: pageIndex + 1, page_size: pageSize }
-                });
-                setUsers(Array.isArray(response.data.results) ? response.data.results : []);
-              }} />
-              <ProfileCreationForm isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onSuccess={async () => {
-                toast({ description: "Profile created" });
-                setIsProfileOpen(false);
-                // Refresh
-                const response = await api.get('/auth/users/', {
-                  params: { page: pageIndex + 1, page_size: pageSize }
-                });
-                setUsers(Array.isArray(response.data.results) ? response.data.results : []);
-              }} userData={selectedUser} role={selectedUser.role as 'tenant' | 'landlord'} />
-              {selectedUser.role === 'tenant' && (
-                <UnitAssignmentForm isOpen={isUnitOpen} onClose={() => setIsUnitOpen(false)} onSuccess={async () => {
-                  toast({ description: "Unit assigned" });
-                  setIsUnitOpen(false);
-                  // Refresh
-                  const response = await api.get('/auth/users/', {
-                    params: { page: pageIndex + 1, page_size: pageSize }
-                  });
-                  setUsers(Array.isArray(response.data.results) ? response.data.results : []);
-                }} userData={selectedUser} />
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* TODO: Add creation dialog here, similar to TenantOnboardingFlow */}
+        )}
+      </div>
     </MainLayout>
   )
 }
-
-// Remove the entire duplicate useEffect block at the bottom (around lines 452-492),
-// as it's outside the component and causing undefined variable errors

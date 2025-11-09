@@ -14,12 +14,15 @@ import { useUser } from "@/lib/context/user-context"  // Change this import
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { sendPasswordResetEmail } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 export default function Profile() {
   const { user, loading, error, updateProfile, updatePhoto } = useUser()  // Use useUser instead of useAuth
   const { toast } = useToast()
   const router = useRouter()
   const [updating, setUpdating] = useState(false)
+  const [sendingReset, setSendingReset] = useState(false)
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return
@@ -83,6 +86,27 @@ export default function Profile() {
       })
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const handleSendResetEmail = async () => {
+    if (!user?.email) return
+    setSendingReset(true)
+    try {
+      await sendPasswordResetEmail(auth, user.email)
+      toast({
+        title: "Reset email sent",
+        description: "Check your inbox for the password reset link.",
+        variant: "success",
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send reset email. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSendingReset(false)
     }
   }
 

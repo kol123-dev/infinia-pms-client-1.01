@@ -41,10 +41,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   const fetchUser = useCallback(async () => {
-    // Skip on sign-in pages
+    // Skip user fetch on public routes to avoid 401 → redirect loops
     const path = typeof window !== 'undefined' ? window.location.pathname : ''
-    const onSignInPage = path.startsWith('/signin') || path.startsWith('/tenant/signin')
-    if (onSignInPage) {
+    const publicPaths = ['/signin', '/tenant/signin', '/signup', '/forgot-password', '/help']
+    const onPublicPage = publicPaths.some((prefix) => path === prefix || path.startsWith(prefix))
+    if (onPublicPage) {
       setUser(null)
       setLoading(false)
       setError(null)

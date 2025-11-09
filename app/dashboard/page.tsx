@@ -297,3 +297,10 @@ export default function Dashboard() {
     </MainLayout>
   )
 }
+// Removed:
+// export const metadata = {
+//   themeColor: '#0ea5e9',
+// }
+// export const viewport = {
+//   themeColor: '#0ea5e9'
+// }

@@ -31,14 +31,13 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/icon-180x180.png",
   },
+}
+
+export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
   ],
-}
-
-export const viewport: Viewport = {
-  themeColor: "#0ea5e9",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

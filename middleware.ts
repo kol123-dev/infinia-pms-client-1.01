@@ -17,6 +17,10 @@ export async function middleware(request: NextRequest) {
       path === '/manifest.json') {
       return NextResponse.next()
     }
+    const assetRegex = /\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|woff2?|ttf|otf)$/
+    if (assetRegex.test(path)) {
+      return NextResponse.next()
+    }
     if (path.startsWith('/api/auth')) {
       return NextResponse.next()
     }

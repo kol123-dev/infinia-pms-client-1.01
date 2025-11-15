@@ -27,7 +27,7 @@ export const columns: ColumnDef<Unit>[] = [
     header: 'Property',
     filterFn: fuzzyFilter,
     enableGlobalFilter: true,
-    cell: ({ row }) => <div className="truncate">{row.original.property.name}</div>,
+    cell: ({ row }) => <div className="truncate">{row.original.property?.name ?? ''}</div>,
   },
   {
     accessorFn: (row) => row.current_tenant?.user?.full_name ?? '', // Enables fuzzy filtering on tenant full name
@@ -38,10 +38,11 @@ export const columns: ColumnDef<Unit>[] = [
     size: 150,
     cell: ({ row }) => {
       const tenant = row.original.current_tenant
-      return tenant ? (
+      const user = tenant?.user
+      return tenant && user ? (
         <div className="truncate">
-          <div className="font-medium truncate">{tenant.user.full_name}</div>
-          <div className="text-sm text-muted-foreground truncate">{tenant.user.phone}</div>
+          <div className="font-medium truncate">{user.full_name ?? user.email ?? 'Unknown'}</div>
+          <div className="text-sm text-muted-foreground truncate">{user.phone ?? ''}</div>
         </div>
       ) : (
         <div className="text-muted-foreground">None</div> // Updated from "-" for consistency with your original

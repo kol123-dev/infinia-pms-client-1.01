@@ -36,6 +36,9 @@ export default function PropertiesPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  const unitsTotal = (p: any) => p?.units?.summary?.total ?? p?.units?.total ?? p?.total_units ?? 0
+  const unitsOccupied = (p: any) => p?.units?.summary?.occupied ?? p?.units?.occupied ?? p?.occupied_units ?? 0
+
   const handleDelete = async (propertyId: number) => {
     if (confirm("Are you sure you want to delete this property?")) {
       try {
@@ -69,8 +72,20 @@ export default function PropertiesPage() {
     }
   }
 
-  const handlePropertyUpdate = async () => {
-    await fetchProperties()
+  const handlePropertyUpdate = async (updated?: Property) => {
+    if (updated && updated.id) {
+      setProperties((prev) => {
+        const idx = prev.findIndex((p) => p.id === updated.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = { ...prev[idx], ...updated }
+          return next
+        }
+        return [updated, ...prev]
+      })
+    } else {
+      await fetchProperties()
+    }
     toast({
       title: "Success",
       description: "Property saved successfully",
@@ -96,10 +111,13 @@ export default function PropertiesPage() {
   if (error) return <div>Error: {error}</div>
 
   // Fix the filter function arrow syntax
-  const filteredProperties = properties.filter((property) =>
-    property.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    property.location.address.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredProperties = properties.filter((property) => {
+    const addr = (property as any).location?.address || (property as any).address || ''
+    return (
+      (property.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      addr.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  })
 
   return (
     <MainLayout>
@@ -137,7 +155,7 @@ export default function PropertiesPage() {
                   </CardTitle>
                   <CardDescription className="flex items-center mt-1 text-xs sm:text-sm">
                     <MapPin className="mr-1 h-3 w-3" />
-                    {property.location.address}
+                    {((property as any).location?.address || (property as any).address || '')}
                   </CardDescription>
                 </div>
                 <Badge variant="secondary" className="text-xs sm:text-sm">
@@ -149,11 +167,11 @@ export default function PropertiesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex items-center">
                   <Building className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-blue-600">{property.units.summary.total} units</span>
+                  <span className="text-blue-600">{unitsTotal(property)} units</span>
                 </div>
                 <div className="flex items-center">
                   <Users className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-blue-600">{property.units.summary.occupied} occupied</span>
+                  <span className="text-blue-600">{unitsOccupied(property)} occupied</span>
                 </div>
                 <div className="flex items-center col-span-1 sm:col-span-2 font-medium">  
                   <span className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex items-center justify-center text-[8px] sm:text-[10px] font-bold">KES</span>
@@ -164,9 +182,9 @@ export default function PropertiesPage() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs sm:text-sm">
                   <span>Occupancy Rate</span>
-                  <span className="text-emerald-600">{Math.round((property.units.summary.occupied / property.units.summary.total) * 100)}%</span>
+                  <span className="text-emerald-600">{(() => { const t = unitsTotal(property); const o = unitsOccupied(property); return Math.round(t > 0 ? (o / t) * 100 : 0) })()}%</span>
                 </div>
-                <Progress value={(property.units.summary.occupied / property.units.summary.total) * 100} className="h-1.5 sm:h-2" />
+                <Progress value={(() => { const t = unitsTotal(property); const o = unitsOccupied(property); return t > 0 ? (o / t) * 100 : 0 })()} className="h-1.5 sm:h-2" />
               </div>
 
               <div className="flex gap-2">
@@ -208,23 +226,23 @@ export default function PropertiesPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {properties.reduce((sum, p) => sum + p.units.summary.total, 0)}
+                {properties.reduce((sum, p) => sum + unitsTotal(p), 0)}
               </div>
               <div className="text-sm text-muted-foreground">Total Units</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {properties.reduce((sum, p) => sum + p.units.summary.occupied, 0)}
+                {properties.reduce((sum, p) => sum + unitsOccupied(p), 0)}
               </div>
               <div className="text-sm text-muted-foreground">Occupied Units</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-emerald-600">
-                {Math.round(
-                  (properties.reduce((sum, p) => sum + p.units.summary.occupied, 0) /
-                    properties.reduce((sum, p) => sum + p.units.summary.total, 0)) *
-                    100
-                )}%
+                {(() => {
+                  const occupied = properties.reduce((sum, p) => sum + unitsOccupied(p), 0)
+                  const total = properties.reduce((sum, p) => sum + unitsTotal(p), 0)
+                  return Math.round(total > 0 ? (occupied / total) * 100 : 0)
+                })()}%
               </div>
               <div className="text-sm text-muted-foreground">Average Occupancy</div>
             </div>

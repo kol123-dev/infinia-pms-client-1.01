@@ -125,24 +125,36 @@ export async function deleteUser(payload: { id: number }) {
 }
 
 // Permissions catalog
-export async function getPermissionsCatalog(): Promise<{ permissions: string[] }> {
+export interface PermissionsCatalog {
+  permissions: string[]
+  resources?: { resource: string; actions: string[]; scopable: boolean; scope_key?: string }[]
+}
+export async function getPermissionsCatalog(): Promise<PermissionsCatalog> {
   const res = await api.get('/auth/permissions/')
   const p = res.data?.permissions ?? []
-  return { permissions: Array.isArray(p) ? p : [] }
+  const resources = res.data?.resources
+  return { permissions: Array.isArray(p) ? p : [], resources: Array.isArray(resources) ? resources : undefined }
 }
 
 // Get user permissions
-export async function getUserPermissions(id: number): Promise<string[]> {
+export type ScopedPermissionEntry = { property_id: number | null; resource: string; action?: string; actions?: string[] }
+export type UserPermissionsPayload = { permissions?: string[]; global?: string[]; scoped?: ScopedPermissionEntry[] }
+export async function getUserPermissions(id: number): Promise<UserPermissionsPayload> {
   const res = await api.get(`/auth/user-permissions/${id}/`)
-  const p = res.data?.permissions ?? []
-  return Array.isArray(p) ? p : []
+  const perms = Array.isArray(res.data?.permissions) ? res.data.permissions : []
+  const global = Array.isArray(res.data?.global) ? res.data.global : perms
+  const scoped = Array.isArray(res.data?.scoped) ? res.data.scoped : []
+  return { permissions: perms, global, scoped }
 }
 
 // Update user permissions
-export async function updateUserPermissions(payload: { id: number; permissions: string[] }) {
+export async function updateUserPermissions(payload: { id: number; permissions?: string[]; global?: string[]; scoped?: ScopedPermissionEntry[] }) {
   const res = await api.patch(`/auth/user-permissions/${payload.id}/`, {
     permissions: payload.permissions,
+    global: payload.global,
+    scoped: payload.scoped,
   })
-  const p = res.data?.permissions ?? []
-  return Array.isArray(p) ? p : []
+  const global = Array.isArray(res.data?.global) ? res.data.global : []
+  const scoped = Array.isArray(res.data?.scoped) ? res.data.scoped : []
+  return { global, scoped }
 }

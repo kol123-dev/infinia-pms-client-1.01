@@ -78,3 +78,16 @@ export function useUpdateUserPermissions() {
     },
   })
 }
+
+// Lightweight properties list for permissions scoping
+export function usePropertiesBrief() {
+  return useQuery({
+    queryKey: ['propertiesBrief'],
+    queryFn: async () => {
+      const res = await (await import('@/lib/axios')).default.get('/properties/')
+      const items = Array.isArray(res.data) ? res.data : (res.data?.results ?? [])
+      return items.map((p: any) => ({ id: p.id, name: p.name || p.title || p.property_name || `Property #${p.id}` }))
+    },
+    staleTime: 30_000,
+  })
+}

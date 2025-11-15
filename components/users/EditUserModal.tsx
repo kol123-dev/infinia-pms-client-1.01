@@ -6,20 +6,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useUserQuery, useUpdateUser, usePermissionsCatalog, useUserPermissions, useUpdateUserPermissions } from '@/hooks/useUsers'
-import { useEffect, useState } from 'react'
+import { useUserQuery, useUpdateUser, usePermissionsCatalog, useUserPermissions, useUpdateUserPermissions, usePropertiesBrief } from '@/hooks/useUsers'
+import { useEffect, useMemo, useState } from 'react'
+import { MultiSelect } from '@/components/ui/multi-select'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 export function EditUserModal(props: { userId: number; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { data: user } = useUserQuery(props.userId)
   const { data: catalog } = usePermissionsCatalog()
   const { data: userPerms } = useUserPermissions(props.userId)
+  const { data: properties } = usePropertiesBrief()
   const { mutate: updateUser, isPending: updating } = useUpdateUser()
   const { mutate: updatePerms, isPending: savingPerms } = useUpdateUserPermissions()
 
   const [name, setName] = useState(user?.name ?? '')
   const [status, setStatus] = useState<'active' | 'blocked' | 'pending'>(user?.status ?? 'active')
   const [role, setRole] = useState<'agent' | 'tenant'>(user?.role ?? 'agent')
-  const [perms, setPerms] = useState<string[]>(userPerms ?? [])
+  const [perms, setPerms] = useState<string[]>([])
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<number[]>([])
+  const [scoped, setScoped] = useState<Record<number, Record<string, Set<string>>>>({})
 
   useEffect(() => {
     setName(user?.name ?? '')
@@ -28,13 +33,33 @@ export function EditUserModal(props: { userId: number; open: boolean; onOpenChan
   }, [user])
 
   useEffect(() => {
-    setPerms(userPerms ?? [])
+    setPerms([])
+    const initial: Record<number, Record<string, Set<string>>> = {}
+    ;(userPerms?.scoped ?? []).forEach((entry: any) => {
+      const pid = Number(entry.property_id)
+      if (!initial[pid]) initial[pid] = {}
+      const res = String(entry.resource)
+      const acts: string[] = Array.isArray(entry.actions) ? entry.actions : (entry.action ? [entry.action] : [])
+      if (!initial[pid][res]) initial[pid][res] = new Set<string>()
+      acts.forEach((a) => initial[pid][res].add(String(a)))
+    })
+    setScoped(initial)
+    setSelectedPropertyIds(Object.keys(initial).map((k) => Number(k)))
   }, [userPerms])
 
-  const togglePerm = (code: string, checked: boolean) => {
-    const set = new Set(perms)
-    checked ? set.add(code) : set.delete(code)
-    setPerms(Array.from(set))
+  const togglePerm = (_code: string, _checked: boolean) => {}
+
+  const resources = catalog?.resources ?? []
+  const resourceList = useMemo(() => resources.filter((r: any) => r.scopable), [resources])
+  const toggleScoped = (pid: number, resource: string, action: string, checked: boolean) => {
+    setScoped((prev) => {
+      const next = { ...prev }
+      next[pid] = next[pid] ? { ...next[pid] } : {}
+      const set = next[pid][resource] ? new Set(next[pid][resource]) : new Set<string>()
+      checked ? set.add(action) : set.delete(action)
+      next[pid][resource] = set
+      return next
+    })
   }
 
   const onSaveProfile = () => {
@@ -44,12 +69,16 @@ export function EditUserModal(props: { userId: number; open: boolean; onOpenChan
 
   const onSavePerms = () => {
     if (!user) return
-    updatePerms({ id: user.id, permissions: perms }, { onSuccess: () => props.onOpenChange(false) })
+    const scopedPayload = Object.entries(scoped).flatMap(([pidStr, resMap]) => {
+      const pid = Number(pidStr)
+      return Object.entries(resMap).map(([resource, actionsSet]) => ({ property_id: pid, resource, actions: Array.from(actionsSet) }))
+    })
+    updatePerms({ id: user.id, scoped: scopedPayload }, { onSuccess: () => props.onOpenChange(false) })
   }
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
         </DialogHeader>
@@ -100,17 +129,52 @@ export function EditUserModal(props: { userId: number; open: boolean; onOpenChan
               </div>
             </TabsContent>
 
-            <TabsContent value="permissions" className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(catalog?.permissions ?? []).map((p) => (
-                  <label key={p} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={perms.includes(p)}
-                      onCheckedChange={(v) => togglePerm(p, !!v)}
-                    />
-                    {p}
-                  </label>
-                ))}
+            <TabsContent value="permissions" className="space-y-6 pt-4">
+              <div className="space-y-4">
+                <Label>Per Property</Label>
+                <MultiSelect
+                  options={(properties ?? []).map((p: any) => ({ value: p.id, label: p.name }))}
+                  value={selectedPropertyIds}
+                  onChange={setSelectedPropertyIds}
+                  placeholder="Select properties"
+                />
+
+                {selectedPropertyIds.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Select one or more properties to assign scoped permissions.</div>
+                ) : (
+                  <Accordion type="multiple" className="space-y-2">
+                    {selectedPropertyIds.map((pid) => {
+                      const name = (properties ?? []).find((p: any) => p.id === pid)?.name || `Property #${pid}`
+                      return (
+                        <AccordionItem key={pid} value={`prop-${pid}`} className="rounded-lg border">
+                          <AccordionTrigger className="px-4 py-2 text-sm font-semibold">{name}</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {resourceList.map((r: any) => (
+                                  <div key={r.resource} className="rounded-md border p-3">
+                                    <div className="text-sm font-semibold mb-3 capitalize">{r.resource}</div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                      {r.actions.map((a: string) => (
+                                        <label key={a} className="flex items-center gap-2 text-sm">
+                                          <Checkbox
+                                            checked={Boolean(scoped[pid]?.[r.resource]?.has(a))}
+                                            onCheckedChange={(v) => toggleScoped(pid, r.resource, a, !!v)}
+                                          />
+                                          {a}
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )
+                    })}
+                  </Accordion>
+                )}
               </div>
 
               <div className="flex justify-end gap-2">

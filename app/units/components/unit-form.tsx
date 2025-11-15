@@ -24,10 +24,10 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
     unit_number: unit?.unit_number || "",
     unit_type: unit?.unit_type || "2BR/2BA/OK",
     unit_status: (unit?.unit_status || "VACANT") as UnitStatus,
-    floor: unit?.floor || 1,
-    size: unit?.size || "",
-    rent: unit?.rent || "",
-    deposit: unit?.deposit || "",
+    floor: (unit?.floor != null ? String(unit.floor) : "1"),
+    size: unit?.size != null ? String(unit.size) : "",
+    rent: unit?.rent != null ? String(unit.rent) : "",
+    deposit: unit?.deposit != null ? String(unit.deposit) : "",
     amenities: unit?.amenities || [],
     features: unit?.features || { parking_spots: 0, storage_unit: "" },
     property_id: unit?.property.id ? unit.property.id.toString() : ""
@@ -38,7 +38,8 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
       setIsLoading(true)
       try {
         const response = await api.get('/properties/')
-        setProperties(response.data.results || [])
+        const list = response.data.results || response.data || []
+        setProperties(list)
       } catch (error) {
         console.error('Error fetching properties:', error)
         toast({
@@ -53,16 +54,35 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
     fetchProperties()
   }, [toast])  // Add toast here
 
+  useEffect(() => {
+    if (!unit && !formData.property_id && Array.isArray(properties) && properties.length > 0) {
+      setFormData((prev) => ({ ...prev, property_id: properties[0].id.toString() }))
+    }
+  }, [properties, unit])
+
   // Update the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
   
     try {
+      const payload = {
+        ...formData,
+        floor: Number(formData.floor) || 0,
+        size: parseFloat(formData.size) || 0,
+        rent: parseFloat(formData.rent) || 0,
+        deposit: parseFloat(formData.deposit) || 0,
+      }
       if (unit) {
-        await api.put(`/units/${unit.id}/`, formData)
+        await api.put(`/units/${unit.id}/`, payload)
       } else {
-        await api.post(`/properties/${formData.property_id}/units/`, formData)
+        const propId = String(formData.property_id || '').trim()
+        if (!propId) {
+          toast({ variant: 'destructive', title: 'Property required', description: 'Please select a property before saving the unit.' })
+          setIsLoading(false)
+          return
+        }
+        await api.post(`/properties/${propId}/units/`, payload)
       }
       toast({
         title: "Success",
@@ -93,7 +113,7 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
             <div className="space-y-2">
               <label>Property</label>
               <Select
-                value={formData.property_id.toString()}
+                value={formData.property_id || ''}
                 onValueChange={(value) => setFormData({ ...formData, property_id: value })}
                 disabled={!!unit}
               >
@@ -153,7 +173,7 @@ export function UnitForm({ isOpen, onClose, unit, onSuccess }: UnitFormProps) {
               <Input
                 type="number"
                 value={formData.floor}
-                onChange={(e) => setFormData({ ...formData, floor: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
                 required
               />
             </div>

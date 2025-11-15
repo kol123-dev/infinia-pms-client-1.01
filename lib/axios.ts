@@ -1,4 +1,5 @@
 import axios, { type AxiosRequestHeaders } from 'axios'
+import { toast } from '@/hooks/use-toast'
 
 // Simplified API URL configuration
 const getApiBaseUrl = () => {
@@ -51,15 +52,24 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor: quiet, redirect on unauthorized
+// Response interceptor: show toast on forbidden, redirect only on unauthorized
 api.interceptors.response.use(
   (response) => response,
   async (err: any) => {
-    if (err?.response && (err.response.status === 401 || err.response.status === 403)) {
-      if (typeof window !== 'undefined') {
-        const path = window.location.pathname || ''
-        const isTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
-        window.location.href = isTenantArea ? '/tenant/signin' : '/signin'
+    if (err?.response) {
+      const status = err.response.status
+      if (status === 403) {
+        toast({
+          title: 'Action not permitted',
+          description: (err.response.data?.detail as string) || 'You do not have permission to perform this action.',
+          variant: 'destructive',
+        })
+      } else if (status === 401) {
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname || ''
+          const isTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
+          window.location.href = isTenantArea ? '/tenant/signin' : '/signin'
+        }
       }
     }
     return Promise.reject(err)

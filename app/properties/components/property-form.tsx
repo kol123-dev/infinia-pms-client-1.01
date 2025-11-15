@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 interface PropertyFormProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => Promise<void>
+  onSuccess: (data?: any) => Promise<void>
   property?: Property
 }
 
@@ -145,9 +145,8 @@ export function PropertyForm({ isOpen, onClose, onSuccess, property }: PropertyF
         response = await api.post('/properties/', finalData);
       }
       console.log('Response:', response.data);
-      
-      // Await parent refresh to ensure immediate UI update and toast
-      await onSuccess();
+      // Pass created/updated property back for optimistic UI update
+      await onSuccess(response.data);
       onClose();
     } catch (error: any) {
       console.error('Error saving property:', error.response?.data || error);

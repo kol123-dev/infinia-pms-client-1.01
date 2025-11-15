@@ -1,13 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDistanceToNow } from 'date-fns'
 import { useBlockUser, useDeleteUser } from '@/hooks/useUsers'
 import { ConfirmDialog } from './ConfirmDialog'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '@/components/ui/pagination'
 
 type UserRow = {
   id: number
@@ -38,26 +40,53 @@ export default function UsersTable(props: {
   const { mutate: blockUser, isPending: blocking } = useBlockUser()
   const { mutate: deleteUser, isPending: deleting } = useDeleteUser()
 
-  const allSelected = props.selectedIds.length === props.users.length && props.users.length > 0
   const findUser = React.useCallback((id: number) => props.users.find(u => u.id === id), [props.users])
 
-  const toggleSelectAll = (checked: boolean) => {
-    if (checked) props.onSelectedIdsChange(props.users.map(u => u.id))
-    else props.onSelectedIdsChange([])
-  }
+  const totalPages = Math.max(1, Math.ceil((props.total || 0) / (props.pageSize || 1)))
+  const canPrev = props.page > 1
+  const canNext = props.page < totalPages
 
   return (
     <div className="space-y-3">
-      {/* Mobile list (cards) */}
       <div className="md:hidden space-y-3">
-        {/* Select all + loading/empty states */}
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={allSelected} onCheckedChange={(v) => toggleSelectAll(!!v)} />
-            Select all
-          </label>
+        <div className="flex items-center justify-end">
           {props.loading && <span className="text-sm text-muted-foreground">Loading…</span>}
         </div>
+
+        {props.loading && (
+          <div className="space-y-3">
+            <div className="rounded-md border p-4 space-y-2">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-32" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            </div>
+            <div className="rounded-md border p-4 space-y-2">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-32" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {!props.loading && props.users.length === 0 && (
           <div className="rounded-md border p-4 text-center text-muted-foreground">
@@ -67,21 +96,16 @@ export default function UsersTable(props: {
 
         {!props.loading && props.users.map((u) => (
           <div key={u.id} className="rounded-md border p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={props.selectedIds.includes(u.id)}
-                  onCheckedChange={(v) => {
-                    const set = new Set(props.selectedIds)
-                    v ? set.add(u.id) : set.delete(u.id)
-                    props.onSelectedIdsChange(Array.from(set))
-                  }}
-                />
-                <div>
-                  <div className="font-medium">{u.name}</div>
-                  <div className="text-sm text-muted-foreground">{u.email}</div>
+          <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>{(u.name || u.email || '?').slice(0,1).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{u.name}</div>
+                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                  </div>
                 </div>
-              </div>
               <Button variant="outline" size="sm" onClick={() => props.onEdit(u.id)}>Edit</Button>
             </div>
 
@@ -127,11 +151,8 @@ export default function UsersTable(props: {
       {/* Desktop table */}
       <div className="hidden md:block rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 z-10">
             <TableRow>
-              <TableHead className="w-10">
-                <Checkbox checked={allSelected} onCheckedChange={(v) => toggleSelectAll(!!v)} />
-              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
@@ -145,15 +166,19 @@ export default function UsersTable(props: {
           <TableBody>
             {props.loading && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                  Loading users…
+                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/2 mx-auto" />
+                    <Skeleton className="h-4 w-2/3 mx-auto" />
+                    <Skeleton className="h-4 w-3/4 mx-auto" />
+                  </div>
                 </TableCell>
               </TableRow>
             )}
 
             {!props.loading && props.users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                   No users yet. Create your first agent.
                 </TableCell>
               </TableRow>
@@ -161,17 +186,14 @@ export default function UsersTable(props: {
 
             {props.users.map((u) => (
               <TableRow key={u.id}>
-                <TableCell>
-                  <Checkbox
-                    checked={props.selectedIds.includes(u.id)}
-                    onCheckedChange={(v) => {
-                      const set = new Set(props.selectedIds)
-                      v ? set.add(u.id) : set.delete(u.id)
-                      props.onSelectedIdsChange(Array.from(set))
-                    }}
-                  />
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>{(u.name || u.email || '?').slice(0,1).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span>{u.name}</span>
+                  </div>
                 </TableCell>
-                <TableCell className="font-medium">{u.name}</TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell><Badge variant="secondary">{u.role}</Badge></TableCell>
                 <TableCell>
@@ -214,6 +236,30 @@ export default function UsersTable(props: {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 py-3">
+        <div className="text-xs sm:text-sm text-muted-foreground">
+          Page {props.page} of {totalPages}
+        </div>
+        <Pagination className="w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => { e.preventDefault(); if (canPrev) props.onPageChange(props.page - 1) }}
+                className={!canPrev ? 'pointer-events-none opacity-50' : ''}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => { e.preventDefault(); if (canNext) props.onPageChange(props.page + 1) }}
+                className={!canNext ? 'pointer-events-none opacity-50' : ''}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
 
       {/* Confirm dialogs */}

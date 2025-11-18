@@ -5,30 +5,24 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
-import { useCreateAgent, usePermissionsCatalog } from '@/hooks/useUsers'
-import { Checkbox } from '@/components/ui/checkbox'
+import { useCreateAgent } from '@/hooks/useUsers'
+
 
 export function CreateAgentModal(props: { open: boolean; onOpenChange: (o: boolean) => void; onCreated?: () => void }) {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
-  const [selectedPerms, setSelectedPerms] = useState<string[]>([])
-  const { data: catalog } = usePermissionsCatalog()
+
   const { mutate: createAgent, isPending: creating } = useCreateAgent()
 
-  const togglePerm = (code: string, checked: boolean) => {
-    const set = new Set(selectedPerms)
-    checked ? set.add(code) : set.delete(code)
-    setSelectedPerms(Array.from(set))
-  }
+
 
   const onSubmit = () => {
     createAgent(
-      { email, name, permissions: selectedPerms },
+      { email, name },
       {
         onSuccess: () => {
           setEmail('')
           setName('')
-          setSelectedPerms([])
           props.onCreated?.()
           props.onOpenChange(false)
         },
@@ -62,20 +56,7 @@ export function CreateAgentModal(props: { open: boolean; onOpenChange: (o: boole
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Permissions</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {(catalog?.permissions ?? []).map((p) => (
-                <label key={p} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={selectedPerms.includes(p)}
-                    onCheckedChange={(v) => togglePerm(p, !!v)}
-                  />
-                  {p}
-                </label>
-              ))}
-            </div>
-          </div>
+
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={creating}>Cancel</Button>

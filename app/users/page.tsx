@@ -27,7 +27,7 @@ export default function UsersPage() {
     return tab === 'staff' ? 'agent' : 'tenant'
   }, [roleFilter, tab])
 
-  const { data, isLoading, isError, refetch } = useUsersQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useUsersQuery({
     q: search,
     role: computedRole,
     status: statusFilter === 'all' ? undefined : statusFilter,
@@ -89,7 +89,8 @@ export default function UsersPage() {
                 onStatusChange={setStatusFilter}
                 onCreateAgent={() => setCreateOpen(true)}
                 selectedCount={selectedIds.length}
-                onRefresh={refetch}
+                onRefresh={() => { setPage(1); refetch() }}
+                refreshing={isFetching}
               />
             </div>
 

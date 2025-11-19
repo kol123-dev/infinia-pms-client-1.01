@@ -15,6 +15,7 @@ export function UsersToolbar(props: {
   onCreateAgent: () => void
   selectedCount: number
   onRefresh: () => void
+  refreshing?: boolean
 }) {
   const [localSearch, setLocalSearch] = useState(props.search)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -33,8 +34,8 @@ export function UsersToolbar(props: {
           placeholder="Search name or email"
           className="w-full md:w-[320px]"
         />
-        <Button variant="outline" onClick={props.onRefresh} title="Refresh">
-          <RefreshCcw className="h-4 w-4" />
+        <Button variant="outline" onClick={props.onRefresh} title="Refresh" disabled={props.refreshing} aria-busy={props.refreshing}>
+          <RefreshCcw className={`h-4 w-4 ${props.refreshing ? 'animate-spin' : ''}`} />
         </Button>
 
         {/* Mobile-only: Filters toggle */}

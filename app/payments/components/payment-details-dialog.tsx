@@ -1,39 +1,33 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Edit, Trash } from "lucide-react"
 import api from "@/lib/axios"
 import { toast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
 
 interface PaymentDetailsDialogProps {
   payment: {
     id: number
     payment_id: string
-    property: {
-      name: string
-    }
+    property: { name: string }
     tenant: {
-      user: {
-        email: string
-        full_name: string
-        phone: string
-      }
-      current_unit: {
-        unit_number: string
-      }
+      user: { email: string; full_name: string; phone: string }
+      current_unit: { unit_number: string }
     }
-    unit: {
-      unit_number: string
-    }
+    unit: { unit_number: string }
     amount: number
     balance_after: number
     paid_date: string
     payment_status: string
     payment_method: string
     payment_type: string
+    mpesa_details?: { transaction_id?: string; transaction_date?: string; status?: string } | null
+    bank_details?: any | null
+    cash_details?: any | null
   }
-  children: React.ReactNode
+  children: ReactNode
   onDelete: () => void
   onEdit: () => void
 }
@@ -80,6 +74,22 @@ export function PaymentDetailsDialog({ payment, children, onDelete, onEdit }: Pa
             </DialogDescription>
           </DialogHeader>
 
+          {(() => {
+            const isMatched = Boolean(payment?.mpesa_details || payment?.bank_details || payment?.cash_details)
+            return (
+              <div className="flex items-center gap-2 rounded-md bg-muted/50 p-3">
+                <span className="text-xs text-muted-foreground">Transaction Link</span>
+                <span className="text-xs">•</span>
+                <span className="text-xs text-muted-foreground">Status</span>
+                <span className="ml-auto">
+                  <Badge variant={isMatched ? "default" : "outline"} className="text-xs h-5">
+                    {isMatched ? "matched" : "unmatched"}
+                  </Badge>
+                </span>
+              </div>
+            )
+          })()}
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -109,6 +119,15 @@ export function PaymentDetailsDialog({ payment, children, onDelete, onEdit }: Pa
                 <p className="text-sm">Method: {payment?.payment_method || 'N/A'}</p>
                 <p className="text-sm">Type: {payment?.payment_type || 'N/A'}</p>
                 <p className="text-sm">Status: {payment?.payment_status || 'N/A'}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm">Match:</span>
+                  <Badge
+                    variant={Boolean(payment?.mpesa_details || payment?.bank_details || payment?.cash_details) ? "default" : "outline"}
+                    className="text-xs h-5"
+                  >
+                    {Boolean(payment?.mpesa_details || payment?.bank_details || payment?.cash_details) ? "matched" : "unmatched"}
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>

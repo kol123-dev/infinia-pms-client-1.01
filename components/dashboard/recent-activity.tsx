@@ -57,6 +57,7 @@ export function RecentActivity() {
       status: "completed" | "partial" | "pending"
       entity: string
       unit_number?: string | null
+      matched_status?: "matched" | "unmatched"
     }>>([])
 
     useEffect(() => {
@@ -99,9 +100,10 @@ export function RecentActivity() {
               const statusLabel =
                 statusRaw === 'PAID' ? 'completed' :
                 statusRaw === 'PARTIAL' ? 'partial' : 'pending'
+              const isMatched = Boolean(p?.mpesa_details || p?.bank_details || p?.cash_details)
               return {
                 id: p?.payment_id || p?.id,
-                payment_pk: p?.id, // numeric PK for routing
+                payment_pk: p?.id,
                 type: "payment" as const,
                 description,
                 amount: amountStr,
@@ -110,6 +112,7 @@ export function RecentActivity() {
                 status: statusLabel as "completed" | "partial" | "pending",
                 entity: propertyName,
                 unit_number: unitNumber,
+                matched_status: isMatched ? "matched" : "unmatched",
               }
             })
 
@@ -190,6 +193,14 @@ export function RecentActivity() {
                     >
                       {activity.status}
                     </Badge>
+                    {activity.matched_status && (
+                      <Badge
+                        variant={activity.matched_status === 'matched' ? 'default' : 'outline'}
+                        className="text-xs h-5"
+                      >
+                        {activity.matched_status}
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Mobile meta row (unchanged) */}
@@ -201,6 +212,14 @@ export function RecentActivity() {
                     >
                       {activity.status}
                     </Badge>
+                    {activity.matched_status && (
+                      <Badge
+                        variant={activity.matched_status === 'matched' ? 'default' : 'outline'}
+                        className="text-xs h-5"
+                      >
+                        {activity.matched_status}
+                      </Badge>
+                    )}
                     <Badge
                       variant="outline"
                       className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[140px]"

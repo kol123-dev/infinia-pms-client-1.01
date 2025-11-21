@@ -54,7 +54,7 @@ export function RecentActivity() {
       amount: string
       balance_after?: string
       time: string
-      status: "completed"
+      status: "completed" | "partial" | "pending"
       entity: string
       unit_number?: string | null
     }>>([])
@@ -82,7 +82,10 @@ export function RecentActivity() {
           }
 
           const mapped = results
-            .filter((p: any) => String(p?.payment_status || p?.status).toUpperCase() === 'PAID')
+            .filter((p: any) => {
+              const s = String(p?.payment_status || p?.status).toUpperCase()
+              return s === 'PAID' || s === 'PARTIAL'
+            })
             .map((p: any) => {
               const tenantName = p?.tenant?.user?.full_name || null
               const payerFallback =
@@ -92,6 +95,10 @@ export function RecentActivity() {
               const balanceStr = fmtAmount(Number(p?.balance_after || 0))
               const propertyName = p?.property?.name || 'Unknown Property'
               const unitNumber = p?.unit?.unit_number || p?.account_reference || null
+              const statusRaw = String(p?.payment_status || p?.status || '').toUpperCase()
+              const statusLabel =
+                statusRaw === 'PAID' ? 'completed' :
+                statusRaw === 'PARTIAL' ? 'partial' : 'pending'
               return {
                 id: p?.payment_id || p?.id,
                 payment_pk: p?.id, // numeric PK for routing
@@ -100,7 +107,7 @@ export function RecentActivity() {
                 amount: amountStr,
                 balance_after: balanceStr,
                 time: timeAgo(p?.paid_date),
-                status: "completed" as const,
+                status: statusLabel as "completed" | "partial" | "pending",
                 entity: propertyName,
                 unit_number: unitNumber,
               }
@@ -177,13 +184,23 @@ export function RecentActivity() {
                   {/* Time + status (desktop, non-wrapping) */}
                   <div className="hidden md:flex items-center justify-end gap-3 whitespace-nowrap">
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    <Badge variant="default" className="text-xs h-5">completed</Badge>
+                    <Badge
+                      variant={activity.status === 'completed' ? 'default' : activity.status === 'partial' ? 'secondary' : 'outline'}
+                      className="text-xs h-5"
+                    >
+                      {activity.status}
+                    </Badge>
                   </div>
 
                   {/* Mobile meta row (unchanged) */}
                   <div className="flex items-center gap-1 sm:gap-2 md:hidden mt-1">
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
-                    <Badge variant="default" className="text-xs h-5">completed</Badge>
+                    <Badge
+                      variant={activity.status === 'completed' ? 'default' : activity.status === 'partial' ? 'secondary' : 'outline'}
+                      className="text-xs h-5"
+                    >
+                      {activity.status}
+                    </Badge>
                     <Badge
                       variant="outline"
                       className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 h-5 truncate max-w-[140px]"

@@ -18,13 +18,13 @@ interface CreateInvoiceDialogProps {
 
 interface Tenant {
   id: number
-  user: {
-    full_name: string
-  }
-  current_unit: {
-    id: number
-    unit_number: string
-  }
+  user?: {
+    full_name?: string
+  } | null
+  current_unit?: {
+    id?: number
+    unit_number?: string
+  } | null
 }
 
 export function CreateInvoiceDialog({ children }: CreateInvoiceDialogProps) {
@@ -48,6 +48,12 @@ export function CreateInvoiceDialog({ children }: CreateInvoiceDialogProps) {
     }
   })
 
+  const getTenantName = (t: Tenant | undefined) =>
+    t?.user?.full_name ?? `Tenant #${t?.id ?? ''}`
+
+  const getUnitSuffix = (t: Tenant | undefined) =>
+    t?.current_unit?.unit_number ? ` - Unit ${t.current_unit.unit_number}` : ''
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -57,6 +63,9 @@ export function CreateInvoiceDialog({ children }: CreateInvoiceDialogProps) {
       
       if (!selectedTenant) {
         throw new Error("Please select a tenant")
+      }
+      if (!selectedTenant.current_unit?.id) {
+        throw new Error("Selected tenant has no current unit assigned")
       }
 
       const payload = {
@@ -120,7 +129,7 @@ export function CreateInvoiceDialog({ children }: CreateInvoiceDialogProps) {
                   className="w-full justify-between"
                 >
                   {formData.tenant
-                    ? tenants?.results.find((tenant) => tenant.id.toString() === formData.tenant)?.user.full_name
+                    ? getTenantName(tenants?.results.find((t) => t.id.toString() === formData.tenant))
                     : "Select tenant..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -133,7 +142,7 @@ export function CreateInvoiceDialog({ children }: CreateInvoiceDialogProps) {
                     {tenants?.results.map((tenant) => (
                       <CommandItem
                         key={tenant.id}
-                        value={tenant.user.full_name}
+                        value={getTenantName(tenant)}
                         onSelect={() => {
                           setFormData({ ...formData, tenant: tenant.id.toString() })
                           setOpenCombobox(false)
@@ -145,7 +154,7 @@ export function CreateInvoiceDialog({ children }: CreateInvoiceDialogProps) {
                             formData.tenant === tenant.id.toString() ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        {tenant.user.full_name} - Unit {tenant.current_unit?.unit_number}
+                        {getTenantName(tenant)}{getUnitSuffix(tenant)}
                       </CommandItem>
                     ))}
                   </CommandGroup>

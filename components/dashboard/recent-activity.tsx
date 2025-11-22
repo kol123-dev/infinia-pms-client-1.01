@@ -85,7 +85,8 @@ export function RecentActivity() {
           const mapped = results
             .filter((p: any) => {
               const s = String(p?.payment_status || p?.status).toUpperCase()
-              return s === 'PAID' || s === 'PARTIAL'
+              // Include pending to show unmatched/newly received items
+              return s === 'PAID' || s === 'PARTIAL' || s === 'PENDING'
             })
             .map((p: any) => {
               const tenantName = p?.tenant?.user?.full_name || null
@@ -100,7 +101,8 @@ export function RecentActivity() {
               const statusLabel =
                 statusRaw === 'PAID' ? 'completed' :
                 statusRaw === 'PARTIAL' ? 'partial' : 'pending'
-              const isMatched = Boolean(p?.mpesa_details || p?.bank_details || p?.cash_details)
+              // FIX: matched only if tenant (and optionally unit) is linked
+              const isMatched = Boolean(p?.tenant) && Boolean(p?.unit)
               return {
                 id: p?.payment_id || p?.id,
                 payment_pk: p?.id,

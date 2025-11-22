@@ -214,49 +214,68 @@ export function PaymentList() {
   useEffect(() => {
     let cancelled = false
 
-    const PAGE_SIZE_API = 50 // matches DRF max_page_size for snappy first response
-    const fetchFirstPageAndHydrate = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+    const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms))
+    const PAGE_SIZE_API = 50
 
-        // 1) Fetch first page for immediate UI render
-        const resp = await api.get('/payments/payments/', {
-          params: { page: 1, page_size: PAGE_SIZE_API }
-        })
-        const data = resp.data
-        const firstPage = Array.isArray(data?.results) ? data.results : []
-        setPayments(firstPage)
-        setLoading(false)
+    const fetchInitialWithRetry = async () => {
+      setLoading(true)
+      setError(null)
 
-        // 2) Background hydrate subsequent pages
-        let nextUrl: string | null = data?.next || null
-        setHydrating(Boolean(nextUrl))
+      const attempts = [
+        { page_size: PAGE_SIZE_API },
+        { page_size: 25 }, // fallback smaller payload
+      ]
 
-        while (nextUrl && !cancelled) {
-          // Use absolute nextUrl; axios will ignore baseURL and use this full URL
-          const nextResp = await api.get(nextUrl)
-          const nextData = nextResp.data
-          const nextResults = Array.isArray(nextData?.results) ? nextData.results : []
-
-          setPayments(prev => {
-            const merged = [...prev, ...nextResults]
-            // Deduplicate by primary key
-            return Array.from(new Map(merged.map(p => [p.id, p])).values())
+      for (let i = 0; i < attempts.length; i++) {
+        try {
+          const resp = await api.get('/payments/payments/', {
+            params: { page: 1, ...attempts[i] },
           })
+          const data = resp.data
+          const firstPage = Array.isArray(data?.results) ? data.results : []
+          setPayments(firstPage)
+          setLoading(false)
 
-          nextUrl = nextData?.next || null
+          // Begin background hydration; do NOT error the whole table on failures
+          let nextUrl: string | null = data?.next || null
           setHydrating(Boolean(nextUrl))
+
+          while (nextUrl && !cancelled) {
+            try {
+              const nextResp = await api.get(nextUrl)
+              const nextData = nextResp.data
+              const nextResults = Array.isArray(nextData?.results) ? nextData.results : []
+
+              setPayments((prev) => {
+                const merged = [...prev, ...nextResults]
+                return Array.from(new Map(merged.map((p) => [p.id, p])).values())
+              })
+
+              nextUrl = nextData?.next || null
+              setHydrating(Boolean(nextUrl))
+            } catch (hydrationErr) {
+              console.error('Payments hydration failed; keeping current data:', hydrationErr)
+              setHydrating(false)
+              break
+            }
+          }
+
+          return // success path; stop retry loop
+        } catch (initialErr) {
+          console.error('Error fetching payments (attempt ' + (i + 1) + '):', initialErr)
+          // brief backoff before retry, unless last attempt
+          if (i < attempts.length - 1) {
+            await sleep(500)
+          } else {
+            setError('Failed to load payments. Please try again later.')
+            setLoading(false)
+            setHydrating(false)
+          }
         }
-      } catch (error) {
-        console.error('Error fetching payments:', error)
-        setError('Failed to load payments. Please try again later.')
-        setLoading(false)
-        setHydrating(false)
       }
     }
 
-    fetchFirstPageAndHydrate()
+    fetchInitialWithRetry()
 
     return () => {
       cancelled = true
@@ -816,7 +835,7 @@ export function PaymentList() {
                   </div>
                 </TableHead>
 
-                <TableHead className="hidden sm:table-cell">
+                <TableHead>
                   <div className="flex items-center gap-2">
                     <span>Balance</span>
                     <div className="flex items-center gap-1 ml-1">
@@ -940,7 +959,7 @@ export function PaymentList() {
                       </div>
                     </TableCell>
                     <TableCell className="font-bold">{payment.amount || 0}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{payment.balance_after || 0}</TableCell>
+                    <TableCell>{payment.balance_after || 0}</TableCell>
                     {/* Human-friendly date with raw payload in tooltip */}
                     <TableCell>
                       <span title={displayDateTitle(payment)}>

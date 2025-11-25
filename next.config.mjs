@@ -36,6 +36,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
+  onDemandEntries: {
+    maxInactiveAge: 120000,
+    pagesBufferLength: 5,
+  },
+
   async headers() {
     return [
       {

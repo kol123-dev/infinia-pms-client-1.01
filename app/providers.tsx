@@ -15,6 +15,29 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    const onError = (e: ErrorEvent) => {
+      const msg = String(e.message || '')
+      if (msg.includes('ChunkLoadError') || msg.includes('Loading chunk')) {
+        if (typeof window !== 'undefined') window.location.reload()
+      }
+    }
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const reason: any = e.reason
+      const name = String(reason?.name || '')
+      const msg = String(reason?.message || reason || '')
+      if (name === 'ChunkLoadError' || msg.includes('Loading chunk')) {
+        if (typeof window !== 'undefined') window.location.reload()
+      }
+    }
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [])
+
   // Cross-tab logout sync: storage + BroadcastChannel
   useEffect(() => {
     let bc: BroadcastChannel | null = null

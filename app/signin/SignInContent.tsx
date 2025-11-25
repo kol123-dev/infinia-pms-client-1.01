@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import Image from 'next/image'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import api from '@/lib/axios'
 
@@ -30,13 +29,72 @@ export default function SignInContent() {
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  // Add image src state with local default
-  const [imageSrc, setImageSrc] = useState<string>('/auth-background.jpg')
 
+  // Prefetch the post-login route for faster redirect
+  useEffect(() => {
+    try {
+      router.prefetch(callbackUrl)
+    } catch {}
+  }, [callbackUrl, router])
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'development') {
+      navigator.serviceWorker.getRegistrations().then((rs) => {
+        if (rs.length) {
+          rs.forEach((r) => r.unregister())
+          setTimeout(() => {
+            if (typeof window !== 'undefined') window.location.reload()
+          }, 50)
+        }
+      })
+    }
+  }, [])
+
+      
+  // Abort controller and small helpers
+  const abortRef = useRef<AbortController | null>(null)
+      
+  async function waitForSessionFirebaseToken(maxMs = 2000) {
+    const deadline = Date.now() + maxMs
+    while (Date.now() < deadline) {
+      const res = await fetch('/api/auth/session', { cache: 'no-store', keepalive: true })
+      const session = await res.json()
+      const token = session?.firebaseToken
+      if (token && token.trim()) return token.trim()
+      await new Promise(r => setTimeout(r, 200))
+    }
+    return undefined
+  }
+      
+  async function postFirebaseLoginWithRetry(idToken: string, signal: AbortSignal) {
+    const backoffs = [0, 400] // 2 attempts, quick backoff
+    for (const wait of backoffs) {
+      try {
+        if (wait) await new Promise(r => setTimeout(r, wait))
+        await api.post('/auth/firebase-login/', { id_token: idToken }, { signal })
+        return true
+      } catch (err: any) {
+        const isNetwork = !err?.response
+        const aborted = err?.name === 'CanceledError'
+        if (aborted) throw err
+        if (!isNetwork) throw err
+        // else: retry once on transient network issues
+      }
+    }
+    return false
+  }
+      
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Cancel any in-flight attempt
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
+      
+      setError('')
       setLoading(true)
+      
+      // Sign in via NextAuth (credentials provider)
       const result = await signIn('credentials', {
         email,
         password,
@@ -47,15 +105,26 @@ export default function SignInContent() {
       if (result?.error) {
         setError(result.error)
       } else {
-        const session = await fetch('/api/auth/session').then(res => res.json())
-        const firebaseToken = session?.firebaseToken
+        // Wait briefly for session to populate (reduces race conditions)
+        const firebaseToken =
+          (await waitForSessionFirebaseToken(2000)) ||
+          (await fetch('/api/auth/session', { cache: 'no-store', keepalive: true }).then(res => res.json())).firebaseToken
+
         if (firebaseToken) {
-          await api.post('/auth/firebase-login/', { id_token: firebaseToken.trim() })
+          // Robust backend bridge with retry on transient network errors
+          try {
+            await postFirebaseLoginWithRetry(firebaseToken, abortRef.current.signal)
+          } catch (bridgeErr: any) {
+            // Fall through: still redirect; backend may catch up shortly
+            setError(bridgeErr?.message || 'Network error during backend handshake. Continuing…')
+          }
         }
-        router.push(callbackUrl)
+
+        // Replace avoids going back to signin page
+        router.replace(callbackUrl)
       }
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred during sign in')
+      setError(error instanceof Error ? error.message : 'Network error during sign in')
     } finally {
       setLoading(false)
     }
@@ -64,9 +133,9 @@ export default function SignInContent() {
   // Clear error when user edits input
   return (
     <div className="min-h-[100svh] md:min-h-screen w-full flex flex-col md:flex-row">
-      {/* Left side - Form */}
+      
       <div className="w-full md:w-1/2 px-4 py-6 sm:px-6 md:p-10 flex items-center justify-center">
-        {/* Make container relative for overlay */}
+        
         <div className="relative w-full max-w-md space-y-8" aria-busy={loading}>
           <div className="text-left text-primary font-semibold text-xl">Infinia</div>
 
@@ -88,7 +157,7 @@ export default function SignInContent() {
             <p className="text-muted-foreground text-base sm:text-lg">You're just a few taps away.</p>
           </div>
 
-          {/* Form */}
+          
           <form onSubmit={handleEmailSignIn} className="space-y-6">
             <Input
               type="email"
@@ -100,7 +169,7 @@ export default function SignInContent() {
               className="w-full h-12 text-base rounded-lg"
             />
 
-            {/* Password field with eye toggle */}
+            
             <div className="relative">
               <Input
                 type={showPassword ? 'text' : 'password'}
@@ -122,7 +191,7 @@ export default function SignInContent() {
               </button>
             </div>
 
-            {/* Remember Me and Forgot Password row */}
+            
             <div className="flex items-center justify-between text-sm mt-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -175,7 +244,7 @@ export default function SignInContent() {
             </Link>
           </p>
 
-          {/* Lightweight overlay while submitting */}
+          
           {loading && (
             <div className="pointer-events-none absolute inset-0 bg-background/50 backdrop-blur-[2px] rounded-lg flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -184,17 +253,23 @@ export default function SignInContent() {
         </div>
       </div>
 
-      {/* Right side - Background image (hidden on mobile) */}
-      <div className="hidden md:block w-1/2 relative h-[100svh] md:h-screen overflow-hidden" aria-hidden="true">
-        <Image
-          src="/auth-background.jpg"
-          alt="Modern building"
-          fill
-          sizes="(min-width: 768px) 50vw"
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/30" />
+      
+      <div className="hidden md:block w-1/2 relative h-[100svh] md:h-screen overflow-hidden" aria-hidden="true" suppressHydrationWarning>
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/auth-background.jpg)' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-indigo-50 to-muted" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="max-w-sm text-center space-y-4 px-6">
+            <h3 className="text-2xl font-semibold tracking-tight">Secure, fast sign-in</h3>
+            <p className="text-sm text-muted-foreground">
+              Manage properties, tenants, and payments in one place.
+            </p>
+            <div className="grid grid-cols-1 gap-2 text-xs">
+              <div className="rounded-lg border bg-background/60 px-3 py-2">Encrypted credentials</div>
+              <div className="rounded-lg border bg-background/60 px-3 py-2">Two-step verification ready</div>
+              <div className="rounded-lg border bg-background/60 px-3 py-2">Role-based access</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

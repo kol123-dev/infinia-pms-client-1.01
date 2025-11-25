@@ -42,12 +42,13 @@ const nextConfig = {
         source: '/manifest.json',
         headers: [{ key: 'Access-Control-Allow-Origin', value: '*' }],
       },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
     ]
   },
-
-  // experimental: { trustHost: true }, // if you need it, ensure it’s valid for your Next version
 }
-
-// Change 'module.exports' to 'export default' and wrap with pwaConfig
-// Export without Sentry
 export default withPWAFn(nextConfig)

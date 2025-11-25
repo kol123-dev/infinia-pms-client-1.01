@@ -3,27 +3,14 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
-    // Define path and base URL
-    const url = request.nextUrl
-    const path = url.pathname
-    const baseUrl = url.origin
+  const url = request.nextUrl
+  const path = url.pathname
+  const origin = url.origin
 
-    // Bypass framework/static assets and NextAuth endpoints
-    if (
-      path.startsWith('/_next') ||
-      path.startsWith('/static') ||
-      path === '/favicon.ico' ||
-      path.startsWith('/icons') ||
-      path === '/manifest.json') {
-      return NextResponse.next()
-    }
-    const assetRegex = /\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|woff2?|ttf|otf)$/
-    if (assetRegex.test(path)) {
-      return NextResponse.next()
-    }
-    if (path.startsWith('/api/auth')) {
-      return NextResponse.next()
-    }
+  // Early bypass for Next assets and NextAuth
+  if (path.startsWith('/_next') || path.startsWith('/api/auth')) {
+    return NextResponse.next()
+  }
 
     // Public routes should not trigger auth redirects
     const isPublicRoute = [
@@ -51,28 +38,18 @@ export async function middleware(request: NextRequest) {
           return NextResponse.next()
         }
 
-        const signInUrl = new URL(signInPath, baseUrl)
-        // Keep callbackUrl simple to avoid nested chains
+        const signInUrl = new URL(signInPath, origin)
         signInUrl.searchParams.set('callbackUrl', '/dashboard')
-
         return NextResponse.redirect(signInUrl)
       }
 
-      // Optional: role-based redirects (ensure they don’t loop)
-      // const role = (token as any)?.role
-      // if (role === 'tenant' && path === '/dashboard') {
-      //   return NextResponse.redirect(new URL('/dashboard/tenant', baseUrl))
-      // }
-
-      // Protected route cache headers
       const response = NextResponse.next()
       response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
       response.headers.set('Pragma', 'no-cache')
       response.headers.set('Expires', '0')
       return response
     } catch (error) {
-      console.error('Middleware authentication error:', error)
       // Fallback: plain signin without callback loop
-      return NextResponse.redirect(new URL('/signin', baseUrl))
+      return NextResponse.redirect(new URL('/signin', origin))
     }
 }

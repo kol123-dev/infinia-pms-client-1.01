@@ -7,6 +7,14 @@ import { useEffect, useState } from 'react'
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((rs) => {
+        if (rs.length) rs.forEach((r) => r.unregister())
+      })
+    }
+  }, [])
+
   // Cross-tab logout sync: storage + BroadcastChannel
   useEffect(() => {
     let bc: BroadcastChannel | null = null

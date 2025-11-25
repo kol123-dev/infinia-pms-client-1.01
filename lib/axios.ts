@@ -19,10 +19,10 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
+  timeout: 15000,
 })
-
-// Always send cookies
 api.defaults.withCredentials = true
+api.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
 // Request interceptor: ensure cookies + CSRF
 api.interceptors.request.use(

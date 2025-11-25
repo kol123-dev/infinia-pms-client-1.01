@@ -26,6 +26,7 @@ export const metadata: Metadata = {
       { url: "/icons/icon-16x16.png", sizes: "16x16" },
       { url: "/icons/icon-32x32.png", sizes: "32x32" },
       { url: "/icons/icon-48x48.png", sizes: "48x48" },
+      { url: "/icons/icon-180x180.png", sizes: "180x180" },
       { url: "/icons/icon-192x192.png", sizes: "192x192" },
       { url: "/icons/icon-512x512.png", sizes: "512x512" },
     ],

@@ -6,7 +6,7 @@ const isProd = process.env.NODE_ENV === 'production'
 // Initialize the PWA plugin (disabled in dev)
 const withPWAFn = withPWA({
   dest: 'public',
-  disable: isDev,
+  disable: process.env.NEXT_ENABLE_PWA === '1' ? false : true,
 })
 
 // Next.js config

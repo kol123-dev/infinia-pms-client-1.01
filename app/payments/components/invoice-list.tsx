@@ -46,7 +46,7 @@ interface Invoice {
     property: {
       id: number
       property_id: string | null
-      names: string
+      name: string
       address: string
     }
   }

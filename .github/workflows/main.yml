@@ -120,15 +120,18 @@ jobs:
           fi
           
           pm2 stop frontend || true
-          cd /var/www/infinia-pms/frontend && pm2 start npm --name "frontend" -- start -- -p 3000 -H 0.0.0.0
+          pm2 stop infinia-frontend || true
+          pm2 delete frontend || true
+          pm2 delete infinia-frontend || true
           
           cat << EOF > ecosystem.config.js
           module.exports = {
             apps: [{
-              name: 'frontend',
+              name: 'infinia-frontend',
               script: 'npm',
               args: 'start -- -p 3000 -H 127.0.0.1',
               cwd: '/var/www/infinia-pms/frontend',
+              instances: 1,
               env: {
                 NODE_ENV: 'production',
                 NEXTAUTH_URL: 'https://property.infiniasync.com',
@@ -140,15 +143,14 @@ jobs:
                 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: '${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}',
                 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}',
                 NEXT_PUBLIC_FIREBASE_APP_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}',
-                NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}'
+                NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: '${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}',
+                NEXT_ENABLE_PWA: '1'
               }
             }]
           }
           EOF
 
-          pm2 stop frontend || true
-          pm2 delete frontend || true
           pm2 start ecosystem.config.js
           pm2 save
           pm2 status
-          pm2 logs frontend --lines 20 --nostream || true  # Ensure logs command exits immediately
+          pm2 logs infinia-frontend --lines 20 --nostream || true  # Ensure logs command exits immediately

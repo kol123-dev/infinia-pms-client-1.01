@@ -1,4 +1,5 @@
 import withPWA from 'next-pwa'
+import path from 'path'
 
 const isDev = process.env.NODE_ENV === 'development'
 const isProd = process.env.NODE_ENV === 'production'
@@ -6,7 +7,27 @@ const isProd = process.env.NODE_ENV === 'production'
 // Initialize the PWA plugin (disabled in dev)
 const withPWAFn = withPWA({
   dest: 'public',
+  register: true,
+  skipWaiting: true,
   disable: process.env.NEXT_ENABLE_PWA === '1' ? false : true,
+  runtimeCaching: [
+    {
+      urlPattern: /^\/_next\/static\/.*$/,
+      handler: 'CacheFirst',
+      options: { cacheName: 'next-static', expiration: { maxEntries: 256, maxAgeSeconds: 31536000 } },
+    },
+    {
+      urlPattern: /^\/_next\/data\/.*$/,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'next-data', expiration: { maxEntries: 128, maxAgeSeconds: 86400 } },
+    },
+    {
+      urlPattern: /^https?:\/\/.*\/api\/v1\/.*$/,
+      handler: 'NetworkFirst',
+      options: { cacheName: 'api', networkTimeoutSeconds: 10, expiration: { maxEntries: 64, maxAgeSeconds: 86400 } },
+    },
+  ],
+  buildExcludes: [/middleware-manifest\.json$/],
 })
 
 // Next.js config
@@ -39,6 +60,12 @@ const nextConfig = {
   onDemandEntries: {
     maxInactiveAge: 120000,
     pagesBufferLength: 5,
+  },
+
+  webpack: (config) => {
+    config.resolve = config.resolve || {}
+    config.resolve.alias = { ...(config.resolve.alias || {}), '@': path.resolve(process.cwd()) }
+    return config
   },
 
   async headers() {

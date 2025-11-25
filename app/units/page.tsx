@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { UnitImportDialog } from "./components/unit-import-dialog"
+import { useSearchParams } from "next/navigation" // add
 
 export default function Units() {
   const [units, setUnits] = useState<Unit[]>([])
@@ -92,6 +93,10 @@ export default function Units() {
     })
   }
 
+  const searchParams = useSearchParams()
+  const statusFilter = (searchParams.get("status") || "").toLowerCase()
+  const propertyFilter = searchParams.get("property")
+
   const fetchUnits = useCallback(async () => {
     try {
       const params = new URLSearchParams({
@@ -101,20 +106,35 @@ export default function Units() {
       if (debouncedSearchTerm) {
         params.set("search", debouncedSearchTerm)
       }
-      // Request newest-first ordering from the API
       params.set("ordering", "-created_at")
 
       const response = await api.get(`/units/?${params.toString()}`);
-      // Enforce newest-first locally as a safe fallback
       const sorted = [...response.data.results].sort((a: Unit, b: Unit) => {
         const aTime = new Date(a.created_at).getTime()
         const bTime = new Date(b.created_at).getTime()
         return bTime - aTime
       })
 
-      setUnits(sorted);
-      setTotalCount(response.data.count);
-      setTotalPages(Math.ceil(response.data.count / pageSize));
+      // Apply client-side filter from URL params
+      let filtered = sorted
+      if (statusFilter === "occupied") {
+        filtered = filtered.filter((u: Unit) => u.unit_status === "OCCUPIED")
+      } else if (statusFilter === "vacant") {
+        filtered = filtered.filter((u: Unit) => u.unit_status === "VACANT")
+      } else if (statusFilter === "maintenance") {
+        filtered = filtered.filter((u: Unit) => u.unit_status === "MAINTENANCE")
+      } // "all" or empty -> no status filter
+
+      if (propertyFilter) {
+        const pid = Number(propertyFilter)
+        if (!Number.isNaN(pid)) {
+          filtered = filtered.filter((u: Unit) => u.property?.id === pid)
+        }
+      }
+
+      setUnits(filtered);
+      setTotalCount(filtered.length);
+      setTotalPages(Math.ceil(filtered.length / pageSize));
     } catch (error) {
       console.error('Error fetching units:', error);
       toast({
@@ -125,13 +145,13 @@ export default function Units() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, toast, debouncedSearchTerm]);
+  }, [currentPage, pageSize, toast, debouncedSearchTerm, statusFilter, propertyFilter]);
 
   useEffect(() => {
     fetchUnits();
     fetchStats();
-  }, [currentPage, pageSize, fetchStats, fetchUnits]);  // Added pageSize here
-
+  }, [currentPage, pageSize, fetchStats, fetchUnits]);
+  
   const handleUnitClick = (unit: Unit) => {
     setSelectedUnit(unit);
     setIsDetailsOpen(true);

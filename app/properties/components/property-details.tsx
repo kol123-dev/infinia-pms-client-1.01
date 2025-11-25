@@ -1,3 +1,4 @@
+// top-level imports
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Property } from "../types"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +11,7 @@ import { toast } from "@/components/ui/use-toast"
 import api from "@/lib/axios"
 import Image from 'next/image';
 import { formatCurrency } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PropertyDetailsProps {
   property: Property
@@ -88,172 +90,188 @@ export function PropertyDetails({ property, isOpen, onClose, onDelete }: Propert
     )
   }
 
+  // Sleek, compact modal content
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md sm:max-w-lg md:max-w-xl w-full h-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6 flex flex-col gap-4">
-        <DialogHeader>
-          <DialogTitle className="text-xl sm:text-2xl">{property.name}</DialogTitle>
-          <div className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground mt-2">
-            <Badge variant="secondary" className="text-xs sm:text-sm">{property.property_type}</Badge>
-            <Badge variant="outline" className="text-xs sm:text-sm">{property.building_type}</Badge>
-          </div>
-        </DialogHeader>
-    
-        {/* Property Image */}
-        <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-          <Image
-            src="/placeholder.svg"
-            alt={property.name || ''}
-            fill
-            className="object-cover"
-          />
-        </div>
-        
-        {/* Location Information */}
-        <div className="bg-muted/50 p-4 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <MapPin className="h-5 w-5 text-muted-foreground" />
-            <span className="text-lg">{property.location.address}</span>
-          </div>
-        </div>
-    
-        {/* Property Management */}
-        <div className="grid gap-4">
-          <h3 className="text-lg font-semibold text-blue-600">Property Management</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg">
-              <h4 className="text-sm font-medium text-muted-foreground">Landlord</h4>
-              <p className="mt-1">{property.landlord?.user?.full_name || 'Not assigned'}</p>
+      <DialogContent className="sm:max-w-[640px] max-h-[90vh] p-0 gap-0">
+        <ScrollArea className="h-full max-h-[90vh]">
+          {/* Sticky header keeps context while scrolling */}
+          <DialogHeader className="sticky top-0 z-10 px-6 py-4 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="text-xl sm:text-2xl font-semibold tracking-tight">
+                  {property.name}
+                </DialogTitle>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <Badge variant="secondary" className="text-xs">{property.property_type}</Badge>
+                  <Badge variant="outline" className="text-xs">{property.building_type}</Badge>
+                </div>
+              </div>
             </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="text-sm font-medium text-muted-foreground">Agent</h4>
-              <p className="mt-1">{property.agent?.name || 'Not assigned'}</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="text-sm font-medium text-muted-foreground">Property Manager</h4>
-              <p className="mt-1">{property.property_manager?.name || 'Not assigned'}</p>
-            </div>
-          </div>
-        </div>
+          </DialogHeader>
 
-        {/* Units Information */}
-        <div className="grid gap-4">
-          <h3 className="text-lg font-semibold text-blue-600">Units Information</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 border rounded-lg">
+          <div className="p-6 space-y-6">
+            {/* Banner image */}
+            <div className="aspect-[16/9] bg-muted rounded-lg overflow-hidden relative">
+              <Image
+                src="/placeholder.svg"
+                alt={property.name || ''}
+                fill
+                className="object-cover"
+              />
+            </div>
+
+            {/* Address pill */}
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{property.location?.address}</span>
+              </div>
+            </div>
+  
+            {/* Key stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => router.push(`/units?status=all&property=${property.id}`)}
+                aria-label="View all units"
+                className="rounded-lg border p-3 text-left w-full hover:bg-muted/40 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+              >
+                <div className="flex items-center justify-between">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-lg font-semibold text-blue-600">
+                    {property.units?.summary?.total}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Total Units</p>
+              </button>
+  
+              <button
+                type="button"
+                onClick={() => router.push(`/units?status=occupied&property=${property.id}`)}
+                aria-label="View occupied units"
+                className="rounded-lg border p-3 text-left w-full hover:bg-muted/40 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+              >
+                <div className="flex items-center justify-between">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-lg font-semibold text-blue-600">
+                    {property.units?.summary?.occupied}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Occupied Units</p>
+              </button>
+  
+              <button
+                type="button"
+                onClick={() => router.push(`/units?status=vacant&property=${property.id}`)}
+                aria-label="View vacant units"
+                className="rounded-lg border p-3 text-left w-full hover:bg-muted/40 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+              >
+                <div className="flex items-center justify-between">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-lg font-semibold text-blue-600">
+                    {property.units?.summary?.vacant}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Vacant Units</p>
+              </button>
+            </div>
+  
+            {/* Financials (compact) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-5 w-5 items-center justify-center text-[10px] font-bold text-muted-foreground">KES</span>
+                  <span className="text-xs text-muted-foreground">Last Month</span>
+                </div>
+                <p className="mt-2 text-xl font-semibold text-green-600">
+                  {formatCurrency(property.financials?.summary?.lastMonthlyRevenue ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-5 w-5 items-center justify-center text-[10px] font-bold text-muted-foreground">KES</span>
+                  <span className="text-xs text-muted-foreground">Potential / Month</span>
+                </div>
+                <p className="mt-2 text-xl font-semibold text-green-600">
+                  {formatCurrency(property.financials?.summary?.potentialMonthlyRevenue ?? 0)}
+                </p>
+              </div>
+            </div>
+  
+            {/* Management (minimal list) */}
+            <div className="rounded-lg border p-3 space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Management</h3>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Landlord</span>
+                <span className="font-medium">{property.landlord?.user?.full_name || 'Not assigned'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Agent</span>
+                <span className="font-medium">{property.agent?.name || 'Not assigned'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Property Manager</span>
+                <span className="font-medium">{property.property_manager?.name || 'Not assigned'}</span>
+              </div>
+            </div>
+  
+            {/* Unit types (minimal chips) */}
+            {property.units?.distribution && (
+              <div className="rounded-lg border p-3">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Unit Types</h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(property.units.distribution).map(([type, count]) => (
+                    <Badge key={type} variant="outline" className="text-xs">
+                      {type}: {count as number}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+  
+            {/* M-Pesa config */}
+            <div className="rounded-lg border p-3">
               <div className="flex items-center justify-between">
-                <Building className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold text-blue-600">{property.units.summary.total}</span>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">M‑Pesa</h3>
+                  <p className="text-sm font-semibold">
+                    {property.mpesa_config?.shortcode || 'Not configured'}
+                  </p>
+                </div>
+                <Badge variant={property.mpesa_config?.is_active ? "default" : "secondary"} className="text-xs">
+                  {property.mpesa_config?.is_active ? 'Active' : 'Inactive'}
+                </Badge>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Total Units</p>
             </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
-                <Users className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold text-blue-600">{property.units.summary.occupied}</span>
+  
+            {/* Description (muted) */}
+            {property.description && (
+              <div className="rounded-lg bg-muted/40 p-3">
+                <p className="text-sm text-muted-foreground">{property.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Occupied</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
-                <Users className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold text-blue-600">{property.units.summary.vacant}</span>
+            )}
+  
+            <DialogFooter className="px-0 pt-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
+                <Button
+                  variant="destructive"
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete Property
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={onClose}
+                >
+                  Close
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Vacant</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
-                <Building className="h-5 w-5 text-muted-foreground" />
-                <span className="text-2xl font-bold text-blue-600">{property.units.summary.underMaintenance}</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">Under Maintenance</p>
-            </div>
+            </DialogFooter>
           </div>
-        </div>
-
-        {/* Unit Types */}
-        <div className="grid gap-4">
-          <h3 className="text-lg font-semibold text-blue-600">Unit Types</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(property.units.distribution).map(([type, count]) => (
-              <div key={type} className="p-4 border rounded-lg">
-                <h4 className="text-sm font-medium text-muted-foreground">{type}</h4>
-                <p className="text-2xl font-bold mt-1 text-blue-600">{count.toString()}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Financial Information */}
-        <div className="grid gap-4">
-          <h3 className="text-lg font-semibold text-blue-600">Financial Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center space-x-2">
-                <span className="h-5 w-5 text-muted-foreground flex items-center justify-center text-[10px] font-bold">KES</span>
-                <h4 className="text-sm font-medium text-muted-foreground">Last Monthly Revenue</h4>
-              </div>
-              <p className="text-2xl font-bold mt-2 text-green-600">
-                {formatCurrency(property.financials?.summary?.lastMonthlyRevenue ?? 0)}
-              </p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center space-x-2">
-                <span className="h-5 w-5 text-muted-foreground flex items-center justify-center text-[10px] font-bold">KES</span>
-                <h4 className="text-sm font-medium text-muted-foreground">Potential Monthly Revenue</h4>
-              </div>
-              <p className="text-2xl font-bold mt-2 text-green-600">
-                {formatCurrency(property.financials?.summary?.potentialMonthlyRevenue ?? 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* M-Pesa Configuration */}
-        <div className="grid gap-4">
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-blue-600">M-Pesa Configuration</h3>
-          </div>
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Paybill/Till Number</h4>
-                <p className="text-lg font-semibold mt-1">{property.mpesa_config?.shortcode || 'Not configured'}</p>
-              </div>
-              <Badge variant={property.mpesa_config?.is_active ? "default" : "secondary"}>
-                {property.mpesa_config?.is_active ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Description */}
-        {property.description && (
-          <div className="grid gap-4">
-            <h3 className="text-lg font-semibold">Description</h3>
-            <div className="p-4 border rounded-lg">
-              <p className="text-muted-foreground">{property.description}</p>
-            </div>
-          </div>
-        )}
-
-        <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <Button 
-            variant="destructive" 
-            className="w-full sm:w-auto text-sm sm:text-base py-2 sm:py-3"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            Delete Property
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full sm:w-auto text-sm sm:text-base py-2 sm:py-3"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-        </DialogFooter>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

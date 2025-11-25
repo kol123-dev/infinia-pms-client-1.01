@@ -28,12 +28,12 @@ export async function middleware(request: NextRequest) {
     // Auth check
     try {
       const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+      const sessionCookie = request.cookies.get('__Secure-next-auth.session-token') || request.cookies.get('next-auth.session-token')
 
-      if (!token) {
+      if (!token && !sessionCookie) {
         const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
         const signInPath = wantsTenantArea ? '/tenant/signin' : '/signin'
 
-        // Avoid recursive sign-in -> sign-in
         if (path === signInPath) {
           return NextResponse.next()
         }

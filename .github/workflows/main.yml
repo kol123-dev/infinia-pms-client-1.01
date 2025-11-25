@@ -131,7 +131,10 @@ jobs:
               script: 'npm',
               args: 'start -- -p 3000 -H 127.0.0.1',
               cwd: '/var/www/infinia-pms/frontend',
+              exec_mode: 'fork',
               instances: 1,
+              autorestart: true,
+              watch: false,
               env: {
                 NODE_ENV: 'production',
                 NEXTAUTH_URL: 'https://property.infiniasync.com',

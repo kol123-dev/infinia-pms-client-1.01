@@ -146,7 +146,7 @@ const authOptions: NextAuthOptions = {
       }
 
       const now = Date.now()
-      if (now > (token as any).tokenExpiry - 60 * 1000) {
+      if (now > (token as any).tokenExpiry - 15 * 60 * 1000) {
         try {
           const refreshResponse = await axios.post(
             `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/token/refresh/`,
@@ -189,8 +189,8 @@ const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
-    updateAge: 24 * 60 * 60,
+    maxAge: 365 * 24 * 60 * 60,
+    updateAge: 7 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: false,

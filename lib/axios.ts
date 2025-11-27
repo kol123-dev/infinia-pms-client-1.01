@@ -1,6 +1,37 @@
 import axios, { type AxiosRequestHeaders } from 'axios'
 import { toast } from '@/hooks/use-toast'
-import { getSession } from 'next-auth/react'
+import { getSession, signOut } from 'next-auth/react'
+
+let hasUnauthorizedHandled = false
+
+// handleUnauthorized function
+const handleUnauthorized = (err?: any) => {
+  if (hasUnauthorizedHandled) return
+  hasUnauthorizedHandled = true
+
+  toast({
+    title: 'Session Error',
+    description: 'We could not authenticate your request. Please try signing in again.',
+    variant: 'destructive',
+  })
+
+  if (typeof window !== 'undefined') {
+    try {
+      // Removed await to avoid the TS compiler error; fire and forget
+      void signOut({ callbackUrl: '/signin' }).catch(() => {
+        const pathname = window.location.pathname || ''
+        if (!pathname.startsWith('/signin')) {
+          window.location.assign('/signin')
+        }
+      })
+    } catch {
+      const pathname = window.location.pathname || ''
+      if (!pathname.startsWith('/signin')) {
+        window.location.assign('/signin')
+      }
+    }
+  }
+}
 
 // Simplified API URL configuration
 const getApiBaseUrl = () => {
@@ -86,30 +117,24 @@ api.interceptors.response.use(
           variant: 'destructive',
         })
       } else if (status === 401) {
-        // Log the 401 error for debugging
-        console.error(`[Axios] 401 Unauthorized at ${err.config.url}`);
-        
-        // Prevent automatic redirect loop. Just show a toast.
-        // If the user is truly unauthenticated, Middleware handles the initial page load protection.
-        // If the API token is invalid but the NextAuth session is active, we shouldn't force a logout.
-        toast({
-          title: 'Session Error',
-          description: 'We could not authenticate your request. Please try refreshing the page.',
-          variant: 'destructive',
-        })
-        
-        /* 
-        // Old aggressive redirect logic - causes loops
-        if (typeof window !== 'undefined') {
-          const path = window.location.pathname || ''
-          const isTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
-          window.location.href = isTenantArea ? '/tenant/signin' : '/signin'
-        } 
-        */
+        handleUnauthorized(err)
       }
     }
     return Promise.reject(err)
   }
 )
+
+// Safety-net: also attach the same 401 handler to the global axios default instance.
+// This covers any direct `import axios from 'axios'` usage that might bypass our `api`.
+axios.interceptors.response.use(
+  (res) => res,
+  async (err: any) => {
+    if (err?.response?.status === 401) {
+      handleUnauthorized(err)
+    }
+    return Promise.reject(err)
+  }
+)
+
 
 export default api

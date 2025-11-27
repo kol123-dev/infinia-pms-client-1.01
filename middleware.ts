@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
         request.cookies.get('next-auth.session-token') ||
         request.cookies.get('__Host-next-auth.session-token')
 
+      // Immediate redirect when there is no auth context at all
       if (!token && !sessionCookie) {
         console.log('[Middleware] No token or session cookie found. Redirecting to signin.')
         const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
@@ -42,6 +43,17 @@ export async function middleware(request: NextRequest) {
           return NextResponse.next()
         }
 
+        const signInUrl = new URL(signInPath, origin)
+        signInUrl.searchParams.set('callbackUrl', '/dashboard')
+        return NextResponse.redirect(signInUrl)
+      }
+
+      // New: redirect if the JWT we carry is expired or close enough to be treated as expired
+      // Redirect if our stored backend access token expiry has passed
+      const tokenExpiry = (token as any)?.tokenExpiry as number | undefined
+      if (typeof tokenExpiry === 'number' && Date.now() > tokenExpiry) {
+        const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
+        const signInPath = wantsTenantArea ? '/tenant/signin' : '/signin'
         const signInUrl = new URL(signInPath, origin)
         signInUrl.searchParams.set('callbackUrl', '/dashboard')
         return NextResponse.redirect(signInUrl)

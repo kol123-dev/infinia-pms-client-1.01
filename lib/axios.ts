@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestHeaders } from 'axios'
 import { toast } from '@/hooks/use-toast'
+import { getSession } from 'next-auth/react'
 
 // Simplified API URL configuration
 const getApiBaseUrl = () => {
@@ -24,10 +25,30 @@ const api = axios.create({
 api.defaults.withCredentials = true
 api.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
-// Request interceptor: ensure cookies + CSRF
+// Request interceptor: ensure cookies + CSRF + Bearer Token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     config.withCredentials = true
+
+    // Inject Bearer token from NextAuth session
+    if (typeof window !== 'undefined') {
+      try {
+        const session = await getSession()
+        if ((session as any)?.accessToken) {
+          const token = (session as any).accessToken
+          const headers = config.headers || {}
+          // Handle both AxiosHeaders object and plain object
+          if (typeof (headers as any).set === 'function') {
+            (headers as any).set('Authorization', `Bearer ${token}`)
+          } else {
+            (headers as any)['Authorization'] = `Bearer ${token}`
+          }
+          config.headers = headers
+        }
+      } catch (e) {
+        // Ignore session fetch errors, proceed without token
+      }
+    }
 
     const method = (config.method || 'get').toLowerCase()
     if (typeof window !== 'undefined' && ['post', 'put', 'patch', 'delete'].includes(method)) {
@@ -65,11 +86,26 @@ api.interceptors.response.use(
           variant: 'destructive',
         })
       } else if (status === 401) {
+        // Log the 401 error for debugging
+        console.error(`[Axios] 401 Unauthorized at ${err.config.url}`);
+        
+        // Prevent automatic redirect loop. Just show a toast.
+        // If the user is truly unauthenticated, Middleware handles the initial page load protection.
+        // If the API token is invalid but the NextAuth session is active, we shouldn't force a logout.
+        toast({
+          title: 'Session Error',
+          description: 'We could not authenticate your request. Please try refreshing the page.',
+          variant: 'destructive',
+        })
+        
+        /* 
+        // Old aggressive redirect logic - causes loops
         if (typeof window !== 'undefined') {
           const path = window.location.pathname || ''
           const isTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
           window.location.href = isTenantArea ? '/tenant/signin' : '/signin'
-        }
+        } 
+        */
       }
     }
     return Promise.reject(err)

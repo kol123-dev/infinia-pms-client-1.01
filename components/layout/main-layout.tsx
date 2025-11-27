@@ -18,14 +18,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { status } = useSession()
-  const router = useRouter()
   const pathname = usePathname()
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/signin")
-    }
-  }, [status, router])
 
   if (status === "loading") {
     return (
@@ -88,10 +81,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </div>
     )
-  }
-
-  if (status === "unauthenticated") {
-    return null // The useEffect will handle the redirect
   }
 
   return (

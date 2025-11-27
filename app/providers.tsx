@@ -43,6 +43,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     let bc: BroadcastChannel | null = null
 
     const handleLogoutSignal = async () => {
+      console.log('[Providers] Received logout signal. Signing out...')
       try {
         await signOut({ redirect: false })
         window.location.href = '/signin'

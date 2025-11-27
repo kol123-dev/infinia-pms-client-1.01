@@ -28,9 +28,13 @@ export async function middleware(request: NextRequest) {
     // Auth check
     try {
       const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
-      const sessionCookie = request.cookies.get('__Secure-next-auth.session-token') || request.cookies.get('next-auth.session-token')
+      const sessionCookie = 
+        request.cookies.get('__Secure-next-auth.session-token') || 
+        request.cookies.get('next-auth.session-token') ||
+        request.cookies.get('__Host-next-auth.session-token')
 
       if (!token && !sessionCookie) {
+        console.log('[Middleware] No token or session cookie found. Redirecting to signin.')
         const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
         const signInPath = wantsTenantArea ? '/tenant/signin' : '/signin'
 
@@ -41,6 +45,14 @@ export async function middleware(request: NextRequest) {
         const signInUrl = new URL(signInPath, origin)
         signInUrl.searchParams.set('callbackUrl', '/dashboard')
         return NextResponse.redirect(signInUrl)
+      }
+
+      const role = (token as any)?.role
+      if (path === '/dashboard' && role === 'tenant') {
+        return NextResponse.redirect(new URL('/dashboard/tenant', origin))
+      }
+      if (path.startsWith('/dashboard/tenant') && role !== 'tenant') {
+        return NextResponse.redirect(new URL('/dashboard', origin))
       }
 
       const response = NextResponse.next()

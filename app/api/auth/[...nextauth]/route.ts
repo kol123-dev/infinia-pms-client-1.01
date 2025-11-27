@@ -27,7 +27,7 @@ const auth = getAuth(app);
 // Function to authenticate with backend
 async function authenticateWithBackend(idToken: string) {
   const directAxios = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+    baseURL: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/?$/, '/'),
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     withCredentials: true,
   })
@@ -102,10 +102,7 @@ const authOptions: NextAuthOptions = {
           // Authenticate with backend server-side (okay), but we also need client to set cookies:
           const user = await authenticateWithBackend(idToken)
 
-          const source = (credentials as any)?.signInSource
-          if ((user as any)?.role === 'tenant' && source !== 'tenant') {
-            throw new Error('Tenants must use Tenant Sign In at /tenant/signin')
-          }
+          // Allow sign-in from any page; route to role-specific dashboards via middleware
 
           return { ...user, firebaseToken: idToken } as any
         } catch (error) {
@@ -146,17 +143,24 @@ const authOptions: NextAuthOptions = {
       }
 
       const now = Date.now()
-      if (now > (token as any).tokenExpiry - 15 * 60 * 1000) {
+      // Refresh if less than 2 minutes remaining
+      if (now > (token as any).tokenExpiry - 2 * 60 * 1000) {
         try {
           const refreshResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/token/refresh/`,
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/token/refresh/`,
             { refresh: (token as any).refreshToken }
           )
           const newAccessToken = refreshResponse.data.access
+          const newRefreshToken = refreshResponse.data.refresh
+
           const newDecoded = jwtDecode<{ exp: number }>(newAccessToken)
           const newExpiry = newDecoded.exp * 1000
           ;(token as any).accessToken = newAccessToken
           ;(token as any).tokenExpiry = newExpiry
+
+          if (newRefreshToken) {
+            ;(token as any).refreshToken = newRefreshToken
+          }
         } catch {
           return { ...token, accessToken: undefined, refreshToken: undefined, tokenExpiry: undefined }
         }
@@ -191,6 +195,17 @@ const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 365 * 24 * 60 * 60,
     updateAge: 7 * 24 * 60 * 60,
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: false,

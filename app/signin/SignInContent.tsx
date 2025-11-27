@@ -22,6 +22,8 @@ export default function SignInContent() {
   const isTenantPage = signInSource === 'tenant'
   const headerLabel = isTenantPage ? 'Tenant Login' : undefined
   const callbackUrl = searchParams.get('callbackUrl') || defaultCallback
+  const qsError = searchParams.get('error') || ''
+  
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,6 +40,18 @@ export default function SignInContent() {
   }, [callbackUrl, router])
 
   useEffect(() => {
+    const code = qsError
+    if (!code) return
+    const friendly =
+      code === 'CredentialsSignin' ? 'Invalid email or password.' :
+      code === 'AccessDenied' ? 'Access denied. Please try again.' :
+      code === 'OAuthSignin' ? 'Sign in failed. Please try again.' :
+      code === 'OAuthCallback' ? 'Sign in callback failed.' :
+      code
+    setError(friendly)
+  }, [qsError])
+
+  useEffect(() => {
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'development') {
       navigator.serviceWorker.getRegistrations().then((rs) => {
         if (rs.length) {
@@ -49,48 +63,10 @@ export default function SignInContent() {
       })
     }
   }, [])
-
-      
-  // Abort controller and small helpers
-  const abortRef = useRef<AbortController | null>(null)
-      
-  async function waitForSessionFirebaseToken(maxMs = 2000) {
-    const deadline = Date.now() + maxMs
-    while (Date.now() < deadline) {
-      const res = await fetch('/api/auth/session', { cache: 'no-store', keepalive: true })
-      const session = await res.json()
-      const token = session?.firebaseToken
-      if (token && token.trim()) return token.trim()
-      await new Promise(r => setTimeout(r, 200))
-    }
-    return undefined
-  }
-      
-  async function postFirebaseLoginWithRetry(idToken: string, signal: AbortSignal) {
-    const backoffs = [0, 400] // 2 attempts, quick backoff
-    for (const wait of backoffs) {
-      try {
-        if (wait) await new Promise(r => setTimeout(r, wait))
-        await api.post('/auth/firebase-login/', { id_token: idToken }, { signal })
-        return true
-      } catch (err: any) {
-        const isNetwork = !err?.response
-        const aborted = err?.name === 'CanceledError'
-        if (aborted) throw err
-        if (!isNetwork) throw err
-        // else: retry once on transient network issues
-      }
-    }
-    return false
-  }
       
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      // Cancel any in-flight attempt
-      abortRef.current?.abort()
-      abortRef.current = new AbortController()
-      
       setError('')
       setLoading(true)
       
@@ -100,29 +76,14 @@ export default function SignInContent() {
         password,
         signInSource,
         callbackUrl,
-        redirect: true,
+        redirect: false,
       })
 
       if (result?.error) {
         setError(result.error)
       } else {
-        // Wait briefly for session to populate (reduces race conditions)
-        const firebaseToken =
-          (await waitForSessionFirebaseToken(2000)) ||
-          (await fetch('/api/auth/session', { cache: 'no-store', keepalive: true }).then(res => res.json())).firebaseToken
-
-        if (firebaseToken) {
-          // Robust backend bridge with retry on transient network errors
-          try {
-            await postFirebaseLoginWithRetry(firebaseToken, abortRef.current.signal)
-          } catch (bridgeErr: any) {
-            // Fall through: still redirect; backend may catch up shortly
-            setError(bridgeErr?.message || 'Network error during backend handshake. Continuing…')
-          }
-        }
-
-        // Replace avoids going back to signin page
-        router.replace(callbackUrl)
+        router.refresh()
+        router.push(result?.url || callbackUrl)
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Network error during sign in')

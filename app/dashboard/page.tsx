@@ -10,7 +10,6 @@ import { BottomSheet } from "@/components/ui/bottom-sheet"
 import { Building, Users, DollarSign, AlertTriangle, Plus, Eye, TrendingUp, MessageSquare } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import axios from '@/lib/axios';
@@ -56,7 +55,6 @@ const RecentActivity = dynamic(
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [isFabSheetOpen, setFabSheetOpen] = useState(false)
 
   // Remove page-level stats/loading states and fetching; the stats component handles its own data
@@ -69,13 +67,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const { toast } = useToast();  // Moved to top level here (unconditionally)
-
-  // Auth redirect useEffect
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/signin');
-    }
-  }, [status, router]);
 
   // Data fetching useEffect
   useEffect(() => {
@@ -144,11 +135,6 @@ export default function Dashboard() {
         <DashboardSkeleton />
       </MainLayout>
     );
-  }
-
-  // Keep only the unauthenticated guard
-  if (!session) {
-    return null;
   }
 
   return (
@@ -284,7 +270,6 @@ export default function Dashboard() {
                 className="w-full justify-start gap-2"
                 onClick={() => {
                   setFabSheetOpen(false)
-                  router.push(action.href)
                 }}
               >
                 <action.icon className="h-4 w-4" />

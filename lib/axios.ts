@@ -17,7 +17,7 @@ const handleUnauthorized = (err?: any) => {
 
   if (typeof window !== 'undefined') {
     try {
-      // Removed await to avoid the TS compiler error; fire and forget
+      // Avoid await inside environments that complain; still redirect immediately
       void signOut({ callbackUrl: '/signin' }).catch(() => {
         const pathname = window.location.pathname || ''
         if (!pathname.startsWith('/signin')) {

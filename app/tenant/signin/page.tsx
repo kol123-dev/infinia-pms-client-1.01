@@ -7,7 +7,12 @@ import { AuthSkeleton } from '@/components/auth/AuthSkeleton'
 export default function TenantSignInPage() {
   return (
     <Suspense fallback={<AuthSkeleton />}>
-      <SignInContent defaultCallback="/dashboard/tenant" signInSource="tenant" headerLabel="Tenant Sign In" />
+      <SignInContent
+        defaultCallback="/dashboard/tenant"
+        signInSource="tenant"
+        headerLabel="Tenant Sign In"
+        initialPathname="/tenant/signin"
+      />
     </Suspense>
   )
 }

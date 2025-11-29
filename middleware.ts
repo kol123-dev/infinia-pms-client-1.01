@@ -6,6 +6,8 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const path = url.pathname
   const origin = url.origin
+  // Use a stable base origin to avoid localhost redirects behind proxies
+  const baseOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || origin
 
   // Early bypass for Next assets and NextAuth
   if (path.startsWith('/_next') || path.startsWith('/api/auth')) {
@@ -43,7 +45,7 @@ export async function middleware(request: NextRequest) {
           return NextResponse.next()
         }
 
-        const signInUrl = new URL(signInPath, origin)
+        const signInUrl = new URL(signInPath, baseOrigin)
         signInUrl.searchParams.set('callbackUrl', '/dashboard')
         return NextResponse.redirect(signInUrl)
       }
@@ -54,17 +56,17 @@ export async function middleware(request: NextRequest) {
       if (typeof tokenExpiry === 'number' && Date.now() > tokenExpiry) {
         const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
         const signInPath = wantsTenantArea ? '/tenant/signin' : '/signin'
-        const signInUrl = new URL(signInPath, origin)
+        const signInUrl = new URL(signInPath, baseOrigin)
         signInUrl.searchParams.set('callbackUrl', '/dashboard')
         return NextResponse.redirect(signInUrl)
       }
 
       const role = (token as any)?.role
       if (path === '/dashboard' && role === 'tenant') {
-        return NextResponse.redirect(new URL('/dashboard/tenant', origin))
+        return NextResponse.redirect(new URL('/dashboard/tenant', baseOrigin))
       }
       if (path.startsWith('/dashboard/tenant') && role !== 'tenant') {
-        return NextResponse.redirect(new URL('/dashboard', origin))
+        return NextResponse.redirect(new URL('/dashboard', baseOrigin))
       }
 
       const response = NextResponse.next()
@@ -74,7 +76,7 @@ export async function middleware(request: NextRequest) {
       return response
     } catch (error) {
       // Fallback: plain signin without callback loop
-      return NextResponse.redirect(new URL('/signin', origin))
+      return NextResponse.redirect(new URL('/signin', baseOrigin))
     }
 }
 

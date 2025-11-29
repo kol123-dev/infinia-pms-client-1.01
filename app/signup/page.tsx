@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function SignUp() {
   const router = useRouter()
-  const { signUpWithEmail, signInWithGoogle } = useAuth()
+  const { signInWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'landlord' | 'tenant' | 'property_manager' | 'maintenance_staff'>('tenant')
@@ -21,15 +21,7 @@ export default function SignUp() {
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    try {
-      setLoading(true)
-      await signUpWithEmail(email, password, role)
-      router.push('/profile')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred during sign up')
-    } finally {
-      setLoading(false)
-    }
+    setError('Email sign-up is currently unavailable. Please use Google or contact your agent/landlord to be invited.')
   }
 
   const handleGoogleSignUp = async () => {
@@ -138,6 +130,7 @@ export default function SignUp() {
             src="/auth-background.jpg"
             alt="Authentication background"
             fill
+            sizes="(min-width: 768px) 50vw, 0vw"
             className="object-cover"
             priority
           />

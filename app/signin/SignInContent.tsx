@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
@@ -11,23 +11,47 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import api from '@/lib/axios'
+import Image from 'next/image'
 
-export default function SignInContent() {
+// Helper: map NextAuth error codes to friendly messages
+function getFriendlyError(code?: string | null) {
+  if (!code) return ''
+  switch (code) {
+    case 'CredentialsSignin': return 'Invalid email or password.'
+    case 'AccessDenied': return 'Access denied. Please try again.'
+    case 'OAuthSignin': return 'Sign in failed. Please try again.'
+    case 'OAuthCallback': return 'Sign in callback failed.'
+    default: return code
+  }
+}
+
+export default function SignInContent({
+  defaultCallback = '/dashboard',
+  signInSource,
+  headerLabel,
+  initialSearchParams,
+  initialPathname,
+}: {
+  defaultCallback?: string
+  signInSource?: 'tenant' | 'landlord'
+  headerLabel?: string
+  initialSearchParams?: { callbackUrl?: string | null; error?: string | null }
+  initialPathname?: string
+}) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const pathname = usePathname()
 
-  const defaultCallback = '/dashboard'
-  const signInSource = pathname?.includes('/tenant') ? 'tenant' : 'landlord'
-  const isTenantPage = signInSource === 'tenant'
-  const headerLabel = isTenantPage ? 'Tenant Login' : undefined
-  const callbackUrl = searchParams.get('callbackUrl') || defaultCallback
-  const qsError = searchParams.get('error') || ''
-  
+  // Resolve initial values from server snapshot so SSR and client match
+  const resolvedPathname = initialPathname ?? '/signin'
+  const resolvedSignInSource = signInSource ?? (resolvedPathname.includes('/tenant') ? 'tenant' : 'landlord')
+  const isTenantPage = resolvedSignInSource === 'tenant'
+  const resolvedHeaderLabel = headerLabel ?? (isTenantPage ? 'Tenant Login' : undefined)
+  const callbackUrl = initialSearchParams?.callbackUrl ?? defaultCallback
+  const qsError = initialSearchParams?.error ?? ''
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  // Seed error synchronously so SSR and client render the same DOM
+  const [error, setError] = useState(getFriendlyError(qsError))
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -39,6 +63,7 @@ export default function SignInContent() {
     } catch {}
   }, [callbackUrl, router])
 
+  // Remove the client-only error mapping effect to avoid hydration mismatch
   useEffect(() => {
     const code = qsError
     if (!code) return
@@ -69,16 +94,13 @@ export default function SignInContent() {
     try {
       setError('')
       setLoading(true)
-      
-      // Sign in via NextAuth (credentials provider)
       const result = await signIn('credentials', {
         email,
         password,
-        signInSource,
+        signInSource: resolvedSignInSource,
         callbackUrl,
         redirect: false,
       })
-
       if (result?.error) {
         setError(result.error)
       } else {
@@ -95,16 +117,13 @@ export default function SignInContent() {
   // Clear error when user edits input
   return (
     <div className="min-h-[100svh] md:min-h-screen w-full flex flex-col md:flex-row">
-      
+      {/* Left side - form */}
       <div className="w-full md:w-1/2 px-4 py-6 sm:px-6 md:p-10 flex items-center justify-center">
-        
         <div className="relative w-full max-w-md space-y-8" aria-busy={loading}>
           <div className="text-left text-primary font-semibold text-xl">Infinia</div>
-
-          {headerLabel && (
-            <div className="text-sm font-semibold text-primary/80">{headerLabel}</div>
+          {resolvedHeaderLabel && (
+            <div className="text-sm font-semibold text-primary/80">{resolvedHeaderLabel}</div>
           )}
-
           {!isTenantPage && (
             <div className="text-sm">
               Are you a tenant?{' '}
@@ -215,10 +234,20 @@ export default function SignInContent() {
         </div>
       </div>
 
-      
-      <div className="hidden md:block w-1/2 relative h-[100svh] md:h-screen overflow-hidden" aria-hidden="true" suppressHydrationWarning>
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(/auth-background.jpg)' }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-indigo-50 to-muted" />
+      {/* Right side - image and overlay */}
+      <div
+        className="hidden md:block w-1/2 relative h-[100svh] md:h-screen overflow-hidden"
+        aria-hidden="true"
+      >
+        <Image
+          src="/auth-background.jpg"
+          alt="Modern building"
+          fill
+          sizes="(min-width: 768px) 50vw, 0vw"
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/30" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="max-w-sm text-center space-y-4 px-6">
             <h3 className="text-2xl font-semibold tracking-tight">Secure, fast sign-in</h3>

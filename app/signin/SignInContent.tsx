@@ -94,19 +94,14 @@ export default function SignInContent({
     try {
       setError('')
       setLoading(true)
-      const result = await signIn('credentials', {
+      await signIn('credentials', {
         email,
         password,
         signInSource: resolvedSignInSource,
         callbackUrl,
-        redirect: false,
+        redirect: true, // let NextAuth handle the navigation
       })
-      if (result?.error) {
-        setError(result.error)
-      } else {
-        router.refresh()
-        router.push(result?.url || callbackUrl)
-      }
+      // No manual router.push — navigation handled by NextAuth
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Network error during sign in')
     } finally {

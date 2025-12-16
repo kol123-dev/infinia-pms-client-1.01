@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/context/auth-context"
 import { UserProvider } from "@/lib/context/user-context"
 import { Toaster } from "@/components/ui/toaster"
 import Providers from "./providers"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <EntityProvider>
                   <>
                     {children}
+                    <SpeedInsights />
                     <Toaster />
                   </>
                 </EntityProvider>

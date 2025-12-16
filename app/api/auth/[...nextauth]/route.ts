@@ -27,7 +27,9 @@ const auth = getAuth(app);
 // Function to authenticate with backend
 async function authenticateWithBackend(idToken: string) {
   const directAxios = axios.create({
-    baseURL: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/?$/, '/'),
+    baseURL: (process.env.NODE_ENV === 'production' 
+      ? 'http://194.163.148.34:8000/api/v1' 
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1')).replace(/\/?$/, '/'),
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     withCredentials: true,
   })

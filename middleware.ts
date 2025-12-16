@@ -9,8 +9,8 @@ export async function middleware(request: NextRequest) {
   // Use a stable base origin to avoid localhost redirects behind proxies
   const baseOrigin = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || origin
 
-  // Early bypass for Next assets and NextAuth
-  if (path.startsWith('/_next') || path.startsWith('/api/auth')) {
+  // Early bypass for Next assets and NextAuth and API routes
+  if (path.startsWith('/_next') || path.startsWith('/api/auth') || path.startsWith('/api/v1')) {
     return NextResponse.next()
   }
 

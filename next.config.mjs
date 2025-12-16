@@ -1,11 +1,11 @@
-import withPWA from 'next-pwa'
+import withPWAInit from '@ducanh2912/next-pwa'
 import path from 'path'
 
 const isDev = process.env.NODE_ENV === 'development'
 const isProd = process.env.NODE_ENV === 'production'
 
 // Initialize the PWA plugin (disabled in dev)
-const withPWAFn = withPWA({
+const withPWA = withPWAInit({
   dest: 'public',
   register: true,
   skipWaiting: true,
@@ -50,9 +50,6 @@ const nextConfig = {
   },
 
   // Move these inside the config object
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -60,12 +57,6 @@ const nextConfig = {
   onDemandEntries: {
     maxInactiveAge: 120000,
     pagesBufferLength: 5,
-  },
-
-  webpack: (config) => {
-    config.resolve = config.resolve || {}
-    config.resolve.alias = { ...(config.resolve.alias || {}), '@': path.resolve(process.cwd()) }
-    return config
   },
 
   async headers() {
@@ -83,4 +74,4 @@ const nextConfig = {
     ]
   },
 }
-export default withPWAFn(nextConfig)
+export default withPWA(nextConfig)

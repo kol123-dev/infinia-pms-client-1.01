@@ -59,14 +59,14 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
 
-  async rewrites() {
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: 'http://194.163.148.34:8000/api/v1/:path*/',
-      },
-    ]
-  },
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: '/api/v1/:path*',
+  //       destination: 'http://194.163.148.34:8000/api/v1/:path*/',
+  //     },
+  //   ]
+  // },
 
   async headers() {
     return [

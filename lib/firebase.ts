@@ -12,5 +12,16 @@ const firebaseConfig = {
 }
 
 // Avoid re-initializing in dev with Fast Refresh
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
-export const auth = getAuth(app)
+let app;
+let auth: any;
+
+try {
+  if (firebaseConfig.apiKey) {
+    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+    auth = getAuth(app)
+  }
+} catch (error) {
+  console.warn("Firebase initialization failed (expected during build):", error);
+}
+
+export { auth }

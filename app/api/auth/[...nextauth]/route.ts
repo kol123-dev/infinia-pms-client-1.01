@@ -1,7 +1,7 @@
 import NextAuth, { type NextAuthOptions, type User, type Account, type Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
@@ -21,8 +21,17 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+let app;
+let auth: any;
+
+try {
+  if (firebaseConfig.apiKey) {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+  }
+} catch (error) {
+  console.warn("Firebase initialization failed (this is expected during build if env vars are missing):", error);
+}
 
 // Function to authenticate with backend
 async function authenticateWithBackend(idToken: string) {
@@ -96,6 +105,11 @@ const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
+        
+        if (!auth) {
+           throw new Error("Authentication service unavailable. Please contact support.")
+        }
+
         try {
           // First, sign in with Firebase to get ID token
           const userCredential = await signInWithEmailAndPassword(auth, credentials.email!, credentials.password!)

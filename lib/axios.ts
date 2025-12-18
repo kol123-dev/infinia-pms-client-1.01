@@ -41,7 +41,7 @@ const getApiBaseUrl = () => {
   }
   const isProd = process.env.NODE_ENV === 'production'
   return isProd
-    ? '/api/v1'
+    ? 'https://api.infiniasync.com/api/v1'
     : 'http://localhost:8000/api/v1'
 }
 

@@ -14,11 +14,23 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: !enablePwa,
+  fallbacks: {
+    document: '/dashboard',
+  },
   runtimeCaching: [
     {
       urlPattern: /^\/_next\/static\/.*$/,
       handler: 'CacheFirst',
       options: { cacheName: 'next-static', expiration: { maxEntries: 256, maxAgeSeconds: 31536000 } },
+    },
+    {
+      urlPattern: ({ request }) => request.mode === 'navigate',
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'pages',
+        expiration: { maxEntries: 64, maxAgeSeconds: 86400 },
+        cacheableResponse: { statuses: [0, 200] },
+      },
     },
     {
       urlPattern: /^\/_next\/data\/.*$/,

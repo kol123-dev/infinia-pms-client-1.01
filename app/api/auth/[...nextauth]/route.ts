@@ -177,7 +177,12 @@ const authOptions: NextAuthOptions = {
           if (newRefreshToken) {
             ;(token as any).refreshToken = newRefreshToken
           }
-        } catch {
+        } catch (e: any) {
+          const msg = String(e?.message || '')
+          const isNetwork = (e?.code === 'ERR_NETWORK') || msg.toLowerCase().includes('network') || msg.toLowerCase().includes('offline')
+          if (isNetwork) {
+            return token
+          }
           return { ...token, accessToken: undefined, refreshToken: undefined, tokenExpiry: undefined }
         }
       }

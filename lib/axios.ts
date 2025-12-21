@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestHeaders } from 'axios'
 import { toast } from '@/hooks/use-toast'
 import { getSession, signOut } from 'next-auth/react'
+import { getHttpCache, setHttpCache, enqueueSyncAction } from '@/lib/offline/db'
 
 let hasUnauthorizedHandled = false
 
@@ -106,7 +107,17 @@ api.interceptors.request.use(
 
 // Response interceptor: show toast on forbidden, redirect only on unauthorized
 api.interceptors.response.use(
-  (response) => response,
+  async (response) => {
+    const isBrowser = typeof window !== 'undefined'
+    const method = (response.config?.method || 'get').toLowerCase()
+
+    if (isBrowser && method === 'get') {
+      const key = api.getUri(response.config)
+      void setHttpCache(key, response.data).catch(() => {})
+    }
+
+    return response
+  },
   async (err: any) => {
     if (err?.response) {
       const status = err.response.status
@@ -119,7 +130,55 @@ api.interceptors.response.use(
       } else if (status === 401) {
         handleUnauthorized(err)
       }
+      return Promise.reject(err)
     }
+
+    const isBrowser = typeof window !== 'undefined'
+    const config = err?.config
+    const method = (config?.method || 'get').toLowerCase()
+    const isOffline = typeof navigator !== 'undefined' && navigator?.onLine === false
+    const isNetworkError = err?.code === 'ERR_NETWORK' || String(err?.message || '').toLowerCase().includes('network error')
+
+    if (isBrowser && config && (isOffline || isNetworkError)) {
+      if (method === 'get') {
+        const key = api.getUri(config)
+        const cached = await getHttpCache(key)
+        if (cached) {
+          return {
+            data: cached.data,
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+            request: config,
+          }
+        }
+      }
+
+      if (['post', 'put', 'patch', 'delete'].includes(method)) {
+        const url = String(config.url || '')
+        if (url.includes('/api/v1/')) {
+          await enqueueSyncAction({
+            method: method.toUpperCase(),
+            url,
+            baseURL: String(config.baseURL || api.defaults.baseURL || ''),
+            headers: (config.headers as any) || {},
+            params: (config.params as any) || null,
+            data: (config.data as any) || null,
+          })
+
+          return {
+            data: { queued: true },
+            status: 202,
+            statusText: 'Accepted',
+            headers: {},
+            config,
+            request: config,
+          }
+        }
+      }
+    }
+
     return Promise.reject(err)
   }
 )

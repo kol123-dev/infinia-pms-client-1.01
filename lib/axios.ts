@@ -158,22 +158,23 @@ api.interceptors.response.use(
       if (['post', 'put', 'patch', 'delete'].includes(method)) {
         const url = String(config.url || '')
         if (url.includes('/api/v1/')) {
-          await enqueueSyncAction({
-            method: method.toUpperCase(),
-            url,
-            baseURL: String(config.baseURL || api.defaults.baseURL || ''),
-            headers: (config.headers as any) || {},
-            params: (config.params as any) || null,
-            data: (config.data as any) || null,
-          })
-
-          return {
-            data: { queued: true },
-            status: 202,
-            statusText: 'Accepted',
-            headers: {},
-            config,
-            request: config,
+          if (isOffline) {
+            await enqueueSyncAction({
+              method: method.toUpperCase(),
+              url,
+              baseURL: String(config.baseURL || api.defaults.baseURL || ''),
+              headers: (config.headers as any) || {},
+              params: (config.params as any) || null,
+              data: (config.data as any) || null,
+            })
+            return {
+              data: { queued: true },
+              status: 202,
+              statusText: 'Accepted',
+              headers: {},
+              config,
+              request: config,
+            }
           }
         }
       }

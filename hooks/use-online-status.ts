@@ -23,22 +23,9 @@ export function useOnlineStatus() {
     window.addEventListener("online", setOnline)
     window.addEventListener("offline", setOffline)
 
-    const connection = (navigator as any)?.connection
-    const onConnectionChange = () => {
-      setIsOnline(navigator.onLine)
-      setLastChangedAt(Date.now())
-    }
-
-    if (connection?.addEventListener) {
-      connection.addEventListener("change", onConnectionChange)
-    }
-
     return () => {
       window.removeEventListener("online", setOnline)
       window.removeEventListener("offline", setOffline)
-      if (connection?.removeEventListener) {
-        connection.removeEventListener("change", onConnectionChange)
-      }
     }
   }, [])
 
@@ -48,4 +35,3 @@ export function useOnlineStatus() {
     lastChangedAt,
   }
 }
-

@@ -23,9 +23,43 @@ export function useOnlineStatus() {
     window.addEventListener("online", setOnline)
     window.addEventListener("offline", setOffline)
 
+    let timer: any
+    const ping = async () => {
+      try {
+        const ctrl = new AbortController()
+        const id = setTimeout(() => ctrl.abort(), 3000)
+        const url = new URL("/favicon.ico", window.location.origin).toString()
+        const res = await fetch(url, { method: "HEAD", cache: "no-store", credentials: "omit", signal: ctrl.signal })
+        clearTimeout(id)
+        if (res && res.ok) {
+          if (!isOnline) {
+            setIsOnline(true)
+            setLastChangedAt(Date.now())
+          }
+          return
+        }
+        if (!navigator.onLine) {
+          if (isOnline) {
+            setIsOnline(false)
+            setLastChangedAt(Date.now())
+          }
+        }
+      } catch {
+        if (!navigator.onLine) {
+          if (isOnline) {
+            setIsOnline(false)
+            setLastChangedAt(Date.now())
+          }
+        }
+      }
+    }
+    void ping()
+    timer = setInterval(ping, 10000)
+
     return () => {
       window.removeEventListener("online", setOnline)
       window.removeEventListener("offline", setOffline)
+      if (timer) clearInterval(timer)
     }
   }, [])
 

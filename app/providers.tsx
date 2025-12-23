@@ -5,9 +5,19 @@ import { SessionProvider, signOut } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useOnlineStatus } from '../hooks/use-online-status'
 import { flushSyncQueue } from '../lib/offline/sync'
+import api from '../lib/axios'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient())
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+      }
+    }
+  }))
   const { isOnline } = useOnlineStatus()
 
   useEffect(() => {
@@ -44,6 +54,18 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isOnline) {
       void flushSyncQueue().catch(() => {})
+      ;(async () => {
+        try {
+          await Promise.allSettled([
+            api.get('/properties/?page_size=20'),
+            api.get('/tenants/?page_size=20'),
+            api.get('/payments/?page_size=20'),
+            api.get('/units/?page_size=20'),
+          ])
+        } catch {
+          // ignore warm failures
+        }
+      })()
     }
   }, [isOnline])
 

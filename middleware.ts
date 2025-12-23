@@ -50,16 +50,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(signInUrl)
       }
 
-      // New: redirect if the JWT we carry is expired or close enough to be treated as expired
-      // Redirect if our stored backend access token expiry has passed
-      const tokenExpiry = (token as any)?.tokenExpiry as number | undefined
-      if (typeof tokenExpiry === 'number' && Date.now() > tokenExpiry) {
-        const wantsTenantArea = path.startsWith('/dashboard/tenant') || path.startsWith('/tenant')
-        const signInPath = wantsTenantArea ? '/tenant/signin' : '/signin'
-        const signInUrl = new URL(signInPath, baseOrigin)
-        signInUrl.searchParams.set('callbackUrl', '/dashboard')
-        return NextResponse.redirect(signInUrl)
-      }
+      // Allow expired access tokens to pass; client will refresh using refresh token.
 
       const role = (token as any)?.role
       if (path === '/dashboard' && role === 'tenant') {
@@ -69,11 +60,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', baseOrigin))
       }
 
-      const response = NextResponse.next()
-      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-      response.headers.set('Pragma', 'no-cache')
-      response.headers.set('Expires', '0')
-      return response
+      return NextResponse.next()
     } catch (error) {
       // Fallback: plain signin without callback loop
       return NextResponse.redirect(new URL('/signin', baseOrigin))

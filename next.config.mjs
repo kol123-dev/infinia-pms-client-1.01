@@ -141,5 +141,13 @@ const nextConfig = {
       },
     ]
   },
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/icons/favicon.ico',
+      },
+    ]
+  },
 }
 export default withPWA(nextConfig)

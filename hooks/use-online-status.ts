@@ -28,7 +28,7 @@ export function useOnlineStatus() {
       try {
         const ctrl = new AbortController()
         const id = setTimeout(() => ctrl.abort(), 3000)
-        const url = new URL("/favicon.ico", window.location.origin).toString()
+        const url = new URL("/manifest.json", window.location.origin).toString()
         const res = await fetch(url, { method: "HEAD", cache: "no-store", credentials: "omit", signal: ctrl.signal })
         clearTimeout(id)
         if (res && res.ok) {

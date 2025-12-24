@@ -194,30 +194,30 @@ export default function Units() {
     <MainLayout>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
             <h1 className="text-lg font-semibold md:text-2xl">Units Management</h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:gap-3 flex-nowrap overflow-x-auto max-w-full">
               <Button 
                 onClick={() => setIsBulkFormOpen(true)} 
                 variant="outline"
                 size="sm"
-                className="flex-1 sm:flex-none text-sm"
+                className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
                 Add Multiple Units
               </Button>
               <Button 
                 onClick={() => setIsImportOpen(true)} 
                 variant="outline"
                 size="sm"
-                className="flex-1 sm:flex-none text-sm"
+                className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
               >
                 Import XLSX
               </Button>
               <Button 
                 onClick={() => setIsFormOpen(true)}
                 size="sm"
-                className="flex-1 sm:flex-none text-sm"
+                className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
                 Add Unit
               </Button>
             </div>

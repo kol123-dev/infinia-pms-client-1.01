@@ -193,7 +193,7 @@ export default function Units() {
   return (
     <MainLayout>
       <div className="w-full overflow-x-hidden">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:max-w-7xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
             <h1 className="text-lg font-semibold md:text-2xl">Units Management</h1>
             <div className="flex gap-2">

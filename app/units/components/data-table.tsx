@@ -166,7 +166,7 @@ export function DataTable<TData, TValue>({
               setGlobalFilter(next);
               onSearchChange?.(next);
             }}
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

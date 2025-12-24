@@ -192,8 +192,6 @@ export default function Units() {
 
   return (
     <MainLayout>
-      <div className="w-full overflow-x-hidden">
-        <div className="container mx-auto px-4 lg:max-w-7xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
             <h1 className="text-lg font-semibold md:text-2xl">Units Management</h1>
             <div className="flex gap-2">
@@ -274,8 +272,8 @@ export default function Units() {
           </div>
 
           <div className="w-full overflow-hidden rounded-lg border bg-card">
-            <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full align-middle">
+            <div className="overflow-x-auto">
+              <div className="block w-full align-middle">
                 <DataTable<Unit, unknown>
                   columns={actionColumns}
                   data={units}
@@ -296,8 +294,6 @@ export default function Units() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
       {isFormOpen && (
         <UnitForm

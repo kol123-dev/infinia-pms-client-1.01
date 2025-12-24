@@ -75,26 +75,45 @@ export default function Dashboard() {
 
       setLoading(true);
       try {
-        // Fetch properties with large page size and use count for total
-        const propertiesRes = await axios.get('/properties/?page_size=9999');
-        const totalProperties = propertiesRes.data.count;  // Use total count from pagination
-        const propertiesChange = "+0 this month";  // TODO: Implement real change calculation if needed
+        // Fast local placeholders from localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const pRaw = localStorage.getItem('fastcache:/properties/')
+            const tRaw = localStorage.getItem('fastcache:/tenants/stats/')
+            const payRaw = localStorage.getItem('fastcache:/payments/stats/')
+            const uRaw = localStorage.getItem('fastcache:/units/stats/')
+            const propsCount = (() => { try { const d = JSON.parse(pRaw || '{}'); return d?.data?.count || 0 } catch { return 0 } })()
+            const tenantsActive = (() => { try { const d = JSON.parse(tRaw || '{}'); return d?.data?.active_tenants?.count || 0 } catch { return 0 } })()
+            const revAmount = (() => { try { const d = JSON.parse(payRaw || '{}'); return d?.data?.total_collected?.amount || 0 } catch { return 0 } })()
+            const vacUnits = (() => { try { const d = JSON.parse(uRaw || '{}'); return d?.data?.vacant_units || 0 } catch { return 0 } })()
+            if (propsCount || tenantsActive || revAmount || vacUnits) {
+              setStats([
+                { title: "Total Properties", value: String(propsCount), change: "Cached", changeType: "positive", icon: Building, color: "text-brand-600" },
+                { title: "Active Tenants", value: String(tenantsActive), change: "Cached", changeType: "positive", icon: Users, color: "text-emerald-600" },
+                { title: "Monthly Revenue", value: formatCurrency(revAmount), change: "Cached", changeType: "positive", icon: DollarSign, color: "text-green-600" },
+                { title: "Vacant Units", value: String(vacUnits), change: "Cached", changeType: "negative", icon: AlertTriangle, color: "text-red-600" },
+              ])
+            }
+          } catch {}
+        }
 
-        // Fetch tenants stats directly from the new endpoint
-        const tenantsRes = await axios.get('/tenants/stats/');
+        // Parallel fetches for live data
+        const [propertiesRes, tenantsRes, revenueRes, unitsRes] = await Promise.all([
+          axios.get('/properties/?page_size=9999'),
+          axios.get('/tenants/stats/'),
+          axios.get('/payments/stats/'),
+          axios.get('/units/stats/'),
+        ]);
+        const totalProperties = propertiesRes.data.count;
+        const propertiesChange = "+0 this month";
         const activeTenants = tenantsRes.data.active_tenants?.count || 0;
         const tenantsChangePercentage = tenantsRes.data.active_tenants?.change_percentage || 0;
         const tenantsChange = `${tenantsChangePercentage > 0 ? '+' : ''}${tenantsChangePercentage.toFixed(2)}% from last month`;
-
-        // Fetch revenue stats (now accessing nested fields)
-        const revenueRes = await axios.get('/payments/stats/');
         const monthlyRevenue = revenueRes.data.total_collected?.amount || 0;
         const revenueChangePercentage = revenueRes.data.total_collected?.change_percentage || 0;
         const revenueChange = `${revenueChangePercentage > 0 ? '+' : ''}${revenueChangePercentage.toFixed(2)}% from last month`;
-
-        const unitsRes = await axios.get('/units/stats/');
         const vacantUnits = unitsRes.data.vacant_units || 0;
-        const unitsChange = "0 changes";  // TODO: Implement real change calculation if needed
+        const unitsChange = "0 changes";
 
         setStats([
           { title: "Total Properties", value: totalProperties.toString(), change: propertiesChange, changeType: "positive", icon: Building, color: "text-brand-600" },

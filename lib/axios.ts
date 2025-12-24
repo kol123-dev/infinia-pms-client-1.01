@@ -114,6 +114,18 @@ api.interceptors.response.use(
     if (isBrowser && method === 'get') {
       const key = api.getUri(response.config)
       void setHttpCache(key, response.data).catch(() => {})
+      try {
+        const urlPath = String(response.request?.path || response.config?.url || '')
+        const saveFast = ['/properties/', '/tenants/stats/', '/payments/stats/', '/units/stats/'].some((p) => urlPath.includes(p))
+        if (saveFast && typeof localStorage !== 'undefined') {
+          const fastKey = `fastcache:${urlPath.split('?')[0]}`
+          const payload = {
+            data: response.data,
+            t: Date.now()
+          }
+          localStorage.setItem(fastKey, JSON.stringify(payload))
+        }
+      } catch {}
     }
 
     return response

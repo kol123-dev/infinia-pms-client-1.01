@@ -95,6 +95,20 @@ export default function PropertiesPage() {
   useEffect(() => {
     const initialLoad = async () => {
       try {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('fastcache:/properties/')
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              const data = parsed?.data
+              const results = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : [])
+              if (Array.isArray(results) && results.length) {
+                setProperties(results)
+                setLoading(false)
+              }
+            }
+          } catch {}
+        }
         await fetchProperties()
       } finally {
         setLoading(false)

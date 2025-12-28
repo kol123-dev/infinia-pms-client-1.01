@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionProvider, signOut } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useOnlineStatus } from '../hooks/use-online-status'
+import { usePathname } from 'next/navigation'
 import { flushSyncQueue } from '../lib/offline/sync'
 import api from '../lib/axios'
 
@@ -51,23 +52,31 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const pathname = usePathname()
+
   useEffect(() => {
-    if (isOnline) {
-      void flushSyncQueue().catch(() => {})
-      ;(async () => {
-        try {
-          await Promise.allSettled([
-            api.get('/properties/?page_size=20'),
-            api.get('/tenants/?page_size=20'),
-            api.get('/payments/?page_size=20'),
-            api.get('/units/?page_size=20'),
-          ])
-        } catch {
-          // ignore warm failures
-        }
-      })()
+    // Skip warm-up on public routes to avoid 401s
+    const publicPaths = ['/signin', '/tenant/signin', '/signup', '/forgot-password', '/help']
+
+    const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '')
+    const isPublic = publicPaths.some(p => currentPath === p || currentPath.startsWith(p))
+
+    if (isOnline && currentPath && !isPublic) {
+      void flushSyncQueue().catch(() => { })
+        ; (async () => {
+          try {
+            await Promise.allSettled([
+              api.get('/properties/?page_size=20'),
+              api.get('/tenants/?page_size=20'),
+              api.get('/payments/?page_size=20'),
+              api.get('/units/?page_size=20'),
+            ])
+          } catch {
+            // ignore warm failures
+          }
+        })()
     }
-  }, [isOnline])
+  }, [isOnline, pathname])
 
   // Cross-tab logout sync: storage + BroadcastChannel
   useEffect(() => {

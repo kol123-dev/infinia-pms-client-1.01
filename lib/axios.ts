@@ -17,16 +17,24 @@ const handleUnauthorized = (err?: any) => {
   })
 
   if (typeof window !== 'undefined') {
+    const pathname = window.location.pathname || ''
+    const isSignin = pathname.startsWith('/signin') || pathname.startsWith('/tenant/signin')
+
+    // If already on signin, do NOT force reload/redirect loop
+    if (isSignin) {
+      // Just clear session silently without reload
+      void signOut({ redirect: false }).catch(() => { })
+      return
+    }
+
     try {
       // Avoid await inside environments that complain; still redirect immediately
       void signOut({ callbackUrl: '/signin' }).catch(() => {
-        const pathname = window.location.pathname || ''
         if (!pathname.startsWith('/signin')) {
           window.location.assign('/signin')
         }
       })
     } catch {
-      const pathname = window.location.pathname || ''
       if (!pathname.startsWith('/signin')) {
         window.location.assign('/signin')
       }
@@ -113,7 +121,7 @@ api.interceptors.response.use(
 
     if (isBrowser && method === 'get') {
       const key = api.getUri(response.config)
-      void setHttpCache(key, response.data).catch(() => {})
+      void setHttpCache(key, response.data).catch(() => { })
       try {
         const urlPath = String(response.request?.path || response.config?.url || '')
         const saveFast = ['/properties/', '/tenants/stats/', '/payments/stats/', '/units/stats/'].some((p) => urlPath.includes(p))
@@ -125,7 +133,7 @@ api.interceptors.response.use(
           }
           localStorage.setItem(fastKey, JSON.stringify(payload))
         }
-      } catch {}
+      } catch { }
     }
 
     return response

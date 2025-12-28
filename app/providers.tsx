@@ -61,6 +61,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '')
     const isPublic = publicPaths.some(p => currentPath === p || currentPath.startsWith(p))
 
+    /* 
+    // Warm-up logic currently causes infinite loops on signin. Disabled for stability.
     if (isOnline && currentPath && !isPublic) {
       void flushSyncQueue().catch(() => { })
         ; (async () => {
@@ -76,6 +78,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           }
         })()
     }
+    */
   }, [isOnline, pathname])
 
   // Cross-tab logout sync: storage + BroadcastChannel
@@ -86,7 +89,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       console.log('[Providers] Received logout signal. Signing out...')
       try {
         await signOut({ redirect: false })
-        window.location.href = '/signin'
+        if (pathname !== '/signin') {
+          window.location.href = '/signin'
+        }
       } catch {
         // no-op
       }

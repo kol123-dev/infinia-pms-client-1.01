@@ -1,80 +1,57 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import axios from '@/lib/axios'
 import { formatCurrency } from '@/lib/utils'
 import { Building, Users, DollarSign, AlertTriangle, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-
-type Stat = {
-  title: string
-  value: string
-  change: string
-  changeType: 'positive' | 'negative' | 'warning'
-  icon: any
-  color: string
-  href: string
-}
+import { useQuery } from '@tanstack/react-query'
 
 export default function DashboardStats() {
-  const { data: session, status } = useSession()
-  const [stats, setStats] = useState<Stat[]>([
-    { title: 'Total Properties', value: '0', change: 'Loading...', changeType: 'positive', icon: Building, color: 'text-brand-600', href: '/properties' },
-    { title: 'Active Tenants', value: '0', change: 'Loading...', changeType: 'positive', icon: Users, color: 'text-emerald-600', href: '/tenants' },
-    { title: 'Monthly Revenue', value: formatCurrency(0), change: 'Loading...', changeType: 'positive', icon: DollarSign, color: 'text-green-600', href: '/payments' },
-    { title: 'Vacant Units', value: '0', change: 'Loading...', changeType: 'warning', icon: AlertTriangle, color: 'text-orange-600', href: '/units' },
-  ])
-  const [loading, setLoading] = useState(true)
+  const { data: session } = useSession()
 
-  useEffect(() => {
-    if (status !== 'authenticated' || !session) return
+  const { data: statsData, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const [propertiesRes, tenantsRes, revenueRes, unitsRes] = await Promise.all([
+        axios.get('/properties/stats/'),
+        axios.get('/tenants/stats/'),
+        axios.get('/payments/stats/'),
+        axios.get('/units/stats/'),
+      ])
 
-    let cancelled = false
-    async function fetchStats() {
-      try {
-        setLoading(true)
-        const [propertiesRes, tenantsRes, revenueRes, unitsRes] = await Promise.all([
-          axios.get('/properties/?page_size=9999'),
-          axios.get('/tenants/stats/'),
-          axios.get('/payments/stats/'),
-          axios.get('/units/stats/'),
-        ])
-
-        const totalProperties = propertiesRes.data.count
-        const propertiesChange = '+0 this month'
-
-        const activeTenants = tenantsRes.data.active_tenants?.count || 0
-        const tenantsChangePercentage = tenantsRes.data.active_tenants?.change_percentage || 0
-        const tenantsChange = `${tenantsChangePercentage > 0 ? '+' : ''}${tenantsChangePercentage.toFixed(2)}% from last month`
-
-        const monthlyRevenue = revenueRes.data.total_collected?.amount || 0
-        const revenueChangePercentage = revenueRes.data.total_collected?.change_percentage || 0
-        const revenueChange = `${revenueChangePercentage > 0 ? '+' : ''}${revenueChangePercentage.toFixed(2)}% from last month`
-
-        const vacantUnits = unitsRes.data.vacant_units || 0
-        const unitsChange = '0 changes'
-
-        if (!cancelled) {
-          setStats([
-            { title: 'Total Properties', value: totalProperties.toString(), change: propertiesChange, changeType: 'positive', icon: Building, color: 'text-brand-600', href: '/properties' },
-            { title: 'Active Tenants', value: activeTenants.toString(), change: tenantsChange, changeType: 'positive', icon: Users, color: 'text-emerald-600', href: '/tenants' },
-            { title: 'Monthly Revenue', value: formatCurrency(monthlyRevenue), change: revenueChange, changeType: revenueChangePercentage >= 0 ? 'positive' : 'negative', icon: DollarSign, color: 'text-green-600', href: '/payments' },
-            { title: 'Vacant Units', value: vacantUnits.toString(), change: unitsChange, changeType: 'negative', icon: AlertTriangle, color: 'text-red-600', href: '/units' },
-          ])
-        }
-      } catch (e) {
-        // Keep static titles & icons visible, just show loading placeholders again
-      } finally {
-        if (!cancelled) setLoading(false)
+      return {
+        properties: propertiesRes.data,
+        tenants: tenantsRes.data,
+        revenue: revenueRes.data,
+        units: unitsRes.data,
       }
-    }
+    },
+    enabled: !!session,
+    staleTime: 60000, // Cache for 1 minute
+  })
 
-    fetchStats()
-    return () => {
-      cancelled = true
-    }
-  }, [session, status])
+  // Parse Data
+  const totalProperties = statsData?.properties?.count || 0
+  const propertiesChange = "+0 this month"
+
+  const activeTenants = statsData?.tenants?.active_tenants?.count || 0
+  const tenantsChangePercentage = statsData?.tenants?.active_tenants?.change_percentage || 0
+  const tenantsChange = `${tenantsChangePercentage > 0 ? '+' : ''}${tenantsChangePercentage.toFixed(2)}% from last month`
+
+  const monthlyRevenue = statsData?.revenue?.total_collected?.amount || 0
+  const revenueChangePercentage = statsData?.revenue?.total_collected?.change_percentage || 0
+  const revenueChange = `${revenueChangePercentage > 0 ? '+' : ''}${revenueChangePercentage.toFixed(2)}% from last month`
+
+  const vacantUnits = statsData?.units?.vacant_units || 0
+  const unitsChange = '0 changes'
+
+  const stats = [
+    { title: 'Total Properties', value: totalProperties.toString(), change: propertiesChange, changeType: 'positive', icon: Building, color: 'text-brand-600', href: '/properties' },
+    { title: 'Active Tenants', value: activeTenants.toString(), change: tenantsChange, changeType: 'positive', icon: Users, color: 'text-emerald-600', href: '/tenants' },
+    { title: 'Monthly Revenue', value: formatCurrency(monthlyRevenue), change: revenueChange, changeType: revenueChangePercentage >= 0 ? 'positive' : 'negative', icon: DollarSign, color: 'text-green-600', href: '/payments' },
+    { title: 'Vacant Units', value: vacantUnits.toString(), change: unitsChange, changeType: 'negative', icon: AlertTriangle, color: 'text-red-600', href: '/units' },
+  ]
 
   return (
     <>
@@ -91,33 +68,31 @@ export default function DashboardStats() {
                   </div>
                 </div>
                 <div className="p-2 pt-0">
-                  {loading ? (
+                  {isLoading ? (
                     <div className="h-5 w-12 rounded bg-muted animate-pulse" />
                   ) : (
                     <div className="text-lg font-bold text-foreground">{stat.value}</div>
                   )}
                   <div className="flex items-center gap-1 mt-1">
-                    {loading ? (
+                    {isLoading ? (
                       <div className="h-3 w-24 rounded bg-muted animate-pulse" />
                     ) : (
                       <>
                         <TrendingUp
-                          className={`h-3 w-3 flex-shrink-0 ${
-                            stat.changeType === 'positive'
+                          className={`h-3 w-3 flex-shrink-0 ${stat.changeType === 'positive'
                               ? 'text-green-600'
                               : stat.changeType === 'warning'
-                              ? 'text-orange-600'
-                              : 'text-red-600'
-                          }`}
+                                ? 'text-orange-600'
+                                : 'text-red-600'
+                            }`}
                         />
                         <p
-                          className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis ${
-                            stat.changeType === 'positive'
+                          className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis ${stat.changeType === 'positive'
                               ? 'text-green-600'
                               : stat.changeType === 'warning'
-                              ? 'text-orange-600'
-                              : 'text-red-600'
-                          }`}
+                                ? 'text-orange-600'
+                                : 'text-red-600'
+                            }`}
                         >
                           {stat.change}
                         </p>
@@ -143,33 +118,31 @@ export default function DashboardStats() {
                 </div>
               </div>
               <div className="px-4 pt-0 pb-4">
-                {loading ? (
+                {isLoading ? (
                   <div className="h-6 w-16 rounded bg-muted animate-pulse" />
                 ) : (
                   <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                 )}
                 <div className="flex items-center gap-1 mt-1">
-                  {loading ? (
+                  {isLoading ? (
                     <div className="h-3 w-32 rounded bg-muted animate-pulse" />
                   ) : (
                     <>
                       <TrendingUp
-                        className={`h-3 w-3 ${
-                          stat.changeType === 'positive'
+                        className={`h-3 w-3 ${stat.changeType === 'positive'
                             ? 'text-green-600'
                             : stat.changeType === 'warning'
-                            ? 'text-orange-600'
-                            : 'text-red-600'
-                        }`}
+                              ? 'text-orange-600'
+                              : 'text-red-600'
+                          }`}
                       />
                       <p
-                        className={`text-xs ${
-                          stat.changeType === 'positive'
+                        className={`text-xs ${stat.changeType === 'positive'
                             ? 'text-green-600'
                             : stat.changeType === 'warning'
-                            ? 'text-orange-600'
-                            : 'text-red-600'
-                        }`}
+                              ? 'text-orange-600'
+                              : 'text-red-600'
+                          }`}
                       >
                         {stat.change}
                       </p>

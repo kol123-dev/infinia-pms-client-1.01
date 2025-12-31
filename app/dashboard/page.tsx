@@ -54,107 +54,11 @@ const RecentActivity = dynamic(
 )
 
 export default function Dashboard() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isFabSheetOpen, setFabSheetOpen] = useState(false)
 
-  // Remove page-level stats/loading states and fetching; the stats component handles its own data
-  const [stats, setStats] = useState([
-    { title: "Total Properties", value: "0", change: "Loading...", changeType: "positive", icon: Building, color: "text-brand-600" },
-    { title: "Active Tenants", value: "0", change: "Loading...", changeType: "positive", icon: Users, color: "text-emerald-600" },
-    { title: "Monthly Revenue", value: formatCurrency(0), change: "Loading...", changeType: "positive", icon: DollarSign, color: "text-green-600" },
-    { title: "Vacant Units", value: "0", change: "Loading...", changeType: "warning", icon: AlertTriangle, color: "text-orange-600" },
-  ]);
-  const [loading, setLoading] = useState(true);
-
-  const { toast } = useToast();  // Moved to top level here (unconditionally)
-
-  // Data fetching useEffect
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!session) return;
-
-      setLoading(true);
-      try {
-        // Fast local placeholders from localStorage
-        if (typeof window !== 'undefined') {
-          try {
-            const pRaw = localStorage.getItem('fastcache:/properties/')
-            const tRaw = localStorage.getItem('fastcache:/tenants/stats/')
-            const payRaw = localStorage.getItem('fastcache:/payments/stats/')
-            const uRaw = localStorage.getItem('fastcache:/units/stats/')
-            const propsCount = (() => { try { const d = JSON.parse(pRaw || '{}'); return d?.data?.count || 0 } catch { return 0 } })()
-            const tenantsActive = (() => { try { const d = JSON.parse(tRaw || '{}'); return d?.data?.active_tenants?.count || 0 } catch { return 0 } })()
-            const revAmount = (() => { try { const d = JSON.parse(payRaw || '{}'); return d?.data?.total_collected?.amount || 0 } catch { return 0 } })()
-            const vacUnits = (() => { try { const d = JSON.parse(uRaw || '{}'); return d?.data?.vacant_units || 0 } catch { return 0 } })()
-            if (propsCount || tenantsActive || revAmount || vacUnits) {
-              setStats([
-                { title: "Total Properties", value: String(propsCount), change: "Cached", changeType: "positive", icon: Building, color: "text-brand-600" },
-                { title: "Active Tenants", value: String(tenantsActive), change: "Cached", changeType: "positive", icon: Users, color: "text-emerald-600" },
-                { title: "Monthly Revenue", value: formatCurrency(revAmount), change: "Cached", changeType: "positive", icon: DollarSign, color: "text-green-600" },
-                { title: "Vacant Units", value: String(vacUnits), change: "Cached", changeType: "negative", icon: AlertTriangle, color: "text-red-600" },
-              ])
-            }
-          } catch {}
-        }
-
-        // Parallel fetches for live data
-        const [propertiesRes, tenantsRes, revenueRes, unitsRes] = await Promise.all([
-          axios.get('/properties/?page_size=9999'),
-          axios.get('/tenants/stats/'),
-          axios.get('/payments/stats/'),
-          axios.get('/units/stats/'),
-        ]);
-        const totalProperties = propertiesRes.data.count;
-        const propertiesChange = "+0 this month";
-        const activeTenants = tenantsRes.data.active_tenants?.count || 0;
-        const tenantsChangePercentage = tenantsRes.data.active_tenants?.change_percentage || 0;
-        const tenantsChange = `${tenantsChangePercentage > 0 ? '+' : ''}${tenantsChangePercentage.toFixed(2)}% from last month`;
-        const monthlyRevenue = revenueRes.data.total_collected?.amount || 0;
-        const revenueChangePercentage = revenueRes.data.total_collected?.change_percentage || 0;
-        const revenueChange = `${revenueChangePercentage > 0 ? '+' : ''}${revenueChangePercentage.toFixed(2)}% from last month`;
-        const vacantUnits = unitsRes.data.vacant_units || 0;
-        const unitsChange = "0 changes";
-
-        setStats([
-          { title: "Total Properties", value: totalProperties.toString(), change: propertiesChange, changeType: "positive", icon: Building, color: "text-brand-600" },
-          { title: "Active Tenants", value: activeTenants.toString(), change: tenantsChange, changeType: "positive", icon: Users, color: "text-emerald-600" },
-          { title: "Monthly Revenue", value: formatCurrency(monthlyRevenue), change: revenueChange, changeType: revenueChangePercentage >= 0 ? "positive" : "negative", icon: DollarSign, color: "text-green-600" },
-          { title: "Vacant Units", value: vacantUnits.toString(), change: unitsChange, changeType: "negative", icon: AlertTriangle, color: "text-red-600" },
-        ]);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load dashboard data. Please try again.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (session) {
-      fetchDashboardData();
-    }
-  }, [session, toast]);
-
-  // Let MainLayout handle auth loading (shows route-aware skeleton)
-  if (status === 'loading') {
-    return (
-      <MainLayout>
-        <DashboardSkeleton />
-      </MainLayout>
-    );
-  }
-
-  // Show dashboard skeleton during data fetches instead of a spinner
-  if (loading) {
-    return (
-      <MainLayout>
-        <DashboardSkeleton />
-      </MainLayout>
-    );
-  }
+  // Auth is handled by MainLayout or middleware in a real app, 
+  // but we keep the hook for session access if needed.
 
   return (
     <MainLayout>
@@ -175,38 +79,7 @@ export default function Dashboard() {
         {/* Stats - Suspense boundary with local fallback */}
         <Suspense
           fallback={
-            <>
-              <div className="md:hidden">
-                <div className="grid grid-cols-2 gap-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="card-enhanced w-full rounded-lg border bg-card">
-                      <div className="flex items-center justify-between p-2">
-                        <div className="h-3 w-16 rounded bg-muted animate-pulse" />
-                        <div className="h-4 w-4 rounded bg-muted animate-pulse" />
-                      </div>
-                      <div className="p-2 pt-0">
-                        <div className="h-5 w-12 rounded bg-muted animate-pulse" />
-                        <div className="h-3 w-24 mt-1 rounded bg-muted animate-pulse" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="hidden md:grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="card-enhanced rounded-lg border bg-card">
-                    <div className="flex items-center justify-between p-4 pb-2">
-                      <div className="h-4 w-24 rounded bg-muted animate-pulse" />
-                      <div className="h-5 w-5 rounded bg-muted animate-pulse" />
-                    </div>
-                    <div className="px-4 pt-0 pb-4">
-                      <div className="h-7 w-20 rounded bg-muted animate-pulse" />
-                      <div className="h-3 w-32 mt-2 rounded bg-muted animate-pulse" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+            <DashboardSkeleton />
           }
         >
           <DashboardStats />

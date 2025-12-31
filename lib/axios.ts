@@ -22,8 +22,8 @@ const handleUnauthorized = (err?: any) => {
 
     // If already on signin, do NOT force reload/redirect loop
     if (isSignin) {
-      // Just clear session silently without reload
-      void signOut({ redirect: false }).catch(() => { })
+      // Already on signin page, do nothing.
+      // Calling signOut here causes a POST /api/auth/signout which might 401 again, loop.
       return
     }
 

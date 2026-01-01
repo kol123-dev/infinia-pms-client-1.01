@@ -151,7 +151,7 @@ export default function Units() {
     fetchUnits();
     fetchStats();
   }, [currentPage, pageSize, fetchStats, fetchUnits]);
-  
+
   const handleUnitClick = (unit: Unit) => {
     setSelectedUnit(unit);
     setIsDetailsOpen(true);
@@ -192,108 +192,109 @@ export default function Units() {
 
   return (
     <MainLayout>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-            <h1 className="text-lg font-semibold md:text-2xl">Units Management</h1>
-            <div className="flex gap-2 sm:gap-3 flex-nowrap overflow-x-auto max-w-full">
-              <Button 
-                onClick={() => setIsBulkFormOpen(true)} 
-                variant="outline"
-                size="sm"
-                className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
-              >
-                <Plus className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
-                Add Multiple Units
-              </Button>
-              <Button 
-                onClick={() => setIsImportOpen(true)} 
-                variant="outline"
-                size="sm"
-                className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
-              >
-                Import XLSX
-              </Button>
-              <Button 
-                onClick={() => setIsFormOpen(true)}
-                size="sm"
-                className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
-              >
-                <Plus className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
-                Add Unit
-              </Button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2 mb-6 sm:grid-cols-5">
-            <Card className="p-3">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
-                <CardTitle className="text-xs font-medium">Total Units</CardTitle>
-                <Home className="h-3 w-3 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="p-0 pt-2">
-                <div className="text-xl font-bold">{stats.total_units}</div>
-              </CardContent>
-            </Card>
-            <Card className="p-3">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
-                <CardTitle className="text-xs font-medium">Occupied</CardTitle>
-                <Badge variant="secondary" className="text-xs">Active</Badge>
-              </CardHeader>
-              <CardContent className="p-0 pt-2">
-                <div className="text-xl font-bold">{stats.occupied_units}</div>
-              </CardContent>
-            </Card>
-            <Card className="p-3">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
-                <CardTitle className="text-xs font-medium">Vacant</CardTitle>
-                <Badge variant="default" className="text-xs">Available</Badge>
-              </CardHeader>
-              <CardContent className="p-0 pt-2">
-                <div className="text-xl font-bold">{stats.vacant_units}</div>
-              </CardContent>
-            </Card>
-            <Card className="p-3">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
-                <CardTitle className="text-xs font-medium">Maintenance</CardTitle>
-                <Badge variant="destructive" className="text-xs ml-1">Repair</Badge>
-              </CardHeader>
-              <CardContent className="p-0 pt-2">
-                <div className="text-xl font-bold">{stats.maintenance_units}</div>
-              </CardContent>
-            </Card>
-            <Card className="p-3">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
-                <CardTitle className="text-xs font-medium">Occupancy Rate</CardTitle>
-                <Badge variant="outline" className="text-xs">{Math.round(stats.occupancy_rate)}%</Badge>
-              </CardHeader>
-              <CardContent className="p-0 pt-2">
-                <div className="text-xl font-bold">{stats.occupancy_rate.toFixed(1)}%</div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h1 className="text-lg font-semibold md:text-2xl">Units Management</h1>
+        <div className="flex gap-2 sm:gap-3 flex-nowrap overflow-x-auto max-w-full">
+          <Button
+            onClick={() => setIsBulkFormOpen(true)}
+            variant="outline"
+            size="sm"
+            className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
+          >
+            <Plus className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+            Add Multiple Units
+          </Button>
+          <Button
+            onClick={() => setIsImportOpen(true)}
+            variant="outline"
+            size="sm"
+            className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
+          >
+            Import XLSX
+          </Button>
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            size="sm"
+            className="text-xs sm:text-sm pl-2 pr-2.5 sm:pl-2.5 sm:pr-3 h-8 sm:h-9 whitespace-nowrap min-w-0"
+          >
+            <Plus className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+            Add Unit
+          </Button>
+        </div>
+      </div>
 
-          <div className="w-full overflow-hidden rounded-lg border bg-card">
-            <div className="overflow-x-auto">
-              <div className="block w-full align-middle">
-                <DataTable<Unit, unknown>
-                  columns={actionColumns}
-                  data={units}
-                  pageIndex={currentPage}
-                  pageCount={totalPages}
-                  pageSize={pageSize}
-                  totalCount={totalCount}
-                  onPageChange={(newPage) => setCurrentPage(newPage)}
-                  onPageSizeChange={(newSize) => {
-                    setPageSize(newSize);
-                    setCurrentPage(0);
-                  }}
-                  onRowClick={(row) => handleUnitClick(row.original)}
-                  // New: wire robust search
-                  searchValue={searchTerm}
-                  onSearchChange={(term) => setSearchTerm(term)}
-                />
-              </div>
-            </div>
+      <div className="grid grid-cols-2 gap-2 mb-6 sm:grid-cols-5">
+        <Card className="p-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
+            <CardTitle className="text-xs font-medium">Total Units</CardTitle>
+            <Home className="h-3 w-3 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="p-0 pt-2">
+            <div className="text-xl font-bold">{stats.total_units}</div>
+          </CardContent>
+        </Card>
+        <Card className="p-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
+            <CardTitle className="text-xs font-medium">Occupied</CardTitle>
+            <Badge variant="secondary" className="text-xs">Active</Badge>
+          </CardHeader>
+          <CardContent className="p-0 pt-2">
+            <div className="text-xl font-bold">{stats.occupied_units}</div>
+          </CardContent>
+        </Card>
+        <Card className="p-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
+            <CardTitle className="text-xs font-medium">Vacant</CardTitle>
+            <Badge variant="default" className="text-xs">Available</Badge>
+          </CardHeader>
+          <CardContent className="p-0 pt-2">
+            <div className="text-xl font-bold">{stats.vacant_units}</div>
+          </CardContent>
+        </Card>
+        <Card className="p-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
+            <CardTitle className="text-xs font-medium">Maintenance</CardTitle>
+            <Badge variant="destructive" className="text-xs ml-1">Repair</Badge>
+          </CardHeader>
+          <CardContent className="p-0 pt-2">
+            <div className="text-xl font-bold">{stats.maintenance_units}</div>
+          </CardContent>
+        </Card>
+        <Card className="p-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
+            <CardTitle className="text-xs font-medium">Occupancy Rate</CardTitle>
+            <Badge variant="outline" className="text-xs">{Math.round(stats.occupancy_rate)}%</Badge>
+          </CardHeader>
+          <CardContent className="p-0 pt-2">
+            <div className="text-xl font-bold">{stats.occupancy_rate.toFixed(1)}%</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="w-full overflow-hidden rounded-lg border bg-card">
+        <div className="overflow-x-auto">
+          <div className="block w-full align-middle">
+            <DataTable<Unit, unknown>
+              columns={actionColumns}
+              data={units}
+              pageIndex={currentPage}
+              pageCount={totalPages}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              onPageChange={(newPage) => setCurrentPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(0);
+              }}
+              onRowClick={(row) => handleUnitClick(row.original)}
+              // New: wire robust search
+              searchValue={searchTerm}
+              onSearchChange={(term) => setSearchTerm(term)}
+              isLoading={isLoading}
+            />
           </div>
+        </div>
+      </div>
 
       {isFormOpen && (
         <UnitForm
@@ -330,16 +331,16 @@ export default function Units() {
 
       {isDetailsOpen && selectedUnit && (
         <UnitDetails
-            unit={selectedUnit}
-            isOpen={isDetailsOpen}
-            onClose={() => {
-                // Only close the details dialog; keep edit state intact
-                setIsDetailsOpen(false);
-            }}
-            onEdit={() => handleEdit(selectedUnit)}
-            onDelete={() => setIsDeleteOpen(true)}
+          unit={selectedUnit}
+          isOpen={isDetailsOpen}
+          onClose={() => {
+            // Only close the details dialog; keep edit state intact
+            setIsDetailsOpen(false);
+          }}
+          onEdit={() => handleEdit(selectedUnit)}
+          onDelete={() => setIsDeleteOpen(true)}
         />
-    )}
+      )}
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>

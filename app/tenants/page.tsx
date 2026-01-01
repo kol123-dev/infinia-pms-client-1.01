@@ -36,19 +36,11 @@ export default function TenantsPage() {
   // New: stats state from backend
   const [stats, setStats] = useState<{ active_tenants: { count: number } }>({ active_tenants: { count: 0 } })
 
-  // New: sort helper – newest first
-  const sortByNewest = (items: Tenant[]) =>
-    [...(items || [])].sort((a, b) => {
-      const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0
-      const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0
-      return bTime - aTime
-    })
-
   // Helper: refresh tenants and stats
   const refreshTenants = async () => {
     try {
       const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
-      setTenants(sortByNewest(response.data.results))
+      setTenants(response.data.results)
       setTotalPages(Math.ceil(response.data.count / pageSize))
       setTotalTenantsCount(Number(response.data.count) || 0)
       await api.get('/tenants/stats/').then(r => setStats(r.data))
@@ -60,7 +52,7 @@ export default function TenantsPage() {
     const fetchTenants = async () => {
       try {
         const response = await api.get(`/tenants/?page=${pageIndex + 1}`)
-        setTenants(sortByNewest(response.data.results))
+        setTenants(response.data.results)
         setTotalPages(Math.ceil(response.data.count / pageSize))
         setTotalTenantsCount(Number(response.data.count) || 0)
       } catch (error) {

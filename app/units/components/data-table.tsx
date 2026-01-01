@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -84,6 +85,7 @@ interface DataTableProps<TData, TValue> {
   // New optional props for robust server-side search
   searchValue?: string;
   onSearchChange?: (term: string) => void;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -99,6 +101,7 @@ export function DataTable<TData, TValue>({
   // New props
   searchValue,
   onSearchChange,
+  isLoading,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -209,9 +212,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -219,7 +222,17 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              Array.from({ length: pageSize }).map((_, r) => (
+                <TableRow key={r}>
+                  {table.getVisibleFlatColumns().map((column) => (
+                    <TableCell key={column.id}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -243,7 +256,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      
+
       {/* Simplified pagination footer (removed row selection) */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-6 text-sm">
@@ -260,7 +273,7 @@ export function DataTable<TData, TValue>({
             <span className="font-medium text-foreground">{pageCount || 1}</span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Select
             value={pageSize.toString()}
@@ -277,7 +290,7 @@ export function DataTable<TData, TValue>({
               ))}
             </SelectContent>
           </Select>
-          
+
           <div className="flex">
             <Button
               variant="outline"

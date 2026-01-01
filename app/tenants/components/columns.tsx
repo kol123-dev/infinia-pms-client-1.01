@@ -35,7 +35,7 @@ export const columns: ColumnDef<Tenant>[] = [
             <AvatarFallback>{tenant.user?.full_name?.[0] || "T"}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-medium">{tenant.user?.full_name}</span>
+            <span className="font-medium">{tenant.user?.full_name || "Unknown"}</span>
             <span className="text-sm text-muted-foreground">{tenant.phone || tenant.user?.phone || "No phone"}</span>
           </div>
         </div>

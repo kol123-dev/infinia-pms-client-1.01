@@ -36,8 +36,8 @@ try {
 // Function to authenticate with backend
 async function authenticateWithBackend(idToken: string) {
   const directAxios = axios.create({
-    baseURL: (process.env.NODE_ENV === 'production'
-      ? 'https://api.infiniasync.com/api/v1'
+    baseURL: (process.env.NODE_ENV === 'production' 
+      ? 'https://api.infiniasync.com/api/v1' 
       : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1')).replace(/\/?$/, '/'),
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     withCredentials: true,
@@ -105,16 +105,16 @@ const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
-
+        
         if (!auth) {
-          throw new Error("Authentication service unavailable. Please contact support.")
+           throw new Error("Authentication service unavailable. Please contact support.")
         }
 
         try {
           // First, sign in with Firebase to get ID token
           const userCredential = await signInWithEmailAndPassword(auth, credentials.email!, credentials.password!)
           const idToken = await userCredential.user.getIdToken()
-
+          
           // Authenticate with backend server-side (okay), but we also need client to set cookies:
           const user = await authenticateWithBackend(idToken)
 
@@ -171,11 +171,11 @@ const authOptions: NextAuthOptions = {
 
           const newDecoded = jwtDecode<{ exp: number }>(newAccessToken)
           const newExpiry = newDecoded.exp * 1000
-            ; (token as any).accessToken = newAccessToken
-            ; (token as any).tokenExpiry = newExpiry
+          ;(token as any).accessToken = newAccessToken
+          ;(token as any).tokenExpiry = newExpiry
 
           if (newRefreshToken) {
-            ; (token as any).refreshToken = newRefreshToken
+            ;(token as any).refreshToken = newRefreshToken
           }
         } catch (e: any) {
           const msg = String(e?.message || '')
@@ -190,10 +190,10 @@ const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }: { session: Session; token: any }) {
-      ; (session as any).accessToken = token.accessToken
-        ; (session as any).firebaseToken = token.firebaseToken
-        ; (session as any).id = token.id
-        ; (session as any).role = token.role
+      ;(session as any).accessToken = token.accessToken
+      ;(session as any).firebaseToken = token.firebaseToken
+      ;(session as any).id = token.id
+      ;(session as any).role = token.role
       return session
     },
     async redirect({ url, baseUrl }) {
@@ -220,23 +220,6 @@ const authOptions: NextAuthOptions = {
   cookies: {
     sessionToken: {
       name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-    callbackUrl: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.callback-url' : 'next-auth.callback-url',
-      options: {
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-    csrfToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.csrf-token' : 'next-auth.csrf-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',

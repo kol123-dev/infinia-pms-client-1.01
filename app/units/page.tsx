@@ -254,7 +254,7 @@ export default function Units() {
             <Card className="p-3">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0">
                 <CardTitle className="text-xs font-medium">Maintenance</CardTitle>
-                <Badge variant="destructive" className="text-xs">Under Repair</Badge>
+                <Badge variant="destructive" className="text-xs ml-1">Repair</Badge>
               </CardHeader>
               <CardContent className="p-0 pt-2">
                 <div className="text-xl font-bold">{stats.maintenance_units}</div>

@@ -55,13 +55,12 @@ export function PaymentStats() {
       <Card className="shadow-sm">
         <CardHeader className="pb-1">
           <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-blue-500" />
             <CardTitle className="text-xs sm:text-sm font-medium">Total Collected</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="text-lg sm:text-2xl font-bold">
-            {formatCurrency(stats.total_collected.amount)}
+            KES {formatCurrency(stats.total_collected.amount)}
           </div>
           <p className={`text-xs ${stats.total_collected.color === 'green' ? 'text-green-600' : 'text-red-600'}`}>
             {stats.total_collected.change_percentage > 0 ? '+' : ''}

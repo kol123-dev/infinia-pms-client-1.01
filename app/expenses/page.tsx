@@ -119,18 +119,18 @@ export default function ExpensesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-4 p-8">
+      <div className="space-y-4 p-4 sm:p-6 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Expenses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold">{formatCurrency(totalExpenses)}</div>
-            </CardContent>
-          </Card>
-        </div>
+        
+        <Card className="shadow-sm bg-white">
+          <CardContent className="p-5 flex flex-col gap-1">
+            <span className="text-sm font-medium text-muted-foreground">Total Expenses</span>
+            <div className="text-3xl font-extrabold tracking-tight text-foreground">
+              {formatCurrency(totalExpenses)}
+            </div>
+          </CardContent>
+        </Card>
+
         <ExpenseList
           expenses={expenses}
           loading={loading}

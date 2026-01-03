@@ -954,13 +954,13 @@ export function PaymentList() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-bold">{payment.property?.name || 'N/A'}</span>
-                        <span className="text-sm text-green-600">Unit {payment.unit?.unit_number || 'N/A'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-bold">{formatCurrency(payment.amount || 0)}</TableCell>
-                    <TableCell>{formatCurrency(payment.balance_after || 0)}</TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-bold">{payment.property?.name || 'N/A'}</span>
+                    <span className="text-sm text-green-600">Unit {payment.unit?.unit_number || 'N/A'}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-bold">{formatCurrency(payment.amount || 0)}</TableCell>
+                <TableCell>{formatCurrency(payment.balance_after || 0)}</TableCell>
                     {/* Human-friendly date with raw payload in tooltip */}
                     <TableCell>
                       <span title={displayDateTitle(payment)}>

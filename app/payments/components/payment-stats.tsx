@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/utils"
 import api from "@/lib/axios"
-import { DollarSign, Clock, AlertTriangle, TrendingUp } from "lucide-react"
+import { Clock, AlertTriangle, TrendingUp } from "lucide-react"
 
 interface PaymentStats {
   total_collected: {

@@ -21,7 +21,9 @@ interface Property {
 interface AddExpenseDialogProps {
   onSubmit: () => void
   createExpenseOverride?: (data: Partial<Expense>) => Promise<void>
+  trigger?: React.ReactNode
 }
+
 
 // Backend-supported expense types only
 const expenseTypes = [
@@ -36,7 +38,7 @@ const calculationTypes = [
   { value: "PERCENTAGE", label: "Percentage" }
 ]
 
-export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpenseDialogProps) {
+export function AddExpenseDialog({ onSubmit, createExpenseOverride, trigger }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [properties, setProperties] = useState<Property[]>([])
@@ -98,6 +100,7 @@ export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpense
       toast({
         title: "Success",
         description: "Expense created successfully",
+        variant: "success",
       })
       setOpen(false)
       onSubmit()
@@ -115,7 +118,7 @@ export function AddExpenseDialog({ onSubmit, createExpenseOverride }: AddExpense
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Add Expense</Button>
+        {trigger || <Button>Add Expense</Button>}
       </DialogTrigger>
       <DialogContent className="w-[95vw] sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>

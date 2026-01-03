@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddExpenseDialog } from "./add-expense-dialog"
 import { Button } from "@/components/ui/button"
 import { EditExpenseDialog } from "./edit-expense-dialog"
 import { Expense } from "@/hooks/useExpenses"
+import { Pencil, Trash2, Plus } from "lucide-react"
 
 type Props = {
   expenses: Expense[]
@@ -102,75 +101,67 @@ export function ExpenseList({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Expenses</CardTitle>
-        <AddExpenseDialog onSubmit={fetchExpenses} createExpenseOverride={createExpense} />
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Recurring</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <p className="text-muted-foreground">Loading expenses...</p>
-                  </TableCell>
-                </TableRow>
-              ) : expenses.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <p className="text-muted-foreground">No expenses found</p>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                expenses.map((expense) => (
-                  <TableRow key={expense.id}>
-                    <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{expense.name}</TableCell>
-                    <TableCell>{expense.expense_type}</TableCell>
-                    <TableCell>{propertyNames[String(expense.property || "")] || "-"}</TableCell>
-                    <TableCell>{formatCurrency(computeDisplayAmount(expense))}</TableCell>
-                    <TableCell>
-                      <Badge variant={expense.is_recurring ? "default" : "secondary"}>
-                        {expense.is_recurring ? "Yes" : "No"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{expense.description || "-"}</TableCell>
-                    <TableCell className="space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => setEditing(expense)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={async () => {
-                          await deleteExpense(expense.id)
-                          fetchExpenses()
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+    <div className="relative pb-24">
+      <div className="divide-y border rounded-lg bg-white shadow-sm">
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground">Loading expenses...</div>
+        ) : expenses.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">No expenses found</div>
+        ) : (
+          expenses.map((expense) => (
+            <div key={expense.id} className="flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors">
+              <div className="flex flex-col gap-1 min-w-0 pr-4 flex-1">
+                <span className="font-medium truncate text-sm text-foreground">
+                  {expense.description || expense.name || "Untitled Expense"}
+                </span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{new Date(expense.date).toLocaleDateString()}</span>
+                  <span>•</span>
+                  <span className="font-semibold text-foreground">
+                    {formatCurrency(computeDisplayAmount(expense))}
+                  </span>
+                  {expense.is_recurring && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1">Recurring</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-muted-foreground" 
+                  onClick={() => setEditing(expense)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                  onClick={async () => {
+                    await deleteExpense(expense.id)
+                    fetchExpenses()
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="fixed bottom-6 right-6 z-50">
+        <AddExpenseDialog 
+          onSubmit={fetchExpenses} 
+          createExpenseOverride={createExpense}
+          trigger={
+            <Button className="h-14 w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 p-0 flex items-center justify-center">
+              <Plus className="h-6 w-6 text-white" />
+            </Button>
+          }
+        />
+      </div>
 
       {editing && (
         <EditExpenseDialog
@@ -185,6 +176,6 @@ export function ExpenseList({
           }}
         />
       )}
-    </Card>
+    </div>
   )
 }

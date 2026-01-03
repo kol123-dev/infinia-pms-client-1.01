@@ -7,6 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCurrency(amount: number): string {
   return amount.toLocaleString('en-KE', {
+    style: 'currency',
+    currency: 'KES',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

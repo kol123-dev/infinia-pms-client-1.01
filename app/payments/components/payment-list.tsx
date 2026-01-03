@@ -15,6 +15,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
 import { exportPaymentsToPDF, exportPaymentsToXLSX } from "@/app/payments/utils/payment-export"
+import { formatCurrency } from "@/lib/utils"
 
 interface Payment {
   id: number
@@ -958,8 +959,8 @@ export function PaymentList() {
                         <span className="text-sm text-green-600">Unit {payment.unit?.unit_number || 'N/A'}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-bold">{payment.amount || 0}</TableCell>
-                    <TableCell>{payment.balance_after || 0}</TableCell>
+                    <TableCell className="font-bold">{formatCurrency(payment.amount || 0)}</TableCell>
+                    <TableCell>{formatCurrency(payment.balance_after || 0)}</TableCell>
                     {/* Human-friendly date with raw payload in tooltip */}
                     <TableCell>
                       <span title={displayDateTitle(payment)}>

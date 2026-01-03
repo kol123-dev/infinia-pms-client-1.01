@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Expense } from "@/hooks/useExpenses"
 import { useToast } from "@/hooks/use-toast"
 
@@ -91,11 +92,13 @@ export function EditExpenseDialog({ expense, onSubmit, updateExpense, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] sm:max-w-[640px] h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>Edit Expense</DialogTitle>
         </DialogHeader>
-        <form id="edit-expense-form" onSubmit={handleSubmit} className="space-y-4 pb-24">
+        <ScrollArea className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="px-6 pb-24 space-y-4">
+            <form id="edit-expense-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Name</Label>
             <Input
@@ -250,6 +253,8 @@ export function EditExpenseDialog({ expense, onSubmit, updateExpense, onOpenChan
 
 
         </form>
+          </div>
+        </ScrollArea>
         <div className="sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-6 py-3 pb-[env(safe-area-inset-bottom)]">
           <Button form="edit-expense-form" type="submit" disabled={loading} className="w-full">
             {loading ? "Updating..." : "Save Changes"}

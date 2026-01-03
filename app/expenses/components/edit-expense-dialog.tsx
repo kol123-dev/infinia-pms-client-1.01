@@ -91,11 +91,14 @@ export function EditExpenseDialog({ expense, onSubmit, updateExpense, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Expense</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogContent className="w-[95vw] sm:max-w-[640px] max-h-[85vh] p-0 overflow-hidden">
+        <div className="flex flex-col max-h-[85vh]">
+          <div className="px-6 pt-6">
+            <DialogHeader>
+              <DialogTitle>Edit Expense</DialogTitle>
+            </DialogHeader>
+          </div>
+          <form id="edit-expense-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 pb-24 space-y-4">
           <div className="space-y-2">
             <Label>Name</Label>
             <Input
@@ -248,10 +251,13 @@ export function EditExpenseDialog({ expense, onSubmit, updateExpense, onOpenChan
             />
           </div>
 
-          <Button type="submit" disabled={loading}>
-            {loading ? "Updating..." : "Save Changes"}
-          </Button>
         </form>
+          <div className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t px-6 py-3">
+            <Button form="edit-expense-form" type="submit" disabled={loading} className="w-full sm:w-auto">
+              {loading ? "Updating..." : "Save Changes"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

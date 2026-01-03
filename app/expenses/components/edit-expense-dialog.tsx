@@ -92,7 +92,7 @@ export function EditExpenseDialog({ expense, onSubmit, updateExpense, onOpenChan
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-[640px] max-h-[85vh] p-0 overflow-hidden">
-        <div className="flex flex-col max-h-[85vh]">
+        <div className="flex flex-col max-h-[120vh]">
           <div className="px-6 pt-6">
             <DialogHeader>
               <DialogTitle>Edit Expense</DialogTitle>

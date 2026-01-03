@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { useExpenses } from "@/hooks/useExpenses"
 import { formatCurrency } from "@/lib/utils"
 import { ExpenseList } from "./components/expense-list"
+import { Wallet } from "lucide-react"
 
 export default function ExpensesPage() {
   const { expenses, loading, fetchExpenses, createExpense, deleteExpense, updateExpense } = useExpenses()
@@ -119,14 +120,19 @@ export default function ExpensesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-4 p-4 sm:p-6 max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
+      <div className="space-y-6 p-4 sm:p-6 w-full max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Expenses</h1>
         
         <Card className="shadow-sm bg-white">
-          <CardContent className="p-5 flex flex-col gap-1">
-            <span className="text-sm font-medium text-muted-foreground">Total Expenses</span>
-            <div className="text-3xl font-extrabold tracking-tight text-foreground">
-              {formatCurrency(totalExpenses)}
+          <CardContent className="p-6 flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Expenses</span>
+              <div className="text-4xl font-extrabold tracking-tight text-blue-950">
+                {formatCurrency(totalExpenses)}
+              </div>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <Wallet className="h-6 w-6 text-blue-600" />
             </div>
           </CardContent>
         </Card>

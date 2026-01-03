@@ -101,53 +101,70 @@ export function ExpenseList({
   }
 
   return (
-    <div className="relative pb-24">
-      <div className="divide-y border rounded-lg bg-white shadow-sm">
+    <div className="relative pb-24 w-full max-w-full overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">Loading expenses...</div>
         ) : expenses.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">No expenses found</div>
         ) : (
-          expenses.map((expense) => (
-            <div key={expense.id} className="flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors">
-              <div className="flex flex-col gap-1 min-w-0 pr-4 flex-1">
-                <span className="font-medium truncate text-sm text-foreground">
-                  {expense.description || expense.name || "Untitled Expense"}
-                </span>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{new Date(expense.date).toLocaleDateString()}</span>
-                  <span>•</span>
-                  <span className="font-semibold text-foreground">
-                    {formatCurrency(computeDisplayAmount(expense))}
+          expenses.map((expense) => {
+            // Determine border color based on expense type/attributes
+            const colorDotClass = expense.is_recurring 
+              ? "bg-blue-500" 
+              : expense.amount > 10000 
+                ? "bg-red-500" 
+                : "bg-green-500"
+
+            return (
+              <div 
+                key={expense.id} 
+                className="rounded-lg shadow-sm bg-white p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+              >
+                <div className="flex flex-col gap-1 min-w-0 pr-3 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                  <span className={`inline-block h-2 w-2 rounded-full ${colorDotClass}`}></span>
+                  <span className="font-medium truncate text-sm text-foreground">
+                    {expense.description || expense.name || "Untitled Expense"}
                   </span>
-                  {expense.is_recurring && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1">Recurring</Badge>
-                  )}
+                </div>
+                  <div className="flex items-center flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span className="shrink-0">{new Date(expense.date).toLocaleDateString()}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="font-semibold text-foreground shrink-0">
+                      {formatCurrency(computeDisplayAmount(expense))}
+                    </span>
+                    {expense.is_recurring && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-blue-100 text-blue-700 hover:bg-blue-100 border-none">
+                        Recurring
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50" 
+                    onClick={() => setEditing(expense)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                    onClick={async () => {
+                      await deleteExpense(expense.id)
+                      fetchExpenses()
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-muted-foreground" 
-                  onClick={() => setEditing(expense)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                  onClick={async () => {
-                    await deleteExpense(expense.id)
-                    fetchExpenses()
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
